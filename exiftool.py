@@ -15,13 +15,13 @@ Example usage:
 
     files = ["a.jpg", "b.png", "c.tif"]
     with exiftool.ExifTool() as et:
-        metadata = et.get_metadata_batch(*files)
+        metadata = et.get_metadata_batch(files)
     for d in metadata:
         print("{:20.20} {:20.20}".format(d["SourceFile"],
                                          d["EXIF:DateTimeOriginal"]))
 
 Phil Harvey's ExifTool can be found at [1].  Many Linux distributions
-provide a package contauining this tool.
+provide a package containing this tool.
 
 [1]: http://www.sno.phy.queensu.ca/~phil/exiftool/
 """
@@ -70,6 +70,12 @@ class ExifTool(object):
 
     The attribute 'running' is a Boolean value indicating whether this
     instance is currently associated with a running subprocess.
+
+    Note that there is no error handling.  Nonsensical options will be
+    silently ignored by exiftool, so there's not much that can be done
+    in that regard.  You should avoid passing non-existent files to
+    any of the methods, since this will lead to somewhat undefied
+    behaviour (and some output on stderr).
     """
 
     def __init__(self, executable_=None):
@@ -127,7 +133,7 @@ class ExifTool(object):
         """
         if not self.running:
             raise ValueError("ExifTool instance not running.")
-        params = params + ("-execute\n",)
+        params += ("-execute\n",)
         self._process.stdin.write(str.join("\n", params))
         self._process.stdin.flush()
         output = ""
@@ -136,17 +142,17 @@ class ExifTool(object):
             output += os.read(fd, block_size)
         return output[:-len(sentinel)]
 
-    def get_metadata_batch(self, *params):
+    def get_metadata_batch(self, params):
         """Return all meta-data for the given files.
 
-        The method accepts any number of file names as parameters.  It
-        retrieves all meta-data for these files using ExifTool's JSON
-        encoded output.  The return value is a list of dictionaries,
-        mapping tag names to the corresponding values.  All keys are
-        Unicode strings with the tag names, including the ExifTool
-        group name in the format <group>:<tag>.  The values can have
-        multiple types.  All occuring strings will be Unicode strings,
-        though.
+        The method accepts an iterable of file names as parameters.
+        It retrieves all meta-data for these files using ExifTool's
+        JSON encoded output.  The return value is a list of
+        dictionaries, mapping tag names to the corresponding values.
+        All keys are Unicode strings with the tag names, including the
+        ExifTool group name in the format <group>:<tag>.  The values
+        can have multiple types.  All occuring strings will be Unicode
+        strings, though.
         """
         return json.loads(self.execute("-G", "-j", "-n", *params))
 
@@ -156,32 +162,61 @@ class ExifTool(object):
         The returned dictionary has the format described in the
         documentation of 'get_metadata_batch()'.
         """
-        return self.get_metadata_batch(filename)[0]
+        return self.get_metadata_batch([filename])[0]
 
-    def get_tags_batch(self, tags, *filenames):
+    def get_tags_batch(self, tags, filenames):
+        """Return only specified tags for the given files.
+
+        The first argument is an iterable of tags.  The tag names may
+        include group names, as usual in the format <group>:<tag>.
+
+        The second argument is an iterable of filenames.
+
+        The format of the return value is the same as for
+        'get_metadata_batch()'.
+        """
+        # Explicitly ruling out strings here because passing in a
+        # string would lead to strange and hard-to-find errors
         if isinstance(tags, basestring):
             raise TypeError("The argument 'tags' must be "
                             "an iterable of strings")
+        if isinstance(filenames, basestring):
+            raise TypeError("The argument 'filenames' must be "
+                            "an iterable of strings")
         params = ["-" + t for t in tags]
         params.extend(filenames)
-        return self.get_metadata_batch(*params)
+        return self.get_metadata_batch(params)
 
     def get_tags(self, tags, filename):
-        return self.get_tags_batch(tags, filename)[0]
+        """Return only specified tags for a single file.
 
-    def get_tag_batch(self, tag, *filenames):
-        data = self.get_tags_batch([tag], *filenames)
+        The returned dictionary has the format described in the
+        documentation of 'get_metadata_batch()'.
+        """
+        return self.get_tags_batch(tags, [filename])[0]
+
+    def get_tag_batch(self, tag, filenames):
+        """Extract a single tag from the given files.
+
+        The first argument is a single tag name, as usual in the
+        format <group>:<tag>.
+
+        The second argument is an iterable of filenames.
+
+        The return value is a list of tag values or 'None' for
+        non-existent tags, in the same order as 'filenames'.
+        """
+        data = self.get_tags_batch([tag], filenames)
         result = []
-        tag = tag.lower()
         for d in data:
-            for k, v in d.iteritems():
-                k = k.lower()
-                if tag in [k, k.partition(":")[-1]]:
-                    result.append(v)
-                    break
-            else:
-                result.append(None)
+            d.pop("SourceFile")
+            result.append(next(d.itervalues(), None))
         return result
 
     def get_tag(self, tag, filename):
-        return self.get_tag_batch(tag, filename)[0]
+        """Extract a single tag from a single file.
+
+        The return value is the value of the specified tag, or 'None'
+        if this tag was not found in the file.
+        """
+        return self.get_tag_batch(tag, [filename])[0]
