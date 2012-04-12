@@ -40,6 +40,8 @@ releases yet.
 
 .. _tarball: https://github.com/smarnach/pyexiftool/tarball/master
 
+PyExifTool is licenced under GNU GPL version 3 or later.
+
 Example usage::
 
     import exiftool
