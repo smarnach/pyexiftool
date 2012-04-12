@@ -16,15 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with PyExifTool.  If not, see <http://www.gnu.org/licenses/>.
 
-"""PyExifTool
-
+"""
 PyExifTool is a Python library to communicate with an instance of Phil
-Harvey's excellent ExifTool command-line application.  The library
-provides a class 'ExifTool' that runs the command-line tool in batch
-mode and features methods to send commands to that program, including
-methods to extract meta-information from one or more image files.
+Harvey's excellent `ExifTool`_ command-line application.  The library
+provides the class :py:class:`ExifTool` that runs the command-line
+tool in batch mode and features methods to send commands to that
+program, including methods to extract meta-information from one or
+more image files.
 
-Example usage:
+.. _ExifTool: http://www.sno.phy.queensu.ca/~phil/exiftool/
+
+Example usage::
 
     import exiftool
 
@@ -34,11 +36,6 @@ Example usage:
     for d in metadata:
         print("{:20.20} {:20.20}".format(d["SourceFile"],
                                          d["EXIF:DateTimeOriginal"]))
-
-Phil Harvey's ExifTool can be found at [1].  Many Linux distributions
-provide a package containing this tool.
-
-[1]: http://www.sno.phy.queensu.ca/~phil/exiftool/
 """
 
 import subprocess
@@ -61,36 +58,38 @@ sentinel = "{ready}\n"
 block_size = 4096
 
 class ExifTool(object):
-    """Run the 'exiftool' command-line tool and communicate to it.
+    """Run the `exiftool` command-line tool and communicate to it.
 
-    You can pass the name of the filename of the 'exiftool' executable
-    as an argument to the constructor.  The default value "exiftool"
-    will only work if the executable is in your PATH.
+    You can pass file name of the ``exiftool`` executable as an
+    argument to the constructor.  The default value ``exiftool`` will
+    only work if the executable is in your ``PATH``.
 
     Most methods of this class are only available after calling
-    'start()', which will actually launch the subprocess.  To avoid
-    leaving the subprocess running, make sure to call the
-    'terminate()' method when finished using the instance.  This
-    method will also be called when the instance is garbage collected,
-    but there are circumstance when this won't ever happen.
-    Subprocesses won't be automatically terminated if the parent
-    process exits, so a leaked subprocess will stay until manually
-    killed.
+    :py:meth:`start()`, which will actually launch the subprocess.  To
+    avoid leaving the subprocess running, make sure to call
+    :py:meth:`terminate()` method when finished using the instance.
+    This method will also be implicitly called when the instance is
+    garbage collected, but there are circumstance when this won't ever
+    happen, so you should not rely on this.  Subprocesses won't be
+    automatically terminated if the parent process exits, so a leaked
+    subprocess will stay until manually killed.
 
     A convenient way to make sure that the subprocess is terminated is
-    to use the 'ExifTool' instance as a context manager:
+    to use the :py:class:`ExifTool` instance as a context manager::
 
         with ExifTool() as et:
             ...
-
-    The attribute 'running' is a Boolean value indicating whether this
-    instance is currently associated with a running subprocess.
 
     Note that there is no error handling.  Nonsensical options will be
     silently ignored by exiftool, so there's not much that can be done
     in that regard.  You should avoid passing non-existent files to
     any of the methods, since this will lead to somewhat undefied
     behaviour (and some output on stderr).
+
+    .. py:attribute:: running
+
+       A Boolean value indicating whether this instance is currently
+       associated with a running subprocess.
     """
 
     def __init__(self, executable_=None):
@@ -101,9 +100,9 @@ class ExifTool(object):
         self.running = False
 
     def start(self):
-        """Start a 'exiftool' process for this instance.
+        """Start a ``exiftool`` process for this instance.
 
-        This method will issue a UserWarning if the subprocess is
+        This method will issue a ``UserWarning`` if the subprocess is
         already running.
         """
         if self.running:
@@ -115,7 +114,7 @@ class ExifTool(object):
         self.running = True
 
     def terminate(self):
-        """Terminate the 'exiftool' process of this instance.
+        """Terminate the ``exiftool`` process of this instance.
 
         If the subprocess isn't running, this method will do nothing.
         """
@@ -138,13 +137,13 @@ class ExifTool(object):
         self.terminate()
 
     def execute(self, *params):
-        """Send the given batch of parameters to 'exiftool'.
+        """Send the given batch of parameters to ``exiftool``.
 
         This method accepts any number of string parameters, which
-        will be send to the 'exiftool' process.  The final '-execute'
-        necessary to actually run the batch is appended automatically.
-        The 'exiftool' output is read up to the end-of-output sentinel
-        and returned, excluding the sentinel.
+        will be send to the ``exiftool`` process.  The final
+        ``-execute`` necessary to actually run the batch is appended
+        automatically.  The ``exiftool`` output is read up to the
+        end-of-output sentinel and returned, excluding the sentinel.
         """
         if not self.running:
             raise ValueError("ExifTool instance not running.")
@@ -175,7 +174,7 @@ class ExifTool(object):
         """Return meta-data for a single file.
 
         The returned dictionary has the format described in the
-        documentation of 'get_metadata_batch()'.
+        documentation of :py:meth:`get_metadata_batch()`.
         """
         return self.get_metadata_batch([filename])[0]
 
@@ -185,10 +184,10 @@ class ExifTool(object):
         The first argument is an iterable of tags.  The tag names may
         include group names, as usual in the format <group>:<tag>.
 
-        The second argument is an iterable of filenames.
+        The second argument is an iterable of file names.
 
         The format of the return value is the same as for
-        'get_metadata_batch()'.
+        :py:meth:`get_metadata_batch()`.
         """
         # Explicitly ruling out strings here because passing in a
         # string would lead to strange and hard-to-find errors
@@ -206,7 +205,7 @@ class ExifTool(object):
         """Return only specified tags for a single file.
 
         The returned dictionary has the format described in the
-        documentation of 'get_metadata_batch()'.
+        documentation of :py:meth:`get_metadata_batch()`.
         """
         return self.get_tags_batch(tags, [filename])[0]
 
@@ -216,10 +215,10 @@ class ExifTool(object):
         The first argument is a single tag name, as usual in the
         format <group>:<tag>.
 
-        The second argument is an iterable of filenames.
+        The second argument is an iterable of file names.
 
-        The return value is a list of tag values or 'None' for
-        non-existent tags, in the same order as 'filenames'.
+        The return value is a list of tag values or ``None`` for
+        non-existent tags, in the same order as ``filenames``.
         """
         data = self.get_tags_batch([tag], filenames)
         result = []
@@ -231,7 +230,7 @@ class ExifTool(object):
     def get_tag(self, tag, filename):
         """Extract a single tag from a single file.
 
-        The return value is the value of the specified tag, or 'None'
-        if this tag was not found in the file.
+        The return value is the value of the specified tag, or
+        ``None`` if this tag was not found in the file.
         """
         return self.get_tag_batch(tag, [filename])[0]
