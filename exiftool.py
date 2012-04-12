@@ -22,7 +22,10 @@ Harvey's excellent `ExifTool`_ command-line application.  The library
 provides the class :py:class:`ExifTool` that runs the command-line
 tool in batch mode and features methods to send commands to that
 program, including methods to extract meta-information from one or
-more image files.
+more image files.  Since ``exiftool`` is run in batch mode, only a
+single instance needs to be launched and can be reused for many
+queries.  This is much more efficient than launching a separate
+process for every single query.
 
 .. _ExifTool: http://www.sno.phy.queensu.ca/~phil/exiftool/
 
@@ -43,10 +46,12 @@ import os
 import json
 import warnings
 
-# The name of the executable to run.  If the executable is not in one
-# of the paths listed in the PATH environment variable, the full path
-# must be given here.
 executable = "exiftool"
+"""The name of the executable to run.
+
+If the executable is not located in one of the paths listed in the
+``PATH`` environment variable, the full path should be given here.
+"""
 
 # Sentinel indicating the end of the output of a sequence of commands.
 # The standard value should be fine.
@@ -60,7 +65,7 @@ block_size = 4096
 class ExifTool(object):
     """Run the `exiftool` command-line tool and communicate to it.
 
-    You can pass file name of the ``exiftool`` executable as an
+    You can pass the file name of the ``exiftool`` executable as an
     argument to the constructor.  The default value ``exiftool`` will
     only work if the executable is in your ``PATH``.
 
@@ -70,9 +75,10 @@ class ExifTool(object):
     :py:meth:`terminate()` method when finished using the instance.
     This method will also be implicitly called when the instance is
     garbage collected, but there are circumstance when this won't ever
-    happen, so you should not rely on this.  Subprocesses won't be
-    automatically terminated if the parent process exits, so a leaked
-    subprocess will stay until manually killed.
+    happen, so you should not rely on the implicit process
+    termination.  Subprocesses won't be automatically terminated if
+    the parent process exits, so a leaked subprocess will stay around
+    until manually killed.
 
     A convenient way to make sure that the subprocess is terminated is
     to use the :py:class:`ExifTool` instance as a context manager::
@@ -83,8 +89,8 @@ class ExifTool(object):
     Note that there is no error handling.  Nonsensical options will be
     silently ignored by exiftool, so there's not much that can be done
     in that regard.  You should avoid passing non-existent files to
-    any of the methods, since this will lead to somewhat undefied
-    behaviour (and some output on stderr).
+    any of the methods, since this will lead to undefied behaviour
+    (and some output on stderr).
 
     .. py:attribute:: running
 
