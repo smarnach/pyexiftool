@@ -33,7 +33,9 @@ Installation
 PyExifTool runs on Python 2.6 and above, including 3.x.
 
 You need an installation of the ``exiftool`` command-line tool.  The
-code has been tested with version 8.60.
+code has been tested with version 8.60, but should work with version
+8.40 or above (which was the first production version of exiftool
+featuring the ``-stay_open`` option for batch mode).
 
 PyExifTool currently only consists of a single module, so you can
 simply copy or link this module to a place where Python finds it, or
