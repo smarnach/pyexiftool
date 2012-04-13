@@ -59,6 +59,11 @@ import os
 import json
 import warnings
 
+try:        # Py3k compatibility
+    basestring
+except NameError:
+    basestring = str
+
 executable = "exiftool"
 """The name of the executable to run.
 
@@ -243,7 +248,11 @@ class ExifTool(object):
         result = []
         for d in data:
             d.pop("SourceFile")
-            result.append(next(d.itervalues(), None))
+            try:        # Py3k compatibility
+                it = d.itervalues()
+            except AttributeError:
+                it = iter(d.values())
+            result.append(next(it, None))
         return result
 
     def get_tag(self, tag, filename):
