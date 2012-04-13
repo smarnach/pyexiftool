@@ -73,7 +73,7 @@ If the executable is not located in one of the paths listed in the
 
 # Sentinel indicating the end of the output of a sequence of commands.
 # The standard value should be fine.
-sentinel = "{ready}\n"
+sentinel = b"{ready}\n"
 
 # The block size when reading from exiftool.  The standard value
 # should be fine, though other values might give better performance in
@@ -144,7 +144,7 @@ class ExifTool(object):
         """
         if not self.running:
             return
-        self._process.stdin.write("-stay_open\nFalse\n")
+        self._process.stdin.write(b"-stay_open\nFalse\n")
         self._process.stdin.flush()
         self._process.communicate()
         del self._process
@@ -172,13 +172,13 @@ class ExifTool(object):
         if not self.running:
             raise ValueError("ExifTool instance not running.")
         params += ("-execute\n",)
-        self._process.stdin.write(str.join("\n", params))
+        self._process.stdin.write("\n".join(params).encode("utf-8"))
         self._process.stdin.flush()
-        output = ""
+        output = b""
         fd = self._process.stdout.fileno()
         while not output.endswith(sentinel):
             output += os.read(fd, block_size)
-        return output[:-len(sentinel)]
+        return output[:-len(sentinel)].decode("utf-8")
 
     def get_metadata_batch(self, params):
         """Return all meta-data for the given files.
