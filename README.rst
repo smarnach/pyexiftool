@@ -27,11 +27,29 @@ releases yet.
 
 .. _tarball: https://github.com/smarnach/pyexiftool/tarball/master
 
+Installation
+------------
+
+PyExifTool runs on Python 2.6 and above, including 3.x.
+
+You need an installation of the ``exiftool`` command-line tool.  The
+code has been tested with version 8.60.
+
+PyExifTool currently only consists of a single module, so you can
+simply copy or link this module to a place where Python finds it, or
+you can call
+
+::
+
+    python setup.py install [--user|--prefix=<installation-prefix]
+
+to automatically install that module.
+
 Documentation
 -------------
 
 The documentation is available at
-<http://smarnach.github.com/pyexiftool/>.
+http://smarnach.github.com/pyexiftool/.
 
 Licence
 -------
@@ -47,4 +65,4 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with PyExifTool.  If not, see <http://www.gnu.org/licenses/>.
+along with PyExifTool.  If not, see http://www.gnu.org/licenses/.
