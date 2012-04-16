@@ -97,11 +97,14 @@ to use the <a class="reference internal" href="#exiftool.ExifTool" title="exifto
     <span class="o">...</span>
 </pre></div>
 </div>
-<p>Note that there is no error handling.  Nonsensical options will be
-silently ignored by exiftool, so there&#8217;s not much that can be done
-in that regard.  You should avoid passing non-existent files to
-any of the methods, since this will lead to undefied behaviour
-(and some output on stderr).</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Note that there is no error handling.  Nonsensical
+options will be silently ignored by exiftool, so there&#8217;s not
+much that can be done in that regard.  You should avoid passing
+non-existent files to any of the methods, since this will lead
+to undefied behaviour (and some output on stderr).</p>
+</div>
 <dl class="attribute">
 <dt id="exiftool.ExifTool.running">
 <tt class="descname">running</tt><a class="headerlink" href="#exiftool.ExifTool.running" title="Permalink to this definition">¶</a></dt>
