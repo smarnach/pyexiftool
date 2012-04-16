@@ -133,7 +133,8 @@ class ExifTool(object):
             warnings.warn("ExifTool already running; doing nothing.")
             return
         self._process = subprocess.Popen(
-            [self.executable, "-stay_open", "True",  "-@", "-"],
+            [self.executable, "-stay_open", "True",  "-@", "-",
+             "-common_args", "-G", "-n"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         self.running = True
 
@@ -192,7 +193,7 @@ class ExifTool(object):
         can have multiple types.  All occuring strings will be Unicode
         strings, though.
         """
-        return json.loads(self.execute("-G", "-j", "-n", *params))
+        return json.loads(self.execute("-j", *params))
 
     def get_metadata(self, filename):
         """Return meta-data for a single file.
