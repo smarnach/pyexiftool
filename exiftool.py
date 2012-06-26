@@ -132,10 +132,12 @@ class ExifTool(object):
         if self.running:
             warnings.warn("ExifTool already running; doing nothing.")
             return
-        self._process = subprocess.Popen(
-            [self.executable, "-stay_open", "True",  "-@", "-",
-             "-common_args", "-G", "-n"],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        with open(os.devnull, "w") as devnull:
+            self._process = subprocess.Popen(
+                [self.executable, "-stay_open", "True",  "-@", "-",
+                 "-common_args", "-G", "-n"],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=devnull)
         self.running = True
 
     def terminate(self):
