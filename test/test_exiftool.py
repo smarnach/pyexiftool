@@ -76,8 +76,10 @@ class TestExifTool(unittest.TestCase):
                 self.assertTrue(
                     et_version >= 8.40,
                     "you should at least use ExifTool version 8.40")
+            actual["SourceFile"] = os.path.normpath(actual["SourceFile"])
             for k, v in expected.items():
                 self.assertEqual(actual[k], v)
+        tags0["SourceFile"] = os.path.normpath(tags0["SourceFile"])
         self.assertEqual(tags0, dict((k, expected_data[0][k])
                                      for k in ["SourceFile", "XMP:Subject"]))
         self.assertEqual(tag0, roeschen)
