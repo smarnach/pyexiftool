@@ -30,7 +30,9 @@ releases yet.
 Installation
 ------------
 
-PyExifTool runs on Python 2.6 and above, including 3.x.
+PyExifTool runs on Python 2.6 and above, including 3.x.  It has been
+tested on Windows and Linux, and probably also runs on other Unix-like
+platforms.
 
 You need an installation of the ``exiftool`` command-line tool.  The
 code has been tested with version 8.60, but should work with version
