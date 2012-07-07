@@ -181,7 +181,7 @@ class ExifTool(object):
         fd = self._process.stdout.fileno()
         while not output[-32:].strip().endswith(sentinel):
             output += os.read(fd, block_size)
-        return output.strip()[:-len(sentinel)].decode("utf-8")
+        return output.strip()[:-len(sentinel)]
 
     def get_metadata_batch(self, params):
         """Return all meta-data for the given files.
@@ -195,7 +195,7 @@ class ExifTool(object):
         can have multiple types.  All occuring strings will be Unicode
         strings, though.
         """
-        return json.loads(self.execute("-j", *params))
+        return json.loads(self.execute("-j", *params).decode("utf-8"))
 
     def get_metadata(self, filename):
         """Return meta-data for a single file.
