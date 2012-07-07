@@ -124,10 +124,12 @@ class ExifTool(object):
         self.running = False
 
     def start(self):
-        """Start a ``exiftool`` process for this instance.
+        """Start an ``exiftool`` process in batch mode for this instance.
 
         This method will issue a ``UserWarning`` if the subprocess is
-        already running.
+        already running.  The process is started with the ``-G`` and
+        ``-n`` as common arguments, which are automatically included
+        in every command you run with :py:meth:`execute()`.
         """
         if self.running:
             warnings.warn("ExifTool already running; doing nothing.")
@@ -167,10 +169,12 @@ class ExifTool(object):
         """Send the given batch of parameters to ``exiftool``.
 
         This method accepts any number of string parameters, which
-        will be send to the ``exiftool`` process.  The final
-        ``-execute`` necessary to actually run the batch is appended
-        automatically.  The ``exiftool`` output is read up to the
-        end-of-output sentinel and returned, excluding the sentinel.
+        will be send to the ``exiftool`` process; see the
+        documentation of :py:meth:`start()` for the common options.
+        The final ``-execute`` necessary to actually run the batch is
+        appended automatically.  The ``exiftool`` output is read up to
+        the end-of-output sentinel and returned as a ``bytes`` object,
+        excluding the sentinel.
         """
         if not self.running:
             raise ValueError("ExifTool instance not running.")
