@@ -115,12 +115,44 @@ associated with a running subprocess.</p>
 <dl class="method">
 <dt id="exiftool.ExifTool.execute">
 <tt class="descname">execute</tt><big>(</big><em>*params</em><big>)</big><a class="headerlink" href="#exiftool.ExifTool.execute" title="Permalink to this definition">¶</a></dt>
-<dd><p>Send the given batch of parameters to <tt class="docutils literal"><span class="pre">exiftool</span></tt>.</p>
-<p>This method accepts any number of string parameters, which
-will be send to the <tt class="docutils literal"><span class="pre">exiftool</span></tt> process.  The final
+<dd><p>Execute the given batch of parameters with <tt class="docutils literal"><span class="pre">exiftool</span></tt>.</p>
+<p>This method accepts any number of parameters and sends them to
+the attached <tt class="docutils literal"><span class="pre">exiftool</span></tt> process.  The process must be
+running, otherwise <tt class="docutils literal"><span class="pre">ValueError</span></tt> is raised.  The final
 <tt class="docutils literal"><span class="pre">-execute</span></tt> necessary to actually run the batch is appended
-automatically.  The <tt class="docutils literal"><span class="pre">exiftool</span></tt> output is read up to the
-end-of-output sentinel and returned, excluding the sentinel.</p>
+automatically; see the documentation of <a class="reference internal" href="#exiftool.ExifTool.start" title="exiftool.ExifTool.start"><tt class="xref py py-meth docutils literal"><span class="pre">start()</span></tt></a> for
+the common options.  The <tt class="docutils literal"><span class="pre">exiftool</span></tt> output is read up to the
+end-of-output sentinel and returned as a raw <tt class="docutils literal"><span class="pre">bytes</span></tt> object,
+excluding the sentinel.</p>
+<p>The parameters must also be raw <tt class="docutils literal"><span class="pre">bytes</span></tt>, in whatever
+encoding exiftool accepts.  For filenames, this should be the
+systems filesystem encoding.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This is considered a low-level method, and should
+rarely be needed by application developers.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="exiftool.ExifTool.execute_json">
+<tt class="descname">execute_json</tt><big>(</big><em>*params</em><big>)</big><a class="headerlink" href="#exiftool.ExifTool.execute_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the given batch of parameters and parse the JSON output.</p>
+<p>This method is similar to <a class="reference internal" href="#exiftool.ExifTool.execute" title="exiftool.ExifTool.execute"><tt class="xref py py-meth docutils literal"><span class="pre">execute()</span></tt></a>.  It
+automatically adds the parameter <tt class="docutils literal"><span class="pre">-j</span></tt> to request JSON output
+from <tt class="docutils literal"><span class="pre">exiftool</span></tt> and parses the output.  The return value is
+a list of dictionaries, mapping tag names to the corresponding
+values.  All keys are Unicode strings with the tag names,
+including the ExifTool group name in the format &lt;group&gt;:&lt;tag&gt;.
+The values can have multiple types.  All strings occurring as
+values will be Unicode strings.</p>
+<p>The parameters to this function must be of type <tt class="docutils literal"><span class="pre">str</span></tt>.  In
+Python 2.x, they are passed on to <tt class="docutils literal"><span class="pre">exiftool</span></tt> as they are.
+In Python 3.x, they are encoded with the systems filesystem
+encoding first.  This behaviour means you can pass in
+filenames according to the convention of the respective Python
+version – as raw strings in Python 2.x and as Unicode strings
+in Python 3.x.</p>
 </dd></dl>
 
 <dl class="method">
@@ -128,21 +160,15 @@ end-of-output sentinel and returned, excluding the sentinel.</p>
 <tt class="descname">get_metadata</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#exiftool.ExifTool.get_metadata" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return meta-data for a single file.</p>
 <p>The returned dictionary has the format described in the
-documentation of <a class="reference internal" href="#exiftool.ExifTool.get_metadata_batch" title="exiftool.ExifTool.get_metadata_batch"><tt class="xref py py-meth docutils literal"><span class="pre">get_metadata_batch()</span></tt></a>.</p>
+documentation of <a class="reference internal" href="#exiftool.ExifTool.execute_json" title="exiftool.ExifTool.execute_json"><tt class="xref py py-meth docutils literal"><span class="pre">execute_json()</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="exiftool.ExifTool.get_metadata_batch">
-<tt class="descname">get_metadata_batch</tt><big>(</big><em>params</em><big>)</big><a class="headerlink" href="#exiftool.ExifTool.get_metadata_batch" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">get_metadata_batch</tt><big>(</big><em>filenames</em><big>)</big><a class="headerlink" href="#exiftool.ExifTool.get_metadata_batch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return all meta-data for the given files.</p>
-<p>The method accepts an iterable of file names as parameters.
-It retrieves all meta-data for these files using ExifTool&#8217;s
-JSON encoded output.  The return value is a list of
-dictionaries, mapping tag names to the corresponding values.
-All keys are Unicode strings with the tag names, including the
-ExifTool group name in the format &lt;group&gt;:&lt;tag&gt;.  The values
-can have multiple types.  All occuring strings will be Unicode
-strings, though.</p>
+<p>The return value will have the format described in the
+documentation of <a class="reference internal" href="#exiftool.ExifTool.execute_json" title="exiftool.ExifTool.execute_json"><tt class="xref py py-meth docutils literal"><span class="pre">execute_json()</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -169,7 +195,7 @@ non-existent tags, in the same order as <tt class="docutils literal"><span class
 <tt class="descname">get_tags</tt><big>(</big><em>tags</em>, <em>filename</em><big>)</big><a class="headerlink" href="#exiftool.ExifTool.get_tags" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return only specified tags for a single file.</p>
 <p>The returned dictionary has the format described in the
-documentation of <a class="reference internal" href="#exiftool.ExifTool.get_metadata_batch" title="exiftool.ExifTool.get_metadata_batch"><tt class="xref py py-meth docutils literal"><span class="pre">get_metadata_batch()</span></tt></a>.</p>
+documentation of <a class="reference internal" href="#exiftool.ExifTool.execute_json" title="exiftool.ExifTool.execute_json"><tt class="xref py py-meth docutils literal"><span class="pre">execute_json()</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -180,15 +206,17 @@ documentation of <a class="reference internal" href="#exiftool.ExifTool.get_meta
 include group names, as usual in the format &lt;group&gt;:&lt;tag&gt;.</p>
 <p>The second argument is an iterable of file names.</p>
 <p>The format of the return value is the same as for
-<a class="reference internal" href="#exiftool.ExifTool.get_metadata_batch" title="exiftool.ExifTool.get_metadata_batch"><tt class="xref py py-meth docutils literal"><span class="pre">get_metadata_batch()</span></tt></a>.</p>
+<a class="reference internal" href="#exiftool.ExifTool.execute_json" title="exiftool.ExifTool.execute_json"><tt class="xref py py-meth docutils literal"><span class="pre">execute_json()</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="exiftool.ExifTool.start">
 <tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#exiftool.ExifTool.start" title="Permalink to this definition">¶</a></dt>
-<dd><p>Start a <tt class="docutils literal"><span class="pre">exiftool</span></tt> process for this instance.</p>
+<dd><p>Start an <tt class="docutils literal"><span class="pre">exiftool</span></tt> process in batch mode for this instance.</p>
 <p>This method will issue a <tt class="docutils literal"><span class="pre">UserWarning</span></tt> if the subprocess is
-already running.</p>
+already running.  The process is started with the <tt class="docutils literal"><span class="pre">-G</span></tt> and
+<tt class="docutils literal"><span class="pre">-n</span></tt> as common arguments, which are automatically included
+in every command you run with <a class="reference internal" href="#exiftool.ExifTool.execute" title="exiftool.ExifTool.execute"><tt class="xref py py-meth docutils literal"><span class="pre">execute()</span></tt></a>.</p>
 </dd></dl>
 
 <dl class="method">
