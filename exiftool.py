@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # PyExifTool <http://github.com/smarnach/pyexiftool>
 # Copyright 2012 Sven Marnach
 
@@ -54,6 +55,7 @@ Example usage::
                                          d["EXIF:DateTimeOriginal"]))
 """
 
+import sys
 import subprocess
 import os
 import json
@@ -61,8 +63,10 @@ import warnings
 
 try:        # Py3k compatibility
     basestring
+    PY3 = False
 except NameError:
     basestring = str
+    PY3 = True
 
 executable = "exiftool"
 """The name of the executable to run.
@@ -166,20 +170,27 @@ class ExifTool(object):
         self.terminate()
 
     def execute(self, *params):
-        """Send the given batch of parameters to ``exiftool``.
+        """Execute the given batch of parameters with ``exiftool``.
 
-        This method accepts any number of string parameters, which
-        will be send to the ``exiftool`` process; see the
-        documentation of :py:meth:`start()` for the common options.
-        The final ``-execute`` necessary to actually run the batch is
-        appended automatically.  The ``exiftool`` output is read up to
-        the end-of-output sentinel and returned as a ``bytes`` object,
+        This method accepts any number of parameters and sends them to
+        the attached ``exiftool`` process.  The process must be
+        running, otherwise ``ValueError`` is raised.  The final
+        ``-execute`` necessary to actually run the batch is appended
+        automatically; see the documentation of :py:meth:`start()` for
+        the common options.  The ``exiftool`` output is read up to the
+        end-of-output sentinel and returned as a raw ``bytes`` object,
         excluding the sentinel.
+
+        The parameters must also be raw ``bytes``, in whatever
+        encoding exiftool accepts.  For filenames, this should be the
+        systems filesystem encoding.
+
+        .. note:: This is considered a low-level method, and should
+           rarely be needed by application developers.
         """
         if not self.running:
             raise ValueError("ExifTool instance not running.")
-        params += ("-execute\n",)
-        self._process.stdin.write("\n".join(params).encode("utf-8"))
+        self._process.stdin.write(b"\n".join(params + (b"-execute\n",)))
         self._process.stdin.flush()
         output = b""
         fd = self._process.stdout.fileno()
@@ -187,27 +198,46 @@ class ExifTool(object):
             output += os.read(fd, block_size)
         return output.strip()[:-len(sentinel)]
 
-    def get_metadata_batch(self, params):
+    def execute_json(self, *params):
+        """Execute the given batch of parameters and parse the JSON output.
+
+        This method is similar to :py:meth:`execute()`.  It
+        automatically adds the parameter ``-j`` to request JSON output
+        from ``exiftool`` and parses the output.  The return value is
+        a list of dictionaries, mapping tag names to the corresponding
+        values.  All keys are Unicode strings with the tag names,
+        including the ExifTool group name in the format <group>:<tag>.
+        The values can have multiple types.  All strings occurring as
+        values will be Unicode strings.
+
+        The parameters to this function must be of type ``str``.  In
+        Python 2.x, they are passed on to ``exiftool`` as they are.
+        In Python 3.x, they are encoded with the systems filesystem
+        encoding first.  This behaviour means you can pass in
+        filenames according to the convention of the respective Python
+        version – as raw strings in Python 2.x and as Unicode strings
+        in Python 3.x.
+        """
+        if PY3:
+            encoding = sys.getfilesystemencoding()
+            params = [p.encode(encoding) for p in params]
+        return json.loads(self.execute(b"-j", *params).decode("utf-8"))
+
+    def get_metadata_batch(self, filenames):
         """Return all meta-data for the given files.
 
-        The method accepts an iterable of file names as parameters.
-        It retrieves all meta-data for these files using ExifTool's
-        JSON encoded output.  The return value is a list of
-        dictionaries, mapping tag names to the corresponding values.
-        All keys are Unicode strings with the tag names, including the
-        ExifTool group name in the format <group>:<tag>.  The values
-        can have multiple types.  All occuring strings will be Unicode
-        strings, though.
+        The return value will have the format described in the
+        documentation of :py:meth:`execute_json()`.
         """
-        return json.loads(self.execute("-j", *params).decode("utf-8"))
+        return self.execute_json(*filenames)
 
     def get_metadata(self, filename):
         """Return meta-data for a single file.
 
         The returned dictionary has the format described in the
-        documentation of :py:meth:`get_metadata_batch()`.
+        documentation of :py:meth:`execute_json()`.
         """
-        return self.get_metadata_batch([filename])[0]
+        return self.execute_json(filename)[0]
 
     def get_tags_batch(self, tags, filenames):
         """Return only specified tags for the given files.
@@ -218,7 +248,7 @@ class ExifTool(object):
         The second argument is an iterable of file names.
 
         The format of the return value is the same as for
-        :py:meth:`get_metadata_batch()`.
+        :py:meth:`execute_json()`.
         """
         # Explicitly ruling out strings here because passing in a
         # string would lead to strange and hard-to-find errors
@@ -230,13 +260,13 @@ class ExifTool(object):
                             "an iterable of strings")
         params = ["-" + t for t in tags]
         params.extend(filenames)
-        return self.get_metadata_batch(params)
+        return self.execute_json(*params)
 
     def get_tags(self, tags, filename):
         """Return only specified tags for a single file.
 
         The returned dictionary has the format described in the
-        documentation of :py:meth:`get_metadata_batch()`.
+        documentation of :py:meth:`execute_json()`.
         """
         return self.get_tags_batch(tags, [filename])[0]
 
