@@ -146,13 +146,14 @@ values.  All keys are Unicode strings with the tag names,
 including the ExifTool group name in the format &lt;group&gt;:&lt;tag&gt;.
 The values can have multiple types.  All strings occurring as
 values will be Unicode strings.</p>
-<p>The parameters to this function must be of type <tt class="docutils literal"><span class="pre">str</span></tt>.  In
-Python 2.x, they are passed on to <tt class="docutils literal"><span class="pre">exiftool</span></tt> as they are.
-In Python 3.x, they are encoded with the systems filesystem
-encoding first.  This behaviour means you can pass in
-filenames according to the convention of the respective Python
-version – as raw strings in Python 2.x and as Unicode strings
-in Python 3.x.</p>
+<p>The parameters to this function must be either raw strings
+(type <tt class="docutils literal"><span class="pre">str</span></tt> in Python 2.x, type <tt class="docutils literal"><span class="pre">bytes</span></tt> in Python 3.x) or
+Unicode strings (type <tt class="docutils literal"><span class="pre">unicode</span></tt> in Python 2.x, type <tt class="docutils literal"><span class="pre">str</span></tt>
+in Python 3.x).  Unicode strings will be encoded using
+system&#8217;s filesystem encoding.  This behaviour means you can
+pass in filenames according to the convention of the
+respective Python version – as raw strings in Python 2.x and
+as Unicode strings in Python 3.x.</p>
 </dd></dl>
 
 <dl class="method">
@@ -226,6 +227,16 @@ in every command you run with <a class="reference internal" href="#exiftool.Exif
 <p>If the subprocess isn&#8217;t running, this method will do nothing.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="exiftool.encode_filenames">
+<tt class="descclassname">exiftool.</tt><tt class="descname">encode_filenames</tt><big>(</big><em>filenames</em><big>)</big><a class="headerlink" href="#exiftool.encode_filenames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encode an iterable of filenames to raw strings.</p>
+<p>This is a generator function accepting an iterable of raw strings
+or Unicode strings.  Raw strings will be yielded unchanged, while
+Unicode strings are encoded using the system&#8217;s filesystem
+encoding.</p>
 </dd></dl>
 
 <dl class="data">
