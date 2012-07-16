@@ -84,6 +84,21 @@ sentinel = b"{ready}"
 # some cases.
 block_size = 4096
 
+def encode_filenames(filenames):
+    """Encode an iterable of filenames to raw strings.
+
+    This is a generator function accepting an iterable of raw strings
+    or Unicode strings.  Raw strings will be yielded unchanged, while
+    Unicode strings are encoded using the system's filesystem
+    encoding.
+    """
+    encoding = sys.getfilesystemencoding()
+    for name in filenames:
+        if isinstance(name, bytes):
+            yield name
+        else:
+            yield name.encode(encoding)
+
 class ExifTool(object):
     """Run the `exiftool` command-line tool and communicate to it.
 
@@ -210,17 +225,16 @@ class ExifTool(object):
         The values can have multiple types.  All strings occurring as
         values will be Unicode strings.
 
-        The parameters to this function must be of type ``str``.  In
-        Python 2.x, they are passed on to ``exiftool`` as they are.
-        In Python 3.x, they are encoded with the systems filesystem
-        encoding first.  This behaviour means you can pass in
-        filenames according to the convention of the respective Python
-        version – as raw strings in Python 2.x and as Unicode strings
-        in Python 3.x.
+        The parameters to this function must be either raw strings
+        (type ``str`` in Python 2.x, type ``bytes`` in Python 3.x) or
+        Unicode strings (type ``unicode`` in Python 2.x, type ``str``
+        in Python 3.x).  Unicode strings will be encoded using
+        system's filesystem encoding.  This behaviour means you can
+        pass in filenames according to the convention of the
+        respective Python version – as raw strings in Python 2.x and
+        as Unicode strings in Python 3.x.
         """
-        if PY3:
-            encoding = sys.getfilesystemencoding()
-            params = [p.encode(encoding) for p in params]
+        params = encode_filenames(params)
         return json.loads(self.execute(b"-j", *params).decode("utf-8"))
 
     def get_metadata_batch(self, filenames):
