@@ -84,20 +84,30 @@ sentinel = b"{ready}"
 # some cases.
 block_size = 4096
 
-def encode_filenames(filenames):
-    """Encode an iterable of filenames to raw strings.
-
-    This is a generator function accepting an iterable of raw strings
-    or Unicode strings.  Raw strings will be yielded unchanged, while
-    Unicode strings are encoded using the system's filesystem
-    encoding.
-    """
+# This code has been adapted from Lib/os.py in the Python source tree
+# (sha1 265e36e277f3)
+def _fscodec():
     encoding = sys.getfilesystemencoding()
-    for name in filenames:
-        if isinstance(name, bytes):
-            yield name
+    if encoding == "mbcs":
+        errors = "strict"
+    else:
+        errors = "surrogateescape"
+
+    def fsencode(filename):
+        """
+        Encode filename to the filesystem encoding with 'surrogateescape' error
+        handler, return bytes unchanged. On Windows, use 'strict' error handler if
+        the file system encoding is 'mbcs' (which is the default encoding).
+        """
+        if isinstance(filename, bytes):
+            return filename
         else:
-            yield name.encode(encoding)
+            return filename.encode(encoding, errors)
+
+    return fsencode
+
+fsencode = _fscodec()
+del _fscodec
 
 class ExifTool(object):
     """Run the `exiftool` command-line tool and communicate to it.
@@ -198,7 +208,7 @@ class ExifTool(object):
 
         The parameters must also be raw ``bytes``, in whatever
         encoding exiftool accepts.  For filenames, this should be the
-        systems filesystem encoding.
+        system's filesystem encoding.
 
         .. note:: This is considered a low-level method, and should
            rarely be needed by application developers.
@@ -234,7 +244,7 @@ class ExifTool(object):
         respective Python version – as raw strings in Python 2.x and
         as Unicode strings in Python 3.x.
         """
-        params = encode_filenames(params)
+        params = map(fsencode, params)
         return json.loads(self.execute(b"-j", *params).decode("utf-8"))
 
     def get_metadata_batch(self, filenames):
