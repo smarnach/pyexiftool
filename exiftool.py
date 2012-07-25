@@ -63,10 +63,8 @@ import warnings
 
 try:        # Py3k compatibility
     basestring
-    PY3 = False
 except NameError:
-    basestring = str
-    PY3 = True
+    basestring = (bytes, str)
 
 executable = "exiftool"
 """The name of the executable to run.
@@ -309,11 +307,7 @@ class ExifTool(object):
         result = []
         for d in data:
             d.pop("SourceFile")
-            try:        # Py3k compatibility
-                it = d.itervalues()
-            except AttributeError:
-                it = iter(d.values())
-            result.append(next(it, None))
+            result.append(next(iter(d.values()), None))
         return result
 
     def get_tag(self, tag, filename):
