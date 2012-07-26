@@ -126,7 +126,7 @@ end-of-output sentinel and returned as a raw <tt class="docutils literal"><span 
 excluding the sentinel.</p>
 <p>The parameters must also be raw <tt class="docutils literal"><span class="pre">bytes</span></tt>, in whatever
 encoding exiftool accepts.  For filenames, this should be the
-systems filesystem encoding.</p>
+system&#8217;s filesystem encoding.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">This is considered a low-level method, and should
@@ -229,22 +229,20 @@ in every command you run with <a class="reference internal" href="#exiftool.Exif
 
 </dd></dl>
 
-<dl class="function">
-<dt id="exiftool.encode_filenames">
-<tt class="descclassname">exiftool.</tt><tt class="descname">encode_filenames</tt><big>(</big><em>filenames</em><big>)</big><a class="headerlink" href="#exiftool.encode_filenames" title="Permalink to this definition">¶</a></dt>
-<dd><p>Encode an iterable of filenames to raw strings.</p>
-<p>This is a generator function accepting an iterable of raw strings
-or Unicode strings.  Raw strings will be yielded unchanged, while
-Unicode strings are encoded using the system&#8217;s filesystem
-encoding.</p>
-</dd></dl>
-
 <dl class="data">
 <dt id="exiftool.executable">
 <tt class="descclassname">exiftool.</tt><tt class="descname">executable</tt><em class="property"> = 'exiftool'</em><a class="headerlink" href="#exiftool.executable" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of the executable to run.</p>
 <p>If the executable is not located in one of the paths listed in the
 <tt class="docutils literal"><span class="pre">PATH</span></tt> environment variable, the full path should be given here.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="exiftool.fsencode">
+<tt class="descclassname">exiftool.</tt><tt class="descname">fsencode</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#exiftool.fsencode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encode filename to the filesystem encoding with &#8216;surrogateescape&#8217; error
+handler, return bytes unchanged. On Windows, use &#8216;strict&#8217; error handler if
+the file system encoding is &#8216;mbcs&#8217; (which is the default encoding).</p>
 </dd></dl>
 
 </div>
