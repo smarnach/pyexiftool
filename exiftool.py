@@ -233,10 +233,11 @@ class ExifTool(object):
         automatically adds the parameter ``-j`` to request JSON output
         from ``exiftool`` and parses the output.  The return value is
         a list of dictionaries, mapping tag names to the corresponding
-        values.  All keys are Unicode strings with the tag names,
+        values.  All keys are Unicode strings with the tag names
         including the ExifTool group name in the format <group>:<tag>.
         The values can have multiple types.  All strings occurring as
-        values will be Unicode strings.
+        values will be Unicode strings.  Each dictionary contains the
+        name of the file it corresponds to in the key ``"SourceFile"``.
 
         The parameters to this function must be either raw strings
         (type ``str`` in Python 2.x, type ``bytes`` in Python 3.x) or
