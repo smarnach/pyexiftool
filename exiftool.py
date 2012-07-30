@@ -60,6 +60,7 @@ import subprocess
 import os
 import json
 import warnings
+import codecs
 
 try:        # Py3k compatibility
     basestring
@@ -86,10 +87,14 @@ block_size = 4096
 # (sha1 265e36e277f3)
 def _fscodec():
     encoding = sys.getfilesystemencoding()
-    if encoding == "mbcs":
-        errors = "strict"
-    else:
-        errors = "surrogateescape"
+    errors = "strict"
+    if encoding != "mbcs":
+        try:
+            codecs.lookup_error("surrogateescape")
+        except LookupError:
+            pass
+        else:
+            errors = "surrogateescape"
 
     def fsencode(filename):
         """
