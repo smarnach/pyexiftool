@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import unittest
 import exiftool
 import warnings
@@ -44,15 +46,11 @@ class TestExifTool(unittest.TestCase):
         del self.et
         self.assertNotEqual(self.process.poll(), None)
     def test_get_metadata(self):
-        try:        # Py3k compatibility
-            roeschen = "Röschen".decode("utf-8")
-        except AttributeError:
-            roeschen = "Röschen"
         expected_data = [{"SourceFile": "rose.jpg",
                           "File:FileType": "JPEG",
                           "File:ImageWidth": 70,
                           "File:ImageHeight": 46,
-                          "XMP:Subject": roeschen,
+                          "XMP:Subject": "Röschen",
                           "Composite:ImageSize": "70x46"},
                          {"SourceFile": "skyblue.png",
                           "File:FileType": "PNG",
@@ -82,7 +80,7 @@ class TestExifTool(unittest.TestCase):
         tags0["SourceFile"] = os.path.normpath(tags0["SourceFile"])
         self.assertEqual(tags0, dict((k, expected_data[0][k])
                                      for k in ["SourceFile", "XMP:Subject"]))
-        self.assertEqual(tag0, roeschen)
+        self.assertEqual(tag0, "Röschen")
 
 if __name__ == '__main__':
     unittest.main()
