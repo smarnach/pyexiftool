@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # PyExifTool <http://github.com/smarnach/pyexiftool>
-# Copyright 2012 Sven Marnach
+# Copyright 2012 Sven Marnach. Enhancements by Leo Broska
 
 # This file is part of PyExifTool.
 #
@@ -60,6 +60,7 @@ import subprocess
 import os
 import json
 import warnings
+import logging
 
 try:        # Py3k compatibility
     basestring
@@ -107,12 +108,19 @@ def _fscodec():
 fsencode = _fscodec()
 del _fscodec
 
+#string helper
+def strip_nl (s):
+    return ' '.join(s.splitlines())
+
 class ExifTool(object):
     """Run the `exiftool` command-line tool and communicate to it.
 
-    You can pass the file name of the ``exiftool`` executable as an
-    argument to the constructor.  The default value ``exiftool`` will
-    only work if the executable is in your ``PATH``.
+    You can pass two arguments to the constructor:
+    - ``addedargs`` (list of strings): contains additional paramaters for
+      the stay-open instance of exiftool
+    - ``executable`` (string): file name of the ``exiftool`` executable.
+      The default value ``exiftool`` will only work if the executable
+      is in your ``PATH``
 
     Most methods of this class are only available after calling
     :py:meth:`start()`, which will actually launch the subprocess.  To
@@ -143,11 +151,24 @@ class ExifTool(object):
        associated with a running subprocess.
     """
 
-    def __init__(self, executable_=None):
+    def __init__(self, addedargs=None, executable_=None):
+        
         if executable_ is None:
             self.executable = executable
         else:
             self.executable = executable_
+
+        self.addedargs = []
+        # special case: executable name in addedarg parameter
+        # (for backwards compatibility)
+        if addedargs:
+            if type(addedargs) is str and executable_==None:
+                self.executable = addedargs
+            elif type(addedargs) is list:
+                self.addedargs = addedargs
+            else:
+                raise ValueError("addedargs not a list of strings")
+        
         self.running = False
 
     def start(self):
@@ -162,9 +183,12 @@ class ExifTool(object):
             warnings.warn("ExifTool already running; doing nothing.")
             return
         with open(os.devnull, "w") as devnull:
+            procargs = [self.executable, "-stay_open", "True",  "-@", "-",
+                 "-common_args", "-G", "-n"];
+            procargs.extend(self.addedargs)
+            logging.debug(procargs) 
             self._process = subprocess.Popen(
-                [self.executable, "-stay_open", "True",  "-@", "-",
-                 "-common_args", "-G", "-n"],
+                procargs,
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=devnull)
         self.running = True
@@ -317,3 +341,62 @@ class ExifTool(object):
         ``None`` if this tag was not found in the file.
         """
         return self.get_tag_batch(tag, [filename])[0]
+
+    def set_tags_batch(self, tags, filenames):
+        """Writes the values for the specified tags for the given files.
+
+        The first argument is a dictionary of tags and values.  The tag names may
+        include group names, as usual in the format <group>:<tag>.
+
+        The second argument is an iterable of file names.
+
+        The format of the return value is the same as for
+        :py:meth:`execute()`.
+        
+        It can be passed into :py:meth:`check_error()`.
+        """
+        # Explicitly ruling out strings here because passing in a
+        # string would lead to strange and hard-to-find errors
+        if isinstance(tags, basestring):
+            raise TypeError("The argument 'tags' must be dictionary "
+                            "of strings")
+        if isinstance(filenames, basestring):
+            raise TypeError("The argument 'filenames' must be "
+                            "an iterable of strings")
+                
+        params = []
+        for tag, value in tags.items():
+            params.append(b'-%s=%s' % (tag, value))
+            
+        params.extend(filenames)
+        logging.debug (params)
+        return self.execute(*params)
+
+    def set_tags(self, tags, filename):
+        """Writes the values for the specified tags for the given file.
+
+        The first argument is a dictionary of tags and values.  The tag names may
+        include group names, as usual in the format <group>:<tag>.
+
+        The second argument is the filename.
+
+        The format of the return value is the same as for
+        :py:meth:`execute()`.
+        
+        It can be passed into :py:meth:`check_error()`.
+        """
+        return self.set_tags_batch(tags, [filename])
+
+    def check_error (self, result):
+        """Evaluates the output from a exiftool write operation (e.g. `set_tags`)
+         
+        The argument is the result from the execute method.
+        """
+        if result is None:
+            return "exiftool operation can't be evaluated: No result given"
+        if ("1 image files updated" in result) and (not "due to errors" in result):
+            return "exiftool finished probably properly."
+        else:
+            return 'exiftool finished with error: "%s"' % strip_nl(result) 
+
+
