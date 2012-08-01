@@ -4,6 +4,7 @@ import unittest
 import exiftool
 import warnings
 import os
+import shutil
 
 class TestExifTool(unittest.TestCase):
     def setUp(self):
@@ -83,6 +84,28 @@ class TestExifTool(unittest.TestCase):
         self.assertEqual(tags0, dict((k, expected_data[0][k])
                                      for k in ["SourceFile", "XMP:Subject"]))
         self.assertEqual(tag0, roeschen)
+    def test_set_metadata(self):
+        try:        # Py3k compatibility
+            roeschen_caption = "Ein Röschen ganz allein".decode("utf-8")
+        except AttributeError:
+            roeschen_caption = "Ein Röschen ganz allein"
+        mod_prefix = "new_"
+        expected_data = [{"SourceFile": "rose.jpg",
+                          "Caption-Abstract": roeschen_caption}]
+        script_path = os.path.dirname(__file__)
+        source_files = []
+        for d in expected_data:
+            d["SourceFile"] = f = os.path.join(script_path, d["SourceFile"])
+            self.assertTrue(os.path.exists(f))
+            f_mod = os.path.join(os.path.dirname(f), mod_prefix + os.path.basename(f)) 
+            self.assertFalse(os.path.exists(f_mod), "%s should not exist before the test. Please delete." % f_mod)
+            shutil.copyfile(f, f_mod)
+            source_files.append(f_mod)
+        with self.et:
+            self.et.set_tags_batch({"Caption-Abstract":roeschen_caption}, source_files)            
+            tag0 = self.et.get_tag("IPTC:Caption-Abstract", source_files[0])
+        os.remove(f_mod)
+        self.assertEqual(tag0, roeschen_caption)
 
 if __name__ == '__main__':
     unittest.main()
