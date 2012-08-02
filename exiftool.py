@@ -151,23 +151,19 @@ class ExifTool(object):
        associated with a running subprocess.
     """
 
-    def __init__(self, addedargs=None, executable_=None):
+    def __init__(self, executable_=None, addedargs=None):
         
         if executable_ is None:
             self.executable = executable
         else:
             self.executable = executable_
 
-        self.addedargs = []
-        # special case: executable name in addedarg parameter
-        # (for backwards compatibility)
-        if addedargs:
-            if type(addedargs) is str and executable_==None:
-                self.executable = addedargs
-            elif type(addedargs) is list:
-                self.addedargs = addedargs
-            else:
-                raise ValueError("addedargs not a list of strings")
+        if addedargs is None:
+            self.addedargs = []
+        elif type(addedargs) is list:
+            self.addedargs = addedargs
+        else:
+            raise TypeError("addedargs not a list of strings")
         
         self.running = False
 
