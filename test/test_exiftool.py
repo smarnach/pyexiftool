@@ -85,7 +85,7 @@ class TestExifTool(unittest.TestCase):
         self.assertEqual(tag0, "Röschen")
     
     def test_set_metadata(self):
-        mod_prefix = "new_"
+        mod_prefix = "newcap_"
         expected_data = [{"SourceFile": "rose.jpg",
                           "Caption-Abstract": "Ein Röschen ganz allein"},
                          {"SourceFile": "skyblue.png",
@@ -107,7 +107,7 @@ class TestExifTool(unittest.TestCase):
     
     def test_set_keywords(self):
         kw_to_add = ["added"]
-        mod_prefix = "new_"
+        mod_prefix = "newkw_"
         expected_data = [{"SourceFile": "rose.jpg",
                           "Keywords": ["nature", "red plant"]}]
         script_path = os.path.dirname(__file__)
