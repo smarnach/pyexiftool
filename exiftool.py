@@ -61,6 +61,8 @@ import os
 import json
 import warnings
 import codecs
+import signal
+import ctypes
 
 try:        # Py3k compatibility
     basestring
@@ -112,6 +114,25 @@ def _fscodec():
 fsencode = _fscodec()
 del _fscodec
 
+
+def set_pdeathsig(sig=signal.SIGTERM):
+    """
+    Use this method in subprocess.Popen(preexec_fn=set_pdeathsig()) to make sure,
+    the exiftool childprocess is stopped if this process dies.
+    However, this only works on linux.
+    """
+    if sys.platform == "linux" or sys.platform == "linux2":
+        def callable_method():
+            # taken from linux/prctl.h
+            pr_set_pdeathsig = 1
+            libc = ctypes.CDLL("libc.so.6")
+            return libc.prctl(pr_set_pdeathsig, sig)
+
+        return callable_method
+    else:
+        return None
+
+
 class ExifTool(object):
     """Run the `exiftool` command-line tool and communicate to it.
 
@@ -154,24 +175,28 @@ class ExifTool(object):
         else:
             self.executable = executable_
         self.running = False
+        self._common_args = None
+        self._process = None
 
-    def start(self):
+    def start(self, common_args=["-G", "-n"]):
         """Start an ``exiftool`` process in batch mode for this instance.
 
         This method will issue a ``UserWarning`` if the subprocess is
-        already running.  The process is started with the ``-G`` and
+        already running.  The process is by default started with the ``-G`` and
         ``-n`` as common arguments, which are automatically included
         in every command you run with :py:meth:`execute()`.
+        However, you can override these default arguments with the common_args parameter.
         """
         if self.running:
             warnings.warn("ExifTool already running; doing nothing.")
             return
+        self._common_args = common_args if common_args else []
         with open(os.devnull, "w") as devnull:
             self._process = subprocess.Popen(
                 [self.executable, "-stay_open", "True",  "-@", "-",
-                 "-common_args", "-G", "-n"],
+                 "-common_args"] + self._common_args,
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=devnull)
+                stderr=devnull, preexec_fn=set_pdeathsig(signal.SIGTERM))
         self.running = True
 
     def terminate(self):
@@ -226,7 +251,7 @@ class ExifTool(object):
             output += os.read(fd, block_size)
         return output.strip()[:-len(sentinel)]
 
-    def execute_json(self, *params):
+    def execute_json(self, filenames, params=None, retry_on_error=True):
         """Execute the given batch of parameters and parse the JSON output.
 
         This method is similar to :py:meth:`execute()`.  It
@@ -248,26 +273,56 @@ class ExifTool(object):
         respective Python version – as raw strings in Python 2.x and
         as Unicode strings in Python 3.x.
         """
-        params = map(fsencode, params)
-        return json.loads(self.execute(b"-j", *params).decode("utf-8"))
+        # make sure the argument is a list and not a single string
+        # which would lead to strange errors
+        if isinstance(filenames, basestring):
+            raise TypeError("The argument 'filenames' must be "
+                            "an iterable of strings")
 
-    def get_metadata_batch(self, filenames):
+        execute_params = []
+        if params:
+            execute_params.extend(params)
+        execute_params.extend(filenames)
+        execute_params = map(fsencode, execute_params)
+        exif_tool_result = self.execute(b"-j", *execute_params)
+        if exif_tool_result:
+            result = json.loads(exif_tool_result.decode("utf-8"))
+
+            try:
+                ExifTool._check_sanity_of_result(filenames, result)
+            except IOError, error:
+                # Restart the exiftool child process in these cases since something is going wrong
+                self.terminate()
+                self.start(self._common_args)
+                if retry_on_error:
+                    result = self.execute_json(filenames, params, retry_on_error=False)
+                else:
+                    raise error
+        else:
+            # Reasons for exiftool to provide an empty result, could be e.g. file not found, etc.
+            # What should we do in these cases? We don't have any information what went wrong, therefore
+            # we just return empty dictionaries.
+            result = [{} for _ in filenames]
+
+        return result
+
+    def get_metadata_batch(self, filenames, params=None):
         """Return all meta-data for the given files.
 
         The return value will have the format described in the
         documentation of :py:meth:`execute_json()`.
         """
-        return self.execute_json(*filenames)
+        return self.execute_json(filenames=filenames, params=params)
 
-    def get_metadata(self, filename):
+    def get_metadata(self, filename, params=None):
         """Return meta-data for a single file.
 
         The returned dictionary has the format described in the
         documentation of :py:meth:`execute_json()`.
         """
-        return self.execute_json(filename)[0]
+        return self.execute_json(filenames=[filename], params=params)[0]
 
-    def get_tags_batch(self, tags, filenames):
+    def get_tags_batch(self, tags, filenames, params=None):
         """Return only specified tags for the given files.
 
         The first argument is an iterable of tags.  The tag names may
@@ -283,22 +338,18 @@ class ExifTool(object):
         if isinstance(tags, basestring):
             raise TypeError("The argument 'tags' must be "
                             "an iterable of strings")
-        if isinstance(filenames, basestring):
-            raise TypeError("The argument 'filenames' must be "
-                            "an iterable of strings")
-        params = ["-" + t for t in tags]
-        params.extend(filenames)
-        return self.execute_json(*params)
+        params = (params if params else []) + ["-" + t for t in tags]
+        return self.execute_json(filenames=filenames, params=params)
 
-    def get_tags(self, tags, filename):
+    def get_tags(self, tags, filename, params=None):
         """Return only specified tags for a single file.
 
         The returned dictionary has the format described in the
         documentation of :py:meth:`execute_json()`.
         """
-        return self.get_tags_batch(tags, [filename])[0]
+        return self.get_tags_batch(tags, [filename], params=params)[0]
 
-    def get_tag_batch(self, tag, filenames):
+    def get_tag_batch(self, tag, filenames, params=None):
         """Extract a single tag from the given files.
 
         The first argument is a single tag name, as usual in the
@@ -309,17 +360,33 @@ class ExifTool(object):
         The return value is a list of tag values or ``None`` for
         non-existent tags, in the same order as ``filenames``.
         """
-        data = self.get_tags_batch([tag], filenames)
+        data = self.get_tags_batch([tag], filenames, params=params)
         result = []
         for d in data:
             d.pop("SourceFile")
             result.append(next(iter(d.values()), None))
         return result
 
-    def get_tag(self, tag, filename):
+    def get_tag(self, tag, filename, params=None):
         """Extract a single tag from a single file.
 
         The return value is the value of the specified tag, or
         ``None`` if this tag was not found in the file.
         """
-        return self.get_tag_batch(tag, [filename])[0]
+        return self.get_tag_batch(tag, [filename], params=params)[0]
+
+    @staticmethod
+    def _check_sanity_of_result(file_paths, result):
+        """
+        Checks if the given file paths matches the 'SourceFile' entries in the result returned by
+        exiftool. This is done to find possible mix ups in the streamed responses.
+        """
+        # do some sanity checks on the results to make sure nothing was mixed up during reading from stdout
+        if len(result) != len(file_paths):
+            raise IOError("exiftool did return %d results, but expected was %d" % (len(result), len(file_paths)))
+        for i in range(0, len(file_paths)):
+            returned_source_file = result[i]['SourceFile']
+            requested_file = file_paths[i]
+            if returned_source_file != requested_file:
+                raise IOError('exiftool returned data for file %s, but expected was %s'
+                              % (returned_source_file, requested_file))
