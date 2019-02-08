@@ -17,7 +17,7 @@
 from distutils.core import setup
 
 setup(name="PyExifTool",
-      version="0.1",
+      version="0.1-bbliem",
       description="Python wrapper for exiftool",
       license="GPLv3+",
       author="Sven Marnach",
