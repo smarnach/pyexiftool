@@ -148,14 +148,15 @@ class ExifTool(object):
        associated with a running subprocess.
     """
 
-    def __init__(self, executable_=None):
+    def __init__(self, executable_=None, shell=True):
+        self.shell = shell
         if executable_ is None:
             self.executable = executable
         else:
             self.executable = executable_
         self.running = False
 
-    def start(self, shell=True):
+    def start(self):
         """Start an ``exiftool`` process in batch mode for this instance.
 
         This method will issue a ``UserWarning`` if the subprocess is
@@ -168,7 +169,7 @@ class ExifTool(object):
             return
         with open(os.devnull, "w") as devnull:
             startupInfo = subprocess.STARTUPINFO()
-            if not shell:
+            if not self.shell:
                 # Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
                 # keep it from throwing up a DOS shell when it launches.
                 startupInfo.dwFlags |= 11
