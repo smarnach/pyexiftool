@@ -17,12 +17,12 @@
 from distutils.core import setup
 
 setup(name="PyExifTool",
-      version="0.1",
+      version="0.1.1.post1",
       description="Python wrapper for exiftool",
       license="GPLv3+",
       author="Sven Marnach",
       author_email="sven@marnach.net",
-      url="http://github.com/smarnach/pyexiftool",
+      url="https://github.com/blurstudio/pyexiftool/tree/shell-option",
       classifiers=[
           "Development Status :: 3 - Alpha",
           "Intended Audience :: Developers",
