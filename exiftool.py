@@ -148,7 +148,8 @@ class ExifTool(object):
        associated with a running subprocess.
     """
 
-    def __init__(self, executable_=None):
+    def __init__(self, executable_=None, shell=True):
+        self.shell = shell
         if executable_ is None:
             self.executable = executable
         else:
@@ -167,11 +168,16 @@ class ExifTool(object):
             warnings.warn("ExifTool already running; doing nothing.")
             return
         with open(os.devnull, "w") as devnull:
+            startupInfo = subprocess.STARTUPINFO()
+            if not self.shell:
+                # Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
+                # keep it from throwing up a DOS shell when it launches.
+                startupInfo.dwFlags |= 11
             self._process = subprocess.Popen(
                 [self.executable, "-stay_open", "True",  "-@", "-",
                  "-common_args", "-G", "-n"],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=devnull)
+                stderr=devnull, startupinfo=startupInfo)
         self.running = True
 
     def terminate(self):
