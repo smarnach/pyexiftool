@@ -153,7 +153,8 @@ class ExifTool(object):
 	   associated with a running subprocess.
 	"""
 
-	def __init__(self, executable_=None, print_conversion=False):
+	def __init__(self, executable_=None, win_shell=True, print_conversion=False):
+		self.win_shell = win_shell
 		self.print_conversion = print_conversion
 		if executable_ is None:
 			self.executable = executable
@@ -179,10 +180,17 @@ class ExifTool(object):
 			command.append("-n")
 		
 		with open(os.devnull, "w") as devnull:
+			startup_info = subprocess.STARTUPINFO()
+			if not self.win_shell:
+				SW_FORCEMINIMIZE = 11 # from win32con
+				# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
+				# keep it from throwing up a DOS shell when it launches.
+				startup_info.dwFlags |= 11
+			
 			self._process = subprocess.Popen(
 				command,
 				stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-				stderr=devnull)
+				stderr=devnull, startupinfo=startup_info)
 		self.running = True
 
 	def terminate(self):
