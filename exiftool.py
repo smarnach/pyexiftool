@@ -323,3 +323,7 @@ class ExifTool(object):
 		``None`` if this tag was not found in the file.
 		"""
 		return self.get_tag_batch(tag, [filename])[0]
+
+	def copy_tags(self, fromFilename, toFilename):
+		"""Copy all tags from one file to another."""
+		self.execute("-overwrite_original", "-TagsFromFile", fromFilename, toFilename)
