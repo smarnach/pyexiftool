@@ -55,6 +55,7 @@ Example usage::
 
 from __future__ import unicode_literals
 
+import select
 import sys
 import subprocess
 import os
@@ -242,7 +243,13 @@ class ExifTool(object):
 		output = b""
 		fd = self._process.stdout.fileno()
 		while not output[-32:].strip().endswith(sentinel):
-			output += os.read(fd, block_size)
+			#output += os.read(fd, block_size)
+			
+			# not sure if this works on windows
+			inputready,outputready,exceptready = select.select([fd],[],[])
+			for i in inputready:
+				if i == fd:
+					output += os.read(fd, block_size)
 		return output.strip()[:-len(sentinel)]
 
 	def execute_json(self, *params):
