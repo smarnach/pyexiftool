@@ -126,7 +126,8 @@ def strip_nl (s):
 
 
 # Error checking function
-# Note: They are quite fragile, beacsue teh just parse the output text from exiftool
+# very rudimentary checking
+# Note: They are quite fragile, because this just parse the output text from exiftool
 def check_ok (result):
 	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
 	
