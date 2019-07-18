@@ -161,7 +161,7 @@ class ExifTool(object):
 	name disables the print conversion for this particular tag.
 
 	You can pass two arguments to the constructor:
-	- ``addedargs`` (list of strings): contains additional paramaters for
+	- ``added_args`` (list of strings): contains additional paramaters for
 	  the stay-open instance of exiftool
 	- ``executable`` (string): file name of the ``exiftool`` executable.
 	  The default value ``exiftool`` will only work if the executable
@@ -196,7 +196,7 @@ class ExifTool(object):
 	   associated with a running subprocess.
 	"""
 
-	def __init__(self, executable_=None, addedargs=None, win_shell=True, print_conversion=False):
+	def __init__(self, executable_=None, added_args=None, win_shell=True, print_conversion=False):
 		
 		self.win_shell = win_shell
 		self.print_conversion = print_conversion
@@ -207,12 +207,12 @@ class ExifTool(object):
 			self.executable = executable_
 		self.running = False
 
-		if addedargs is None:
-			self.addedargs = []
-		elif type(addedargs) is list:
-			self.addedargs = addedargs
+		if added_args is None:
+			self.added_args = []
+		elif type(added_args) is list:
+			self.added_args = added_args
 		else:
-			raise TypeError("addedargs not a list of strings")
+			raise TypeError("added_args not a list of strings")
 
 	def start(self):
 		"""Start an ``exiftool`` process in batch mode for this instance.
@@ -227,13 +227,13 @@ class ExifTool(object):
 			warnings.warn("ExifTool already running; doing nothing.")
 			return
 		
-		procargs = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args", "-G"]
+		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args", "-G"]
 		# may remove this and just have it added to extra args
 		if not self.print_conversion:
-			procargs.append("-n")
+			proc_args.append("-n")
 		
-		procargs.extend(self.addedargs)
-		logging.debug(procargs) 
+		proc_args.extend(self.added_args)
+		logging.debug(proc_args) 
 		
 		with open(os.devnull, "w") as devnull:
 			startup_info = subprocess.STARTUPINFO()
@@ -244,7 +244,7 @@ class ExifTool(object):
 				startup_info.dwFlags |= 11
 			
 			self._process = subprocess.Popen(
-				procargs,
+				proc_args,
 				stdin=subprocess.PIPE, stdout=subprocess.PIPE,
 				stderr=devnull, startupinfo=startup_info)
 		self.running = True
