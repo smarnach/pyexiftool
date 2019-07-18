@@ -16,4 +16,21 @@ Date (Timezone)              | Version | Comment
 07/18/2019 04:01:18 AM (PDT) | 0.1.7   | minor change it looks like a rename to match PEP8 coding standards by [zserg on Aug 21, 2016](https://github.com/jmathai/elodie/blob/ad1cbefb15077844a6f64dca567ea5600477dd52/elodie/external/pyexiftool.py)
 07/18/2019 04:05:36 AM (PDT) | 0.1.8   | [Fallback to latin if utf-8 decode fails in pyexiftool.py](https://github.com/jmathai/elodie/commit/fe70227c7170e01c8377de7f9770e761eab52036#diff-f9cf0f3eed27e85c9c9469d0e0d431d5) by [jmathai](https://github.com/jmathai/elodie/commits?author=jmathai) on Sep 7, 2016
 07/18/2019 04:14:32 AM (PDT) | 0.1.9   | Merge the test cases from the [Pull request #5 "add set_tags_batch, set_tags + constructor takes added options"](https://github.com/smarnach/pyexiftool/pull/5) by [halloleo](https://github.com/halloleo) on Aug 1, 2012
+07/18/2019 04:34:46 AM (PDT) | 0.3.0   | changed the setup.py licensing and updated the version numbering as in changelog<br>changed the version number scheme, as it appears the "official last release" was 0.2.0 tagged.  There's going to be a lot of things broken in this current build, and I'll fix it as they come up.  I'm going to start playing with the library and the included tests and such.  <br>There's one more pull request #11 which would be pending, but it duplicates the extra arguments option.  <br>I'm also likely to remove the print conversion as it's now covered by the extra args.  I'll also rename some variable names with the addedargs patch<br>**for my changes (sylikc), I can only guarantee they will work on Python 3.7, because that's my environment... and while I'll try to maintain compatibility, there's no guarantees**
+
+
+
+
+# Changes around the web
+
+Check for changes at the following resources to make sure we have the latest and greatest.  After all, I'm "unofficially forked" here offline.  I intend to publish the changes once I get it into a working state for my DV Suite
+
+(last checked 7/17/2019 all)
+search "pyexiftool github" to see if you find any more random ports/forks
+check for updates https://github.com/smarnach/pyexiftool/pulls
+check for updates https://github.com/blurstudio/pyexiftool/tree/shell-option (#27)
+check for updates https://github.com/RootLUG/pyexiftool (#27)
+check for updates https://pypi.org/project/PyExifTool/0.1.1/#files (#15)
+check for updates on elodie https://github.com/jmathai/elodie/commits/master/elodie/external/pyexiftool.py
+check for new open issues https://github.com/smarnach/pyexiftool/issues?q=is%3Aissue+is%3Aopen
 

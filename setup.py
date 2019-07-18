@@ -17,10 +17,10 @@
 from distutils.core import setup
 
 setup(  name="PyExifTool",
-		version="0.1",
+		version="0.3.0",
 		description="Python wrapper for exiftool",
-		license="GPLv3+",
-		author="Sven Marnach",
+		license="GPLv3+/BSD",
+		author="Sven Marnach + various contributors",
 		author_email="sven@marnach.net",
 		url="http://github.com/smarnach/pyexiftool",
 		classifiers=[
