@@ -10,7 +10,7 @@ import shutil
 
 class TestExifTool(unittest.TestCase):
 	def setUp(self):
-		self.et = exiftool.ExifTool(added_args=["-overwrite_original"])
+		self.et = exiftool.ExifTool(common_args=["-G", "-n", "-overwrite_original"])
 	def tearDown(self):
 		if hasattr(self, "et"):
 			self.et.terminate()

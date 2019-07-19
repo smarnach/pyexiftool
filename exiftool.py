@@ -381,7 +381,7 @@ class ExifTool(object):
 		if result:
 			try:
 				ExifTool._check_sanity_of_result(filenames, result)
-			except IOError, error:
+			except (IOError, error):
 				# Restart the exiftool child process in these cases since something is going wrong
 				self.terminate()
 				self.start()
