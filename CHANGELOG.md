@@ -18,7 +18,7 @@ Date (Timezone)              | Version | Comment
 07/18/2019 04:14:32 AM (PDT) | 0.1.9   | Merge the test cases from the [Pull request #5 "add set_tags_batch, set_tags + constructor takes added options"](https://github.com/smarnach/pyexiftool/pull/5) by [halloleo](https://github.com/halloleo) on Aug 1, 2012
 07/18/2019 04:34:46 AM (PDT) | 0.3.0   | changed the setup.py licensing and updated the version numbering as in changelog<br>changed the version number scheme, as it appears the "official last release" was 0.2.0 tagged.  There's going to be a lot of things broken in this current build, and I'll fix it as they come up.  I'm going to start playing with the library and the included tests and such.  <br>There's one more pull request #11 which would be pending, but it duplicates the extra arguments option.  <br>I'm also likely to remove the print conversion as it's now covered by the extra args.  I'll also rename some variable names with the addedargs patch<br>**for my changes (sylikc), I can only guarantee they will work on Python 3.7, because that's my environment... and while I'll try to maintain compatibility, there's no guarantees**
 07/18/2019 05:06:19 AM (PDT) | 0.3.1   | make some minor tweaks to the naming of the extra args variable.  The other pull request 11 names them params, and when I decide how to merge that pull request, I'll probably change the variable names again.
-
+07/19/2019 12:01:22 AM (PTD) | 0.3.2   | fix the select() problem for windows, and fix all tests
 
 
 # Changes around the web

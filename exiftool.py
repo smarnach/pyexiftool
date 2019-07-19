@@ -294,18 +294,23 @@ class ExifTool(object):
 		if not self.running:
 			raise ValueError("ExifTool instance not running.")
 		cmd_text = b"\n".join(params + (b"-execute\n",))
-		self._process.stdin.write(cmd_text.encode("utf-8")) # a commit reverted this to the original where it's not encoded in UTF-8, will see if there are conflicts later
+		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
+		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
+		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
 		output = b""
 		fd = self._process.stdout.fileno()
 		while not output[-32:].strip().endswith(sentinel):
-			#output += os.read(fd, block_size)
-			
-			# not sure if this works on windows
-			inputready,outputready,exceptready = select.select([fd],[],[])
-			for i in inputready:
-				if i == fd:
-					output += os.read(fd, block_size)
+			if sys.platform == 'win32':
+				# windows does not support select() for anything except sockets
+				# https://docs.python.org/3.7/library/select.html
+				output += os.read(fd, block_size)
+			else:
+				# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
+				inputready,outputready,exceptready = select.select([fd],[],[])
+				for i in inputready:
+					if i == fd:
+						output += os.read(fd, block_size)
 		return output.strip()[:-len(sentinel)]
 
 	def execute_json(self, *params):
@@ -486,7 +491,8 @@ class ExifTool(object):
 			raise TypeError("The argument 'filenames' must be "
 							"an iterable of strings")
 				
-		params = []    
+		params = []
+		params_utf8 = []
 			
 		kw_operation = {KW_REPLACE:"-%s=%s",
 						KW_ADD:"-%s+=%s",
@@ -497,7 +503,9 @@ class ExifTool(object):
 		params.extend(kw_params)            
 		params.extend(filenames)
 		logging.debug (params)
-		return self.execute(*params)
+		
+		params_utf8 = [x.encode('utf-8') for x in params]
+		return self.execute(*params_utf8)
 	
 	def set_keywords(self, mode, keywords, filename):
 		"""Modifies the keywords tag for the given file.
