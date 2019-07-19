@@ -9,6 +9,8 @@ import os
 import shutil
 
 class TestExifTool(unittest.TestCase):
+
+	#---------------------------------------------------------------------------------------------------------
 	def setUp(self):
 		self.et = exiftool.ExifTool(common_args=["-G", "-n", "-overwrite_original"])
 	def tearDown(self):
@@ -17,6 +19,7 @@ class TestExifTool(unittest.TestCase):
 		if hasattr(self, "process"):
 			if self.process.poll() is None:
 				self.process.terminate()
+	#---------------------------------------------------------------------------------------------------------
 	def test_termination_cm(self):
 		# Test correct subprocess start and termination when using
 		# self.et as a context manager
@@ -32,6 +35,7 @@ class TestExifTool(unittest.TestCase):
 			self.assertEqual(self.process.poll(), None)
 		self.assertFalse(self.et.running)
 		self.assertNotEqual(self.process.poll(), None)
+	#---------------------------------------------------------------------------------------------------------
 	def test_termination_explicit(self):
 		# Test correct subprocess start and termination when
 		# explicitly using start() and terminate()
@@ -40,12 +44,19 @@ class TestExifTool(unittest.TestCase):
 		self.assertEqual(self.process.poll(), None)
 		self.et.terminate()
 		self.assertNotEqual(self.process.poll(), None)
+	#---------------------------------------------------------------------------------------------------------
 	def test_termination_implicit(self):
 		# Test implicit process termination on garbage collection
 		self.et.start()
 		self.process = self.et._process
 		del self.et
 		self.assertNotEqual(self.process.poll(), None)
+	#---------------------------------------------------------------------------------------------------------
+	def test_invalid_args_list(self):
+		# test to make sure passing in an invalid args list will cause it to error out
+		with self.assertRaises(TypeError):
+			exiftool.ExifTool(common_args="not a list")
+	#---------------------------------------------------------------------------------------------------------
 	def test_get_metadata(self):
 		expected_data = [{"SourceFile": "rose.jpg",
 						  "File:FileType": "JPEG",
@@ -83,6 +94,7 @@ class TestExifTool(unittest.TestCase):
 									 for k in ["SourceFile", "XMP:Subject"]))
 		self.assertEqual(tag0, "Röschen")
 
+	#---------------------------------------------------------------------------------------------------------
 	def test_set_metadata(self):
 		mod_prefix = "newcap_"
 		expected_data = [{"SourceFile": "rose.jpg",
@@ -104,6 +116,7 @@ class TestExifTool(unittest.TestCase):
 			os.remove(f_mod)
 			self.assertEqual(tag0, d["Caption-Abstract"])
 
+	#---------------------------------------------------------------------------------------------------------
 	def test_set_keywords(self):
 		kw_to_add = ["added"]
 		mod_prefix = "newkw_"
@@ -131,5 +144,8 @@ class TestExifTool(unittest.TestCase):
 			self.assertEqual(kwtag1, d["Keywords"][0])            
 			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
 
+
+
+#---------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
 	unittest.main()
