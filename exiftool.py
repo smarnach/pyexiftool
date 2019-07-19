@@ -65,6 +65,10 @@ import warnings
 import logging
 import codecs
 
+# for the pdeathsig
+import signal
+import ctypes
+
 try:        # Py3k compatibility
 	basestring
 except NameError:
@@ -89,6 +93,9 @@ block_size = 4096
 # constants related to keywords manipulations 
 KW_TAGNAME = "IPTC:Keywords"
 KW_REPLACE, KW_ADD, KW_REMOVE = range(3)
+
+#------------------------------------------------------------------------------------------------
+
 
 # This code has been adapted from Lib/os.py in the Python source tree
 # (sha1 265e36e277f3)
@@ -118,6 +125,27 @@ def _fscodec():
 
 fsencode = _fscodec()
 del _fscodec
+
+#------------------------------------------------------------------------------------------------
+
+def set_pdeathsig(sig=signal.SIGTERM):
+	"""
+	Use this method in subprocess.Popen(preexec_fn=set_pdeathsig()) to make sure,
+	the exiftool childprocess is stopped if this process dies.
+	However, this only works on linux.
+	"""
+	if sys.platform == "linux" or sys.platform == "linux2":
+		def callable_method():
+			# taken from linux/prctl.h
+			pr_set_pdeathsig = 1
+			libc = ctypes.CDLL("libc.so.6")
+			return libc.prctl(pr_set_pdeathsig, sig)
+
+		return callable_method
+	else:
+		return None
+
+
 
 
 #string helper
@@ -152,6 +180,10 @@ def format_error (result):
 		else:
 			return 'exiftool finished with error: "%s"' % strip_nl(result) 
 
+
+
+
+#------------------------------------------------------------------------------------------------
 class ExifTool(object):
 	"""Run the `exiftool` command-line tool and communicate to it.
 
@@ -161,7 +193,7 @@ class ExifTool(object):
 	name disables the print conversion for this particular tag.
 
 	You can pass two arguments to the constructor:
-	- ``added_args`` (list of strings): contains additional paramaters for
+	- ``common_args`` (list of strings): contains additional paramaters for
 	  the stay-open instance of exiftool
 	- ``executable`` (string): file name of the ``exiftool`` executable.
 	  The default value ``exiftool`` will only work if the executable
@@ -196,57 +228,74 @@ class ExifTool(object):
 	   associated with a running subprocess.
 	"""
 
-	def __init__(self, executable_=None, added_args=None, win_shell=True, print_conversion=False):
+	def __init__(self, executable_=None, common_args=None, win_shell=True):
 		
 		self.win_shell = win_shell
-		self.print_conversion = print_conversion
 		
 		if executable_ is None:
 			self.executable = executable
 		else:
 			self.executable = executable_
 		self.running = False
+        
+		self._common_args = common_args
+		# it can't be none, check if it's a list, if not, error
+		
+        self._process = None
 
-		if added_args is None:
-			self.added_args = []
-		elif type(added_args) is list:
-			self.added_args = added_args
+		if common_args is None:
+			# default parameters to exiftool
+			# -n = disable print conversion (speedup)
+			self.common_args = ["-G", "-n"]
+		elif type(common_args) is list:
+			self.common_args = common_args
 		else:
-			raise TypeError("added_args not a list of strings")
+			raise TypeError("common_args not a list of strings")
+
 
 	def start(self):
 		"""Start an ``exiftool`` process in batch mode for this instance.
 
 		This method will issue a ``UserWarning`` if the subprocess is
-		already running.  The process is started with the ``-G`` (and, 
+		already running.  The process is by default started with the ``-G`` (and, 
 		if print conversion was disabled, ``-n``) as common arguments, 
 		which are automatically included in every command you run with 
 		:py:meth:`execute()`.
+		
+		However, you can override these default arguments with the common_args parameter in the constructor.
 		"""
 		if self.running:
 			warnings.warn("ExifTool already running; doing nothing.")
 			return
 		
-		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args", "-G"]
-		# may remove this and just have it added to extra args
-		if not self.print_conversion:
-			proc_args.append("-n")
+		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
+		proc_args.extend(self.common_args) # add the common arguments
 		
-		proc_args.extend(self.added_args)
 		logging.debug(proc_args) 
 		
+		
 		with open(os.devnull, "w") as devnull:
-			startup_info = subprocess.STARTUPINFO()
-			if not self.win_shell:
-				SW_FORCEMINIMIZE = 11 # from win32con
-				# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
-				# keep it from throwing up a DOS shell when it launches.
-				startup_info.dwFlags |= 11
-			
-			self._process = subprocess.Popen(
-				proc_args,
-				stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-				stderr=devnull, startupinfo=startup_info)
+			if sys.platform == 'win32':
+				startup_info = subprocess.STARTUPINFO()
+				if not self.win_shell:
+					SW_FORCEMINIMIZE = 11 # from win32con
+					# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
+					# keep it from throwing up a DOS shell when it launches.
+					startup_info.dwFlags |= 11
+				
+				self._process = subprocess.Popen(
+					proc_args,
+					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+					stderr=devnull, startupinfo=startup_info)
+				# TODO check error before saying it's running
+			else:
+				# assume it's linux
+				self._process = subprocess.Popen(
+					proc_args,
+					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+					stderr=devnull, preexec_fn=set_pdeathsig(signal.SIGTERM))
+				# TODO check error before saying it's running
+		
 		self.running = True
 
 	def terminate(self):
