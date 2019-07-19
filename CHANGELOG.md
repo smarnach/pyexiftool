@@ -20,6 +20,8 @@ Date (Timezone)              | Version | Comment
 07/18/2019 05:06:19 AM (PDT) | 0.3.1   | make some minor tweaks to the naming of the extra args variable.  The other pull request 11 names them params, and when I decide how to merge that pull request, I'll probably change the variable names again.
 07/19/2019 12:01:22 AM (PDT) | 0.3.2   | fix the select() problem for windows, and fix all tests
 07/19/2019 12:54:39 AM (PDT) | 0.3.3   | Merge a piece of [Pull request #11 "Robustness enhancements](https://github.com/smarnach/pyexiftool/pull/11) by [Matthias Kiefer (kiefermat)](https://github.com/kiefermat) on Oct 27, 2014<br>*On linux call prctl in subprocess to be sure that the exiftool child process is killed even if the parent process is killed by itself*<br>also removed print_conversion<br>also merged the common_args and added_args into one args list
+07/19/2019 01:18:26 AM (PDT) | 0.3.4   | Merge the rest of Pull request #11.  Added the other pieces, however, I added them as "wrappers" instead of modifying the interface of the original code.  I feel like the additions here are overly done, and as I understand the code more, I'll either remove it or incorporate it into single functions<br>from #11 *When getting json results, verify that the results returned by exiftool actually belong to the correct file by checking the SourceFile property of the returned result*<br>and also *Added possibility to provide different exiftools params for each file separately*
+
 
 
 # Changes around the web

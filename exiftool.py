@@ -90,7 +90,7 @@ sentinel = b"{ready}"
 # some cases.
 block_size = 4096
 
-# constants related to keywords manipulations 
+# constants related to keywords manipulations
 KW_TAGNAME = "IPTC:Keywords"
 KW_REPLACE, KW_ADD, KW_REMOVE = range(3)
 
@@ -158,27 +158,27 @@ def strip_nl (s):
 # Note: They are quite fragile, because this just parse the output text from exiftool
 def check_ok (result):
 	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
-	
+
 	The argument is the result from the execute method.
-	
+
 	The result is True or False.
 	"""
 	return not result is None and (not "due to errors" in result)
 
 def format_error (result):
 	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
-	
+
 	The argument is the result from the execute method.
-	
+
 	The result is a human readable one-line string.
 	"""
 	if check_ok (result):
 		return 'exiftool finished probably properly. ("%s")' % strip_nl(result)
-	else:        
+	else:
 		if result is None:
 			return "exiftool operation can't be evaluated: No result given"
 		else:
-			return 'exiftool finished with error: "%s"' % strip_nl(result) 
+			return 'exiftool finished with error: "%s"' % strip_nl(result)
 
 
 
@@ -229,19 +229,19 @@ class ExifTool(object):
 	"""
 
 	def __init__(self, executable_=None, common_args=None, win_shell=True):
-		
+
 		self.win_shell = win_shell
-		
+
 		if executable_ is None:
 			self.executable = executable
 		else:
 			self.executable = executable_
 		self.running = False
-        
+
 		self._common_args = common_args
 		# it can't be none, check if it's a list, if not, error
-		
-        self._process = None
+
+		self._process = None
 
 		if common_args is None:
 			# default parameters to exiftool
@@ -257,23 +257,23 @@ class ExifTool(object):
 		"""Start an ``exiftool`` process in batch mode for this instance.
 
 		This method will issue a ``UserWarning`` if the subprocess is
-		already running.  The process is by default started with the ``-G`` (and, 
-		if print conversion was disabled, ``-n``) as common arguments, 
-		which are automatically included in every command you run with 
+		already running.  The process is by default started with the ``-G`` (and,
+		if print conversion was disabled, ``-n``) as common arguments,
+		which are automatically included in every command you run with
 		:py:meth:`execute()`.
-		
+
 		However, you can override these default arguments with the common_args parameter in the constructor.
 		"""
 		if self.running:
 			warnings.warn("ExifTool already running; doing nothing.")
 			return
-		
+
 		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
 		proc_args.extend(self.common_args) # add the common arguments
-		
-		logging.debug(proc_args) 
-		
-		
+
+		logging.debug(proc_args)
+
+
 		with open(os.devnull, "w") as devnull:
 			if sys.platform == 'win32':
 				startup_info = subprocess.STARTUPINFO()
@@ -282,7 +282,7 @@ class ExifTool(object):
 					# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
 					# keep it from throwing up a DOS shell when it launches.
 					startup_info.dwFlags |= 11
-				
+
 				self._process = subprocess.Popen(
 					proc_args,
 					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -295,7 +295,7 @@ class ExifTool(object):
 					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
 					stderr=devnull, preexec_fn=set_pdeathsig(signal.SIGTERM))
 				# TODO check error before saying it's running
-		
+
 		self.running = True
 
 	def terminate(self):
@@ -362,6 +362,44 @@ class ExifTool(object):
 						output += os.read(fd, block_size)
 		return output.strip()[:-len(sentinel)]
 
+
+	# i'm not sure if the verification works, but related to pull request (#11)
+	def execute_json_wrapper(self, filenames, params=None, retry_on_error=True):
+		# make sure the argument is a list and not a single string
+		# which would lead to strange errors
+		if isinstance(filenames, basestring):
+			raise TypeError("The argument 'filenames' must be an iterable of strings")
+
+		execute_params = []
+
+		if params:
+			execute_params.extend(params)
+		execute_params.extend(filenames)
+
+		result = self.execute_json(execute_params)
+
+		if result:
+			try:
+				ExifTool._check_sanity_of_result(filenames, result)
+			except IOError, error:
+				# Restart the exiftool child process in these cases since something is going wrong
+				self.terminate()
+				self.start()
+
+				if retry_on_error:
+					result = self.execute_json_filenames(filenames, params, retry_on_error=False)
+				else:
+					raise error
+		else:
+			# Reasons for exiftool to provide an empty result, could be e.g. file not found, etc.
+			# What should we do in these cases? We don't have any information what went wrong, therefore
+			# we just return empty dictionaries.
+			result = [{} for _ in filenames]
+
+		return result
+
+
+
 	def execute_json(self, *params):
 		"""Execute the given batch of parameters and parse the JSON output.
 
@@ -394,6 +432,10 @@ class ExifTool(object):
 		except UnicodeDecodeError as e:
 			return json.loads(self.execute(b"-j", *params).decode("latin-1"))
 
+	# allows adding additional checks (#11)
+	def get_metadata_batch_wrapper(self, filenames, params=None):
+		return self.execute_json_wrapper(filenames=filenames, params=params)
+
 	def get_metadata_batch(self, filenames):
 		"""Return all meta-data for the given files.
 
@@ -402,6 +444,10 @@ class ExifTool(object):
 		"""
 		return self.execute_json(*filenames)
 
+	# (#11)
+	def get_metadata_wrapper(self, filename, params=None):
+		return self.execute_json_wrapper(filenames=[filename], params=params)[0]
+
 	def get_metadata(self, filename):
 		"""Return meta-data for a single file.
 
@@ -409,6 +455,11 @@ class ExifTool(object):
 		documentation of :py:meth:`execute_json()`.
 		"""
 		return self.execute_json(filename)[0]
+
+	# (#11)
+	def get_tags_batch_wrapper(self, tags, filenames, params=None):
+		params = (params if params else []) + ["-" + t for t in tags]
+		return self.execute_json_wrapper(filenames=filenames, params=params)
 
 	def get_tags_batch(self, tags, filenames):
 		"""Return only specified tags for the given files.
@@ -433,6 +484,10 @@ class ExifTool(object):
 		params.extend(filenames)
 		return self.execute_json(*params)
 
+	# (#11)
+	def get_tags_wrapper(self, tags, filename, params=None):
+		return self.get_tags_batch_wrapper(tags, [filename], params=params)[0]
+
 	def get_tags(self, tags, filename):
 		"""Return only specified tags for a single file.
 
@@ -440,6 +495,16 @@ class ExifTool(object):
 		documentation of :py:meth:`execute_json()`.
 		"""
 		return self.get_tags_batch(tags, [filename])[0]
+
+	# (#11)
+	def get_tag_batch_wrapper(self, tag, filenames, params=None):
+		data = self.get_tags_batch_wrapper([tag], filenames, params=params)
+		result = []
+		for d in data:
+			d.pop("SourceFile")
+			result.append(next(iter(d.values()), None))
+		return result
+
 
 	def get_tag_batch(self, tag, filenames):
 		"""Extract a single tag from the given files.
@@ -458,6 +523,10 @@ class ExifTool(object):
 			d.pop("SourceFile")
 			result.append(next(iter(d.values()), None))
 		return result
+
+	# (#11)
+	def get_tag_wrapper(self, tag, filename, params=None):
+		return self.get_tag_batch_wrapper(tag, [filename], params=params)[0]
 
 	def get_tag(self, tag, filename):
 		"""Extract a single tag from a single file.
@@ -482,7 +551,7 @@ class ExifTool(object):
 
 		The format of the return value is the same as for
 		:py:meth:`execute()`.
-		
+
 		It can be passed into `check_ok()` and `format_error()`.
 		"""
 		# Explicitly ruling out strings here because passing in a
@@ -493,12 +562,12 @@ class ExifTool(object):
 		if isinstance(filenames, basestring):
 			raise TypeError("The argument 'filenames' must be "
 							"an iterable of strings")
-				
+
 		params = []
 		params_utf8 = []
 		for tag, value in tags.items():
 			params.append(u'-%s=%s' % (tag, value))
-		
+
 		params.extend(filenames)
 		params_utf8 = [x.encode('utf-8') for x in params]
 		return self.execute(*params_utf8)
@@ -508,27 +577,27 @@ class ExifTool(object):
 
 		This is a convenience function derived from `set_tags_batch()`.
 		Only difference is that it takes as last arugemnt only one file name
-		as a string. 
+		as a string.
 		"""
 		return self.set_tags_batch(tags, [filename])
-	
+
 	def set_keywords_batch(self, mode, keywords, filenames):
 		"""Modifies the keywords tag for the given files.
 
 		The first argument is the operation mode:
 		KW_REPLACE: Replace (i.e. set) the full keywords tag with `keywords`.
-		KW_ADD:     Add `keywords` to the keywords tag. 
+		KW_ADD:     Add `keywords` to the keywords tag.
 					If a keyword is present, just keep it.
-		KW_REMOVE:  Remove `keywords` from the keywords tag. 
+		KW_REMOVE:  Remove `keywords` from the keywords tag.
 					If a keyword wasn't present, just leave it.
 
-		The second argument is an iterable of key words.    
+		The second argument is an iterable of key words.
 
 		The third argument is an iterable of file names.
 
 		The format of the return value is the same as for
 		:py:meth:`execute()`.
-		
+
 		It can be passed into `check_ok()` and `format_error()`.
 		"""
 		# Explicitly ruling out strings here because passing in a
@@ -539,28 +608,46 @@ class ExifTool(object):
 		if isinstance(filenames, basestring):
 			raise TypeError("The argument 'filenames' must be "
 							"an iterable of strings")
-				
+
 		params = []
 		params_utf8 = []
-			
+
 		kw_operation = {KW_REPLACE:"-%s=%s",
 						KW_ADD:"-%s+=%s",
 						KW_REMOVE:"-%s-=%s"}[mode]
 
 		kw_params = [ kw_operation % (KW_TAGNAME, w)  for w in keywords ]
-		
-		params.extend(kw_params)            
+
+		params.extend(kw_params)
 		params.extend(filenames)
 		logging.debug (params)
-		
+
 		params_utf8 = [x.encode('utf-8') for x in params]
 		return self.execute(*params_utf8)
-	
+
 	def set_keywords(self, mode, keywords, filename):
 		"""Modifies the keywords tag for the given file.
 
 		This is a convenience function derived from `set_keywords_batch()`.
 		Only difference is that it takes as last argument only one file name
-		as a string. 
+		as a string.
 		"""
 		return self.set_keywords_batch(mode, keywords, [filename])
+
+
+
+	@staticmethod
+	def _check_sanity_of_result(file_paths, result):
+		"""
+		Checks if the given file paths matches the 'SourceFile' entries in the result returned by
+		exiftool. This is done to find possible mix ups in the streamed responses.
+		"""
+		# do some sanity checks on the results to make sure nothing was mixed up during reading from stdout
+		if len(result) != len(file_paths):
+			raise IOError("exiftool did return %d results, but expected was %d" % (len(result), len(file_paths)))
+		for i in range(0, len(file_paths)):
+			returned_source_file = result[i]['SourceFile']
+			requested_file = file_paths[i]
+			if returned_source_file != requested_file:
+				raise IOError('exiftool returned data for file %s, but expected was %s'
+							  % (returned_source_file, requested_file))
