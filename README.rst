@@ -49,6 +49,14 @@ you can call
 
 to automatically install that module.
 
+Testing
+-------------
+
+Run tests to make sure it's functional
+
+::
+    python -m unittest -v test/test_exiftool.py
+
 Documentation
 -------------
 
