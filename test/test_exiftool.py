@@ -7,6 +7,7 @@ import exiftool
 import warnings
 import os
 import shutil
+import sys
 
 class TestExifTool(unittest.TestCase):
 
@@ -145,6 +146,28 @@ class TestExifTool(unittest.TestCase):
 			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
 
 
+	#---------------------------------------------------------------------------------------------------------
+	def test_executable_found(self):
+		# test if executable is found on path
+		save_sys_path = os.environ['PATH']
+
+		if sys.platform == 'win32':
+			test_path = "C:\\"
+			test_exec = "exiftool.exe"
+		else:
+			test_path = "/"
+			test_exec = "exiftool"
+		
+		# should be found in path as is
+		self.assertTrue(exiftool.find_executable(test_exec, path=None))
+		
+		# modify path and search again
+		self.assertFalse(exiftool.find_executable(test_exec, path=test_path))
+		os.environ['PATH'] = test_path
+		self.assertFalse(exiftool.find_executable(test_exec, path=None))
+		
+		# restore it
+		os.environ['PATH'] = save_sys_path
 
 #---------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':

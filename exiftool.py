@@ -184,6 +184,54 @@ def format_error (result):
 
 
 #------------------------------------------------------------------------------------------------
+
+
+# https://gist.github.com/techtonik/4368898
+# Public domain code by anatoly techtonik <techtonik@gmail.com>
+# AKA Linux `which` and Windows `where`
+
+def find_executable(executable, path=None):
+	"""Find if 'executable' can be run. Looks for it in 'path'
+	(string that lists directories separated by 'os.pathsep';
+	defaults to os.environ['PATH']). Checks for all executable
+	extensions. Returns full path or None if no command is found.
+	"""
+	if path is None:
+		path = os.environ['PATH']
+	paths = path.split(os.pathsep)
+	extlist = ['']
+	
+	if os.name == 'os2':
+		(base, ext) = os.path.splitext(executable)
+		# executable files on OS/2 can have an arbitrary extension, but
+		# .exe is automatically appended if no dot is present in the name
+		if not ext:
+			executable = executable + ".exe"
+	elif sys.platform == 'win32':
+		pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
+		(base, ext) = os.path.splitext(executable)
+		if ext.lower() not in pathext:
+			extlist = pathext
+	
+	for ext in extlist:
+		execname = executable + ext
+		#print(execname)
+		if os.path.isfile(execname):
+			return execname
+		else:
+			for p in paths:
+				f = os.path.join(p, execname)
+				if os.path.isfile(f):
+					return f
+	else:
+		return None
+
+
+
+
+
+
+#------------------------------------------------------------------------------------------------
 class ExifTool(object):
 	"""Run the `exiftool` command-line tool and communicate to it.
 
@@ -236,6 +284,10 @@ class ExifTool(object):
 			self.executable = executable
 		else:
 			self.executable = executable_
+		
+		if find_executable(self.executable) is None:
+			raise FileNotFoundError
+		
 		self.running = False
 
 		self._common_args = common_args
@@ -257,12 +309,13 @@ class ExifTool(object):
 		"""Start an ``exiftool`` process in batch mode for this instance.
 
 		This method will issue a ``UserWarning`` if the subprocess is
-		already running.  The process is by default started with the ``-G`` (and,
-		if print conversion was disabled, ``-n``) as common arguments,
+		already running.  The process is by default started with the ``-G`` 
+		and ``-n`` (print conversion disabled) as common arguments,
 		which are automatically included in every command you run with
 		:py:meth:`execute()`.
 
-		However, you can override these default arguments with the common_args parameter in the constructor.
+		However, you can override these default arguments with the 
+		``common_args`` parameter in the constructor.
 		"""
 		if self.running:
 			warnings.warn("ExifTool already running; doing nothing.")
@@ -272,7 +325,6 @@ class ExifTool(object):
 		proc_args.extend(self.common_args) # add the common arguments
 
 		logging.debug(proc_args)
-
 
 		with open(os.devnull, "w") as devnull:
 			if sys.platform == 'win32':
@@ -294,6 +346,8 @@ class ExifTool(object):
 					proc_args,
 					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
 					stderr=devnull, preexec_fn=set_pdeathsig(signal.SIGTERM))
+					# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application. 
+					# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
 				# TODO check error before saying it's running
 
 		self.running = True
