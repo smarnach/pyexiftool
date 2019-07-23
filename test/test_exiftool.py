@@ -153,10 +153,10 @@ class TestExifTool(unittest.TestCase):
 
 		if sys.platform == 'win32':
 			test_path = "C:\\"
-			test_exec = "exiftool.exe"
 		else:
 			test_path = "/"
-			test_exec = "exiftool"
+
+		test_exec = exiftool.DEFAULT_EXECUTABLE
 		
 		# should be found in path as is
 		self.assertTrue(exiftool.find_executable(test_exec, path=None))

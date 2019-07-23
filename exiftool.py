@@ -74,7 +74,16 @@ try:        # Py3k compatibility
 except NameError:
 	basestring = (bytes, str)
 
-executable = "exiftool"
+
+
+
+
+
+# specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
+if sys.platform == 'win32':
+	DEFAULT_EXECUTABLE = "exiftool.exe"
+else:
+	DEFAULT_EXECUTABLE = "exiftool"
 """The name of the executable to run.
 
 If the executable is not located in one of the paths listed in the
@@ -281,12 +290,13 @@ class ExifTool(object):
 		self.win_shell = win_shell
 
 		if executable_ is None:
-			self.executable = executable
+			self.executable = DEFAULT_EXECUTABLE
 		else:
 			self.executable = executable_
 		
+		# error checking
 		if find_executable(self.executable) is None:
-			raise FileNotFoundError
+			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(self.executable) )
 		
 		self.running = False
 
@@ -321,38 +331,47 @@ class ExifTool(object):
 			warnings.warn("ExifTool already running; doing nothing.")
 			return
 
-		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
+		proc_args = [self.executable+'e', "-stay_open", "True",  "-@", "-", "-common_args"]
 		proc_args.extend(self.common_args) # add the common arguments
 
 		logging.debug(proc_args)
-
+		
 		with open(os.devnull, "w") as devnull:
-			if sys.platform == 'win32':
-				startup_info = subprocess.STARTUPINFO()
-				if not self.win_shell:
-					SW_FORCEMINIMIZE = 11 # from win32con
-					# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
-					# keep it from throwing up a DOS shell when it launches.
-					startup_info.dwFlags |= 11
+			try:
+				if sys.platform == 'win32':
+					startup_info = subprocess.STARTUPINFO()
+					if not self.win_shell:
+						SW_FORCEMINIMIZE = 11 # from win32con
+						# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
+						# keep it from throwing up a DOS shell when it launches.
+						startup_info.dwFlags |= 11
 
-				self._process = subprocess.Popen(
-					proc_args,
-					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-					stderr=devnull, startupinfo=startup_info)
-				# TODO check error before saying it's running
-			else:
-				# assume it's linux
-				self._process = subprocess.Popen(
-					proc_args,
-					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-					stderr=devnull, preexec_fn=set_pdeathsig(signal.SIGTERM))
-					# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application. 
-					# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
-				# TODO check error before saying it's running
-
+					self._process = subprocess.Popen(
+						proc_args,
+						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+						stderr=devnull, startupinfo=startup_info)
+					# TODO check error before saying it's running
+				else:
+					# assume it's linux
+					self._process = subprocess.Popen(
+						proc_args,
+						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+						stderr=devnull, preexec_fn=set_pdeathsig(signal.SIGTERM))
+						# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application. 
+						# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+			except FileNotFoundError as fnfe:
+				raise fnfe
+			except OSError as oe:
+				raise oe
+			except ValueError as ve:
+				raise ve
+			except subprocess.CalledProcessError as cpe:
+				raise cpe
+		
+		# check error above before saying it's running
 		self.running = True
 
-	def terminate(self):
+	def terminate(self, wait_timeout=30):
 		"""Terminate the ``exiftool`` process of this instance.
 
 		If the subprocess isn't running, this method will do nothing.
@@ -361,7 +380,13 @@ class ExifTool(object):
 			return
 		self._process.stdin.write(b"-stay_open\nFalse\n")
 		self._process.stdin.flush()
-		self._process.communicate()
+		try:
+			self._process.communicate(timeout=wait_timeout)
+		except subprocess.TimeoutExpired:
+			self._process.kill()
+			outs, errs = proc.communicate()
+			# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
+			
 		del self._process
 		self.running = False
 
@@ -396,6 +421,7 @@ class ExifTool(object):
 		"""
 		if not self.running:
 			raise ValueError("ExifTool instance not running.")
+		
 		cmd_text = b"\n".join(params + (b"-execute\n",))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
