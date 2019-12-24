@@ -60,7 +60,10 @@ import select
 import sys
 import subprocess
 import os
-import json
+try:
+	import ujson as json
+except ImportError:
+	import json
 import warnings
 import logging
 import codecs
