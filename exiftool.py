@@ -510,17 +510,18 @@ class ExifTool(object):
 		# http://stackoverflow.com/a/5552623/1318758
 		# https://github.com/jmathai/elodie/issues/127
 		res = self.execute(b"-j", *params)
-		# res can be invalid json if `-w` flag is specified in common_args
+		try:
+			res_decoded = res.decode("utf-8")
+		except UnicodeDecodeError:
+			res_decoded = res.decode("latin-1")
+		# res_decoded can be invalid json if `-w` flag is specified in common_args
 		# which will return something like
 		# image files read
 		# output files created
 		if self.no_output:
-			print(res)
+			print(res_decoded)
 		else:
-			try:
-				return json.loads(res.decode("utf-8"))
-			except UnicodeDecodeError as e:
-				return json.loads(res.decode("latin-1"))
+			return json.loads(res_decoded)
 
 	# allows adding additional checks (#11)
 	def get_metadata_batch_wrapper(self, filenames, params=None):
