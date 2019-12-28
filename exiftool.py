@@ -514,7 +514,9 @@ class ExifTool(object):
 		# which will return something like
 		# image files read
 		# output files created
-		if not self.no_output:
+		if self.no_output:
+			print(res)
+		else:
 			try:
 				return json.loads(res.decode("utf-8"))
 			except UnicodeDecodeError as e:
