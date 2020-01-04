@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 import unittest
-import exiftool
+import pyexiftool
 import warnings
 import os
 import shutil
@@ -13,7 +13,7 @@ class TestExifTool(unittest.TestCase):
 
 	#---------------------------------------------------------------------------------------------------------
 	def setUp(self):
-		self.et = exiftool.ExifTool(common_args=["-G", "-n", "-overwrite_original"])
+		self.et = pyexiftool.ExifTool(common_args=["-G", "-n", "-overwrite_original"])
 	def tearDown(self):
 		if hasattr(self, "et"):
 			self.et.terminate()
@@ -56,7 +56,7 @@ class TestExifTool(unittest.TestCase):
 	def test_invalid_args_list(self):
 		# test to make sure passing in an invalid args list will cause it to error out
 		with self.assertRaises(TypeError):
-			exiftool.ExifTool(common_args="not a list")
+			pyexiftool.ExifTool(common_args="not a list")
 	#---------------------------------------------------------------------------------------------------------
 	def test_get_metadata(self):
 		expected_data = [{"SourceFile": "rose.jpg",
@@ -133,12 +133,12 @@ class TestExifTool(unittest.TestCase):
 			shutil.copyfile(f, f_mod)
 			source_files.append(f_mod)
 			with self.et:
-				self.et.set_keywords(exiftool.KW_REPLACE, d["Keywords"], f_mod)
+				self.et.set_keywords(pyexiftool.KW_REPLACE, d["Keywords"], f_mod)
 				kwtag0 = self.et.get_tag("IPTC:Keywords", f_mod)
 				kwrest = d["Keywords"][1:]
-				self.et.set_keywords(exiftool.KW_REMOVE, kwrest, f_mod)
+				self.et.set_keywords(pyexiftool.KW_REMOVE, kwrest, f_mod)
 				kwtag1 = self.et.get_tag("IPTC:Keywords", f_mod)
-				self.et.set_keywords(exiftool.KW_ADD, kw_to_add, f_mod)
+				self.et.set_keywords(pyexiftool.KW_ADD, kw_to_add, f_mod)
 				kwtag2 = self.et.get_tag("IPTC:Keywords", f_mod)
 			os.remove(f_mod)
 			self.assertEqual(kwtag0, d["Keywords"])
@@ -156,15 +156,15 @@ class TestExifTool(unittest.TestCase):
 		else:
 			test_path = "/"
 
-		test_exec = exiftool.DEFAULT_EXECUTABLE
+		test_exec = pyexiftool.DEFAULT_EXECUTABLE
 		
 		# should be found in path as is
-		self.assertTrue(exiftool.find_executable(test_exec, path=None))
+		self.assertTrue(pyexiftool.find_executable(test_exec, path=None))
 		
 		# modify path and search again
-		self.assertFalse(exiftool.find_executable(test_exec, path=test_path))
+		self.assertFalse(pyexiftool.find_executable(test_exec, path=test_path))
 		os.environ['PATH'] = test_path
-		self.assertFalse(exiftool.find_executable(test_exec, path=None))
+		self.assertFalse(pyexiftool.find_executable(test_exec, path=None))
 		
 		# restore it
 		os.environ['PATH'] = save_sys_path

@@ -22,7 +22,8 @@ Date (Timezone)              | Version | Comment
 07/19/2019 12:54:39 AM (PDT) | 0.3.3   | Merge a piece of [Pull request #11 "Robustness enhancements](https://github.com/smarnach/pyexiftool/pull/11) by [Matthias Kiefer (kiefermat)](https://github.com/kiefermat) on Oct 27, 2014<br>*On linux call prctl in subprocess to be sure that the exiftool child process is killed even if the parent process is killed by itself*<br>also removed print_conversion<br>also merged the common_args and added_args into one args list
 07/19/2019 01:18:26 AM (PDT) | 0.3.4   | Merge the rest of Pull request #11.  Added the other pieces, however, I added them as "wrappers" instead of modifying the interface of the original code.  I feel like the additions here are overly done, and as I understand the code more, I'll either remove it or incorporate it into single functions<br>from #11 *When getting json results, verify that the results returned by exiftool actually belong to the correct file by checking the SourceFile property of the returned result*<br>and also *Added possibility to provide different exiftools params for each file separately*
 07/19/2019 01:22:48 AM (PDT) | 0.3.5   | changed a bit of the test_exiftool so all the tests pass again
-
+01/04/2020 11:59:14 AM (PST) | 0.3.6   | made the tests work with the latest output of ExifTool.  This is the final version which is named "exiftool"
+01/04/2020 12:16:51 PM (PST) | 0.4.0   | pyexiftool rename (and make all tests work again) ... I also think that the pyexiftool.py has gotten too big.  I'll probably break it out into a directory structure later to make it more maintainable
 
 
 # Changes around the web
