@@ -331,7 +331,7 @@ class ExifTool(object):
 			warnings.warn("ExifTool already running; doing nothing.")
 			return
 
-		proc_args = [self.executable+'e', "-stay_open", "True",  "-@", "-", "-common_args"]
+		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
 		proc_args.extend(self.common_args) # add the common arguments
 
 		logging.debug(proc_args)

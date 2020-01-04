@@ -64,12 +64,12 @@ class TestExifTool(unittest.TestCase):
 						  "File:ImageWidth": 70,
 						  "File:ImageHeight": 46,
 						  "XMP:Subject": "Röschen",
-						  "Composite:ImageSize": "70x46"},
+						  "Composite:ImageSize": "70 46"}, # older versions of exiftool used to display 70x46
 						 {"SourceFile": "skyblue.png",
 						  "File:FileType": "PNG",
 						  "PNG:ImageWidth": 64,
 						  "PNG:ImageHeight": 64,
-						  "Composite:ImageSize": "64x64"}]
+						  "Composite:ImageSize": "64 64"}] # older versions of exiftool used to display 64x64
 		script_path = os.path.dirname(__file__)
 		source_files = []
 		for d in expected_data:
