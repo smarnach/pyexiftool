@@ -317,6 +317,8 @@ class ExifTool(object):
 		else:
 			raise TypeError("common_args not a list of strings")
 
+		self.no_output = '-w' in common_args
+
 
 	def start(self):
 		"""Start an ``exiftool`` process in batch mode for this instance.
@@ -510,10 +512,19 @@ class ExifTool(object):
 		# Try utf-8 and fallback to latin.
 		# http://stackoverflow.com/a/5552623/1318758
 		# https://github.com/jmathai/elodie/issues/127
+		res = self.execute(b"-j", *params)
 		try:
-			return json.loads(self.execute(b"-j", *params).decode("utf-8"))
-		except UnicodeDecodeError as e:
-			return json.loads(self.execute(b"-j", *params).decode("latin-1"))
+			res_decoded = res.decode("utf-8")
+		except UnicodeDecodeError:
+			res_decoded = res.decode("latin-1")
+		# res_decoded can be invalid json if `-w` flag is specified in common_args
+		# which will return something like
+		# image files read
+		# output files created
+		if self.no_output:
+			print(res_decoded)
+		else:
+			return json.loads(res_decoded)
 
 	# allows adding additional checks (#11)
 	def get_metadata_batch_wrapper(self, filenames, params=None):
