@@ -24,7 +24,9 @@ Date (Timezone)              | Version | Comment
 07/19/2019 01:22:48 AM (PDT) | 0.3.5   | changed a bit of the test_exiftool so all the tests pass again
 01/04/2020 11:59:14 AM (PST) | 0.3.6   | made the tests work with the latest output of ExifTool.  This is the final version which is named "exiftool"
 01/04/2020 12:16:51 PM (PST) | 0.4.0   | pyexiftool rename (and make all tests work again) ... I also think that the pyexiftool.py has gotten too big.  I'll probably break it out into a directory structure later to make it more maintainable
+02/01/2020 05:09:43 PM (PST) | 0.4.1   | incorporated pull request #2 and #3 by ickc which added a "no_output" feature and an import for ujson if it's installed.  Thanks for the updates!
 
+On version changes, update setup.py to reflect version
 
 # Changes around the web
 
