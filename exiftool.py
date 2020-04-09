@@ -317,7 +317,7 @@ class ExifTool(object):
 		else:
 			raise TypeError("common_args not a list of strings")
 
-		self.no_output = '-w' in common_args
+		self.no_output = '-w' in self.common_args
 
 
 	def start(self):
