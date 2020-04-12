@@ -524,6 +524,7 @@ class ExifTool(object):
 		if self.no_output:
 			print(res_decoded)
 		else:
+			# TODO: if len(res_decoded) == 0, then there's obviously an error here
 			return json.loads(res_decoded)
 
 	# allows adding additional checks (#11)
