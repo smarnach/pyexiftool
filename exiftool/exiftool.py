@@ -539,24 +539,28 @@ class ExifTool(object):
 	def get_metadata_batch_wrapper(self, filenames, params=None):
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
-	def get_metadata_batch(self, filenames, params=[]):
+	def get_metadata_batch(self, filenames, params=None):
 		"""Return all meta-data for the given files.
 
 		The return value will have the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
+		if not params:
+			params = []
 		return self.execute_json(*filenames, *params)
 
 	# (#11)
 	def get_metadata_wrapper(self, filename, params=None):
 		return self.execute_json_wrapper(filenames=[filename], params=params)[0]
 
-	def get_metadata(self, filename, params=[]):
+	def get_metadata(self, filename, params=None):
 		"""Return meta-data for a single file.
 
 		The returned dictionary has the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
+		if not params:
+			params = None
 		return self.execute_json(filename, *params)[0]
 
 	# (#11)
