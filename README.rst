@@ -27,6 +27,7 @@ Alternatively, you can download a tarball_.
 Official releases are on PyPI
 
 ::
+
     https://pypi.org/project/PyExifTool/
 
 
@@ -47,6 +48,9 @@ featuring the ``-stay_open`` option for batch mode).
 PyExifTool currently only consists of a single module, so you can
 simply copy or link this module to a place where Python finds it, or
 you can call
+
+(It is being slowly re-factored to a module to keep exiftool.py from 
+growing astronomically)
 
 ::
 
