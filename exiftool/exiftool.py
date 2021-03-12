@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # PyExifTool <http://github.com/smarnach/pyexiftool>
 # Copyright 2012 Sven Marnach.
+# Copyright 2021 Kevin M (sylikc)
+
 # More contributors in the CHANGELOG for the pull requests
 
 # This file is part of PyExifTool.

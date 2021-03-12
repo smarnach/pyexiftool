@@ -1,5 +1,5 @@
-# PyExifTool <http://github.com/smarnach/pyexiftool>
-# Copyright 2012 Sven Marnach
+# PyExifTool <http://github.com/sylikc/pyexiftool>
+# Copyright 2012 Sven Marnach, Kevin M (sylikc)
 
 # This file is part of PyExifTool.
 #
@@ -14,21 +14,65 @@
 #
 # See COPYING.GPL or COPYING.BSD for more details.
 
-from distutils.core import setup
+# this "could" still be used, but not the industry recommended option -- https://stackoverflow.com/questions/25337706/setuptools-vs-distutils-why-is-distutils-still-a-thing
+#from distutils.core import setup
 
-setup(  name="PyExifTool",
-		version="0.4.3",
-		description="Python wrapper for exiftool",
-		license="GPLv3+/BSD",
-		author="Sven Marnach + various contributors",
-		author_email="sven@marnach.net",
-		url="http://github.com/smarnach/pyexiftool",
-		classifiers=[
-			"Development Status :: 3 - Alpha",
-			"Intended Audience :: Developers",
-			"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-			"Programming Language :: Python :: 2.6",
-			"Programming Language :: Python :: 2.7",
-			"Programming Language :: Python :: 3",
-			"Topic :: Multimedia"],
-		py_modules=["exiftool"])
+# recommended packager, though must be installed via PyPI
+# https://packaging.python.org/tutorials/packaging-projects/#configuring-metadata
+from setuptools import setup, find_packages
+
+with open("README.rst", "r", encoding="utf-8") as fh:
+	long_desc = fh.read()
+
+setup(
+	# detailed list of options:
+	# https://packaging.python.org/guides/distributing-packages-using-setuptools/
+	
+	# overview
+	name="PyExifTool",
+	version="0.4.4",
+	license="GPLv3+/BSD",
+	url="http://github.com/sylikc/pyexiftool",
+	python_requires=">=2.6",
+	
+	# authors
+	author="Sven Marnach, Kevin M (sylikc), various contributors",
+	author_email="sylikc@gmail.com",
+	
+	# info
+	description="Python wrapper for exiftool",
+	long_description=long_desc,
+	long_description_content_type="text/x-rst",
+	keywords="exiftool image exif metadata photo video photography",
+	
+	project_urls={
+		"Documentation": "http://smarnach.github.io/pyexiftool/",
+		"Tracker": "https://github.com/sylikc/pyexiftool/issues",
+		"Source": "https://github.com/sylikc/pyexiftool",
+	},
+	
+	
+	classifiers=[
+		# list is here:
+		# https://pypi.org/classifiers/
+		
+		"Development Status :: 3 - Alpha",
+		
+		"Intended Audience :: Developers",
+		
+		"License :: OSI Approved :: BSD License",
+		"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+		
+		"Operating System :: OS Independent",
+		
+		"Programming Language :: Python :: 2.6",
+		"Programming Language :: Python :: 2.7",
+		"Programming Language :: Python :: 3",
+		
+		"Topic :: Multimedia",
+		"Topic :: Utilities",
+	],
+	packages=find_packages(where="."),
+	
+	#py_modules=["exiftool"], - it is now the exiftool module
+)

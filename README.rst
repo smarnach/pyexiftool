@@ -20,10 +20,15 @@ The source code can be checked out from the github repository with
 
 ::
 
-    git clone git://github.com/smarnach/pyexiftool.git
+    git clone git://github.com/sylikc/pyexiftool.git
 
-Alternatively, you can download a tarball_.  There haven't been any
-releases yet.
+Alternatively, you can download a tarball_.  
+
+Official releases are on PyPI
+
+::
+    https://pypi.org/project/PyExifTool/
+
 
 .. _tarball: https://github.com/smarnach/pyexiftool/tarball/master
 
