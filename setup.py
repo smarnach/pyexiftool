@@ -30,7 +30,7 @@ setup(
 	
 	# overview
 	name="PyExifTool",
-	version="0.4.4",
+	version="0.4.5",
 	license="GPLv3+/BSD",
 	url="http://github.com/sylikc/pyexiftool",
 	python_requires=">=2.6",
@@ -72,7 +72,12 @@ setup(
 		"Topic :: Multimedia",
 		"Topic :: Utilities",
 	],
-	packages=find_packages(where="."),
+	
+	
+	packages=find_packages(
+		where=".",
+		exclude = ['test*',]
+	),
 	
 	#py_modules=["exiftool"], - it is now the exiftool module
 )

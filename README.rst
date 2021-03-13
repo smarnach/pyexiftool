@@ -65,7 +65,7 @@ Run tests to make sure it's functional
 
 ::
 
-    python -m unittest -v test/test_exiftool.py
+    python -m unittest -v tests/test_exiftool.py
 
 Documentation
 -------------
