@@ -82,6 +82,7 @@ except NameError:
 
 from . import constants
 
+#from pathlib import Path # requires Python 3.4+
 
 
 
@@ -304,13 +305,13 @@ class ExifTool(object):
 		if common_args is None:
 			# default parameters to exiftool
 			# -n = disable print conversion (speedup)
-			self.common_args = ["-G", "-n"]
+			self._common_args = ["-G", "-n"]
 		elif type(common_args) is list:
-			self.common_args = common_args
+			self._common_args = common_args
 		else:
 			raise TypeError("common_args not a list of strings")
 
-		self.no_output = '-w' in self.common_args
+		self._no_output = '-w' in self._common_args
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -331,7 +332,7 @@ class ExifTool(object):
 			return
 
 		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
-		proc_args.extend(self.common_args) # add the common arguments
+		proc_args.extend(self._common_args) # add the common arguments
 
 		logging.debug(proc_args)
 		
@@ -549,7 +550,7 @@ class ExifTool(object):
 		# which will return something like
 		# image files read
 		# output files created
-		if self.no_output:
+		if self._no_output:
 			print(res_decoded)
 		else:
 			# TODO: if len(res_decoded) == 0, then there's obviously an error here
