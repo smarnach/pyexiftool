@@ -138,7 +138,7 @@ def set_pdeathsig(sig=signal.SIGTERM):
 	the exiftool childprocess is stopped if this process dies.
 	However, this only works on linux.
 	"""
-	if sys.platform == "linux" or sys.platform == "linux2":
+	if constants.PLATFORM_LINUX:
 		def callable_method():
 			# taken from linux/prctl.h
 			pr_set_pdeathsig = 1
@@ -214,7 +214,7 @@ def find_executable(executable, path=None):
 		# .exe is automatically appended if no dot is present in the name
 		if not ext:
 			executable = executable + ".exe"
-	elif sys.platform == 'win32':
+	elif constants.PLATFORM_WINDOWS:
 		pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
 		(base, ext) = os.path.splitext(executable)
 		if ext.lower() not in pathext:
@@ -289,12 +289,14 @@ class ExifTool(object):
 		# default settings
 		self._executable = None  # executable absolute path
 		self._win_shell = win_shell  # do you want to see the shell on Windows?
-		self._process = None
+		self._process = None # this gets del by terminate() TODO change to None if it doesn't affect code
 		self._running = False  # is it running?
 
 		# use the passed in parameter, or the default if not set
 		# error checking is done in the property.setter
 		self.executable = executable if executable is not None else constants.DEFAULT_EXECUTABLE
+		
+		
 		
 		self._common_args = common_args
 		# it can't be none, check if it's a list, if not, error
@@ -325,7 +327,7 @@ class ExifTool(object):
 		``common_args`` parameter in the constructor.
 		"""
 		if self._running:
-			warnings.warn("ExifTool already running; doing nothing.")
+			warnings.warn("ExifTool already running; doing nothing.", UserWarning)
 			return
 
 		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
@@ -335,7 +337,7 @@ class ExifTool(object):
 		
 		with open(os.devnull, "w") as devnull:
 			try:
-				if sys.platform == 'win32':
+				if constants.PLATFORM_WINDOWS:
 					startup_info = subprocess.STARTUPINFO()
 					if not self._win_shell:
 						# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
@@ -459,7 +461,7 @@ class ExifTool(object):
 		output = b""
 		fd = self._process.stdout.fileno()
 		while not output[-32:].strip().endswith(sentinel):
-			if sys.platform == 'win32':
+			if constants.PLATFORM_WINDOWS:
 				# windows does not support select() for anything except sockets
 				# https://docs.python.org/3.7/library/select.html
 				output += os.read(fd, block_size)

@@ -19,9 +19,17 @@ This file defines constants which are used by others in the package
 
 import sys
 
+# instead of comparing everywhere sys.platform, do it all here in the constants (less typo chances)
+# True if Windows
+PLATFORM_WINDOWS = (sys.platform == 'win32')
+# Prior to Python 3.3, the value for any Linux version is always linux2; after, it is linux.
+# https://stackoverflow.com/a/13874620/15384838
+PLATFORM_LINUX = (sys.platform == 'linux' or sys.platform == 'linux2')
+
+
 
 # specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
-if sys.platform == 'win32':
+if PLATFORM_WINDOWS:
 	DEFAULT_EXECUTABLE = "exiftool.exe"
 else:
 	DEFAULT_EXECUTABLE = "exiftool"
