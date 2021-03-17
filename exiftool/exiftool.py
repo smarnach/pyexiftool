@@ -290,7 +290,7 @@ class ExifTool(object):
 		# default settings
 		self._executable = None  # executable absolute path
 		self._win_shell = win_shell  # do you want to see the shell on Windows?
-		self._process = None # this gets del by terminate() TODO change to None if it doesn't affect code
+		self._process = None # this is set to the process to interact with when _running=True
 		self._running = False  # is it running?
 
 		# use the passed in parameter, or the default if not set
@@ -331,6 +331,7 @@ class ExifTool(object):
 			warnings.warn("ExifTool already running; doing nothing.", UserWarning)
 			return
 
+		# TODO changing common args means it needs a restart, or error, have a restart=True for change common_args or error if running
 		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
 		proc_args.extend(self._common_args) # add the common arguments
 
@@ -378,7 +379,7 @@ class ExifTool(object):
 		"""
 		if not self._running:
 			return
-		self._process.stdin.write(b"-stay_open\nFalse\n")
+		self._process.stdin.write(b"-stay_open\nFalse\n") # TODO these are constants which should be elsewhere defined
 		self._process.stdin.flush()
 		try:
 			self._process.communicate(timeout=wait_timeout)
@@ -387,7 +388,7 @@ class ExifTool(object):
 			outs, errs = proc.communicate()
 			# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
 			
-		del self._process
+		self._process = None # don't delete, just leave as None
 		self._running = False
 
 	# ----------------------------------------------------------------------------------------------------------------------
