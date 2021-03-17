@@ -80,20 +80,10 @@ except NameError:
 	basestring = (bytes, str)
 
 
+from . import constants
 
 
 
-
-# specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
-if sys.platform == 'win32':
-	DEFAULT_EXECUTABLE = "exiftool.exe"
-else:
-	DEFAULT_EXECUTABLE = "exiftool"
-"""The name of the executable to run.
-
-If the executable is not located in one of the paths listed in the
-``PATH`` environment variable, the full path should be given here.
-"""
 
 # Sentinel indicating the end of the output of a sequence of commands.
 # The standard value should be fine.
@@ -108,7 +98,7 @@ block_size = 4096
 KW_TAGNAME = "IPTC:Keywords"
 KW_REPLACE, KW_ADD, KW_REMOVE = range(3)
 
-#------------------------------------------------------------------------------------------------
+# ======================================================================================================================
 
 
 # This code has been adapted from Lib/os.py in the Python source tree
@@ -140,7 +130,7 @@ def _fscodec():
 fsencode = _fscodec()
 del _fscodec
 
-#------------------------------------------------------------------------------------------------
+# ======================================================================================================================
 
 def set_pdeathsig(sig=signal.SIGTERM):
 	"""
@@ -159,6 +149,7 @@ def set_pdeathsig(sig=signal.SIGTERM):
 	else:
 		return None
 
+# ======================================================================================================================
 
 
 
@@ -166,6 +157,7 @@ def set_pdeathsig(sig=signal.SIGTERM):
 def strip_nl (s):
 	return ' '.join(s.splitlines())
 
+# ======================================================================================================================
 
 # Error checking function
 # very rudimentary checking
@@ -178,6 +170,8 @@ def check_ok (result):
 	The result is True or False.
 	"""
 	return not result is None and (not "due to errors" in result)
+
+# ======================================================================================================================
 
 def format_error (result):
 	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
@@ -197,13 +191,12 @@ def format_error (result):
 
 
 
-#------------------------------------------------------------------------------------------------
+# ======================================================================================================================
 
 
 # https://gist.github.com/techtonik/4368898
 # Public domain code by anatoly techtonik <techtonik@gmail.com>
 # AKA Linux `which` and Windows `where`
-
 def find_executable(executable, path=None):
 	"""Find if 'executable' can be run. Looks for it in 'path'
 	(string that lists directories separated by 'os.pathsep';
@@ -245,7 +238,7 @@ def find_executable(executable, path=None):
 
 
 
-#------------------------------------------------------------------------------------------------
+# ======================================================================================================================
 class ExifTool(object):
 	"""Run the `exiftool` command-line tool and communicate to it.
 
@@ -290,25 +283,25 @@ class ExifTool(object):
 	   associated with a running subprocess.
 	"""
 
-	def __init__(self, executable_=None, common_args=None, win_shell=True):
+	# ----------------------------------------------------------------------------------------------------------------------
+	def __init__(self, executable=None, common_args=None, win_shell=True):
 
-		self.win_shell = win_shell
+		# default settings
+		self._executable = constants.DEFAULT_EXECUTABLE  # executable absolute path TODO
+		self._win_shell = win_shell  # do you want to see the shell on Windows?
+		self._process = None
+		self._running = False  # is it running?
 
-		if executable_ is None:
-			self.executable = DEFAULT_EXECUTABLE
-		else:
-			self.executable = executable_
+		if executable is not None:
+			self._executable = executable
 		
 		# error checking
-		if find_executable(self.executable) is None:
-			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(self.executable) )
+		if find_executable(self._executable) is None:
+			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(self._executable) )
 		
-		self.running = False
 
 		self._common_args = common_args
 		# it can't be none, check if it's a list, if not, error
-
-		self._process = None
 
 		if common_args is None:
 			# default parameters to exiftool
@@ -322,6 +315,7 @@ class ExifTool(object):
 		self.no_output = '-w' in self.common_args
 
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def start(self):
 		"""Start an ``exiftool`` process in batch mode for this instance.
 
@@ -334,7 +328,7 @@ class ExifTool(object):
 		However, you can override these default arguments with the 
 		``common_args`` parameter in the constructor.
 		"""
-		if self.running:
+		if self._running:
 			warnings.warn("ExifTool already running; doing nothing.")
 			return
 
@@ -347,11 +341,10 @@ class ExifTool(object):
 			try:
 				if sys.platform == 'win32':
 					startup_info = subprocess.STARTUPINFO()
-					if not self.win_shell:
-						SW_FORCEMINIMIZE = 11 # from win32con
+					if not self._win_shell:
 						# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
 						# keep it from throwing up a DOS shell when it launches.
-						startup_info.dwFlags |= 11
+						startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
 
 					self._process = subprocess.Popen(
 						proc_args,
@@ -376,14 +369,15 @@ class ExifTool(object):
 				raise cpe
 		
 		# check error above before saying it's running
-		self.running = True
+		self._running = True
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def terminate(self, wait_timeout=30):
 		"""Terminate the ``exiftool`` process of this instance.
 
 		If the subprocess isn't running, this method will do nothing.
 		"""
-		if not self.running:
+		if not self._running:
 			return
 		self._process.stdin.write(b"-stay_open\nFalse\n")
 		self._process.stdin.flush()
@@ -395,18 +389,22 @@ class ExifTool(object):
 			# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
 			
 		del self._process
-		self.running = False
+		self._running = False
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def __enter__(self):
 		self.start()
 		return self
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		self.terminate()
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def __del__(self):
 		self.terminate()
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def execute(self, *params):
 		"""Execute the given batch of parameters with ``exiftool``.
 
@@ -426,7 +424,7 @@ class ExifTool(object):
 		.. note:: This is considered a low-level method, and should
 		   rarely be needed by application developers.
 		"""
-		if not self.running:
+		if not self._running:
 			raise ValueError("ExifTool instance not running.")
 		
 		cmd_text = b"\n".join(params + (b"-execute\n",))
@@ -450,6 +448,7 @@ class ExifTool(object):
 		return output.strip()[:-len(sentinel)]
 
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	# i'm not sure if the verification works, but related to pull request (#11)
 	def execute_json_wrapper(self, filenames, params=None, retry_on_error=True):
 		# make sure the argument is a list and not a single string
@@ -487,6 +486,7 @@ class ExifTool(object):
 
 
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def execute_json(self, *params):
 		"""Execute the given batch of parameters and parse the JSON output.
 
@@ -529,10 +529,12 @@ class ExifTool(object):
 			# TODO: if len(res_decoded) == 0, then there's obviously an error here
 			return json.loads(res_decoded)
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	# allows adding additional checks (#11)
 	def get_metadata_batch_wrapper(self, filenames, params=None):
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def get_metadata_batch(self, filenames):
 		"""Return all meta-data for the given files.
 
@@ -541,10 +543,12 @@ class ExifTool(object):
 		"""
 		return self.execute_json(*filenames)
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
 	def get_metadata_wrapper(self, filename, params=None):
 		return self.execute_json_wrapper(filenames=[filename], params=params)[0]
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def get_metadata(self, filename):
 		"""Return meta-data for a single file.
 
@@ -553,11 +557,13 @@ class ExifTool(object):
 		"""
 		return self.execute_json(filename)[0]
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
 	def get_tags_batch_wrapper(self, tags, filenames, params=None):
 		params = (params if params else []) + ["-" + t for t in tags]
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def get_tags_batch(self, tags, filenames):
 		"""Return only specified tags for the given files.
 
@@ -581,10 +587,12 @@ class ExifTool(object):
 		params.extend(filenames)
 		return self.execute_json(*params)
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
 	def get_tags_wrapper(self, tags, filename, params=None):
 		return self.get_tags_batch_wrapper(tags, [filename], params=params)[0]
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def get_tags(self, tags, filename):
 		"""Return only specified tags for a single file.
 
@@ -593,6 +601,7 @@ class ExifTool(object):
 		"""
 		return self.get_tags_batch(tags, [filename])[0]
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
 	def get_tag_batch_wrapper(self, tag, filenames, params=None):
 		data = self.get_tags_batch_wrapper([tag], filenames, params=params)
@@ -603,6 +612,7 @@ class ExifTool(object):
 		return result
 
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def get_tag_batch(self, tag, filenames):
 		"""Extract a single tag from the given files.
 
@@ -621,10 +631,12 @@ class ExifTool(object):
 			result.append(next(iter(d.values()), None))
 		return result
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
 	def get_tag_wrapper(self, tag, filename, params=None):
 		return self.get_tag_batch_wrapper(tag, [filename], params=params)[0]
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def get_tag(self, tag, filename):
 		"""Extract a single tag from a single file.
 
@@ -633,11 +645,13 @@ class ExifTool(object):
 		"""
 		return self.get_tag_batch(tag, [filename])[0]
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def copy_tags(self, fromFilename, toFilename):
 		"""Copy all tags from one file to another."""
 		self.execute("-overwrite_original", "-TagsFromFile", fromFilename, toFilename)
 
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def set_tags_batch(self, tags, filenames):
 		"""Writes the values of the specified tags for the given files.
 
@@ -669,6 +683,7 @@ class ExifTool(object):
 		params_utf8 = [x.encode('utf-8') for x in params]
 		return self.execute(*params_utf8)
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def set_tags(self, tags, filename):
 		"""Writes the values of the specified tags for the given file.
 
@@ -678,6 +693,7 @@ class ExifTool(object):
 		"""
 		return self.set_tags_batch(tags, [filename])
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def set_keywords_batch(self, mode, keywords, filenames):
 		"""Modifies the keywords tag for the given files.
 
@@ -722,6 +738,7 @@ class ExifTool(object):
 		params_utf8 = [x.encode('utf-8') for x in params]
 		return self.execute(*params_utf8)
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	def set_keywords(self, mode, keywords, filename):
 		"""Modifies the keywords tag for the given file.
 
@@ -733,6 +750,7 @@ class ExifTool(object):
 
 
 
+	# ----------------------------------------------------------------------------------------------------------------------
 	@staticmethod
 	def _check_sanity_of_result(file_paths, result):
 		"""

@@ -9,3 +9,7 @@ possible.
 v0.1.x - v0.2.0 = smarnach code, API compatible
 v0.2.1 - v0.4.5 = code with all PRs, a superset of functionality on Exiftool class
 v0.5.0 -        = "should be" API compatible with v0.2.0, but moves functionality added in the versions before to other classes
+
+
+API changes between v0.2.0 and v0.5.0
+	Exiftool constructor, "executable_" parameter renamed to "executable"
