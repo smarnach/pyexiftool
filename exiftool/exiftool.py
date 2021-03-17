@@ -287,19 +287,15 @@ class ExifTool(object):
 	def __init__(self, executable=None, common_args=None, win_shell=True):
 
 		# default settings
-		self._executable = constants.DEFAULT_EXECUTABLE  # executable absolute path TODO
+		self._executable = None  # executable absolute path
 		self._win_shell = win_shell  # do you want to see the shell on Windows?
 		self._process = None
 		self._running = False  # is it running?
 
-		if executable is not None:
-			self._executable = executable
+		# use the passed in parameter, or the default if not set
+		# error checking is done in the property.setter
+		self.executable = executable if executable is not None else constants.DEFAULT_EXECUTABLE
 		
-		# error checking
-		if find_executable(self._executable) is None:
-			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(self._executable) )
-		
-
 		self._common_args = common_args
 		# it can't be none, check if it's a list, if not, error
 
@@ -404,6 +400,34 @@ class ExifTool(object):
 	def __del__(self):
 		self.terminate()
 
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def executable(self):
+		return self._executable
+	
+	@executable.setter
+	def executable(self, new_executable):
+		"""
+		Set the executable.  Does error checking.
+		"""
+		# cannot set executable when process is running
+		if self._running:
+			raise RuntimeError( 'Cannot set new executable while Exiftool is running' )
+		
+		abs_path = find_executable(new_executable)
+		
+		if abs_path is None:
+			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(new_executable) )
+		
+		# absolute path is returned
+		self._executable = abs_path
+	
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def running(self):
+		# read-only property
+		return self._running
+	
 	# ----------------------------------------------------------------------------------------------------------------------
 	def execute(self, *params):
 		"""Execute the given batch of parameters with ``exiftool``.

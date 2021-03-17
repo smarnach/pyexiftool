@@ -17,6 +17,9 @@ This file defines constants which are used by others in the package
 """
 
 
+import sys
+
+
 # specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
 if sys.platform == 'win32':
 	DEFAULT_EXECUTABLE = "exiftool.exe"

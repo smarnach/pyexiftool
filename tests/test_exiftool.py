@@ -21,6 +21,24 @@ class TestExifTool(unittest.TestCase):
 			if self.process.poll() is None:
 				self.process.terminate()
 	#---------------------------------------------------------------------------------------------------------
+	def test_running_attribute(self):
+		# test if we can read "running" but can't set it
+		self.assertFalse(self.et.running)
+		with self.assertRaises(AttributeError):
+			self.et.running = True
+	#---------------------------------------------------------------------------------------------------------
+	def test_executable_attribute(self):
+		# test if we can read "running" but can't set it
+		self.assertFalse(self.et.running)
+		self.et.start()
+		self.assertTrue(self.et.running)
+		with self.assertRaises(RuntimeError):
+			self.et.executable = "x"
+		self.et.terminate()
+		with self.assertRaises(FileNotFoundError):
+			self.et.executable = "lkajsdfoleiawjfasv"
+		self.assertFalse(self.et.running)
+	#---------------------------------------------------------------------------------------------------------
 	def test_termination_cm(self):
 		# Test correct subprocess start and termination when using
 		# self.et as a context manager
