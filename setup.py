@@ -33,7 +33,7 @@ setup(
 	version="0.5.0-alpha.0",
 	license="GPLv3+/BSD",
 	url="http://github.com/sylikc/pyexiftool",
-	python_requires=">=2.6",
+	python_requires=">=3.6",
 	
 	# authors
 	author="Sven Marnach, Kevin M (sylikc), various contributors",
@@ -65,9 +65,8 @@ setup(
 		
 		"Operating System :: OS Independent",
 		
-		"Programming Language :: Python :: 2.6",
-		"Programming Language :: Python :: 2.7",
 		"Programming Language :: Python :: 3",
+		"Programming Language :: Python :: 3.6",
 		
 		"Topic :: Multimedia",
 		"Topic :: Utilities",
