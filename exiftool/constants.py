@@ -41,3 +41,9 @@ If the executable is not located in one of the paths listed in the
 
 
 SW_FORCEMINIMIZE = 11 # from win32con
+
+
+# The default block size when reading from exiftool.  The standard value
+# should be fine, though other values might give better performance in
+# some cases.
+DEFAULT_BLOCK_SIZE = 4096

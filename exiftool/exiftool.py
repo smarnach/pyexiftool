@@ -90,11 +90,6 @@ from . import constants
 # The standard value should be fine.
 sentinel = b"{ready}"
 
-# The block size when reading from exiftool.  The standard value
-# should be fine, though other values might give better performance in
-# some cases.
-block_size = 4096
-
 # constants related to keywords manipulations
 KW_TAGNAME = "IPTC:Keywords"
 KW_REPLACE, KW_ADD, KW_REMOVE = range(3)
@@ -297,7 +292,8 @@ class ExifTool(object):
 		# error checking is done in the property.setter
 		self.executable = executable if executable is not None else constants.DEFAULT_EXECUTABLE
 		
-		
+		# set to default block size
+		self._block_size = DEFAULT_BLOCK_SIZE
 		
 		self._common_args = common_args
 		# it can't be none, check if it's a list, if not, error
@@ -378,9 +374,12 @@ class ExifTool(object):
 		If the subprocess isn't running, this method will do nothing.
 		"""
 		if not self._running:
+			# TODO, might raise an error, or add an optional parameter that says ignore_running
 			return
+		
 		self._process.stdin.write(b"-stay_open\nFalse\n") # TODO these are constants which should be elsewhere defined
 		self._process.stdin.flush()
+		
 		try:
 			self._process.communicate(timeout=wait_timeout)
 		except subprocess.TimeoutExpired: # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
@@ -426,6 +425,22 @@ class ExifTool(object):
 		# absolute path is returned
 		self._executable = abs_path
 	
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def block_size(self):
+		return self._block_size
+	
+	@block_size.setter
+	def block_size(self, new_block_size):
+		"""
+		Set the block_size.  Does error checking.
+		"""
+		if new_block_size <= 0:
+			raise ValueError("Block Size doesn't make sense to be <= 0")
+		
+		self._block_size = new_block_size
+
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def running(self):
@@ -453,9 +468,9 @@ class ExifTool(object):
 		   rarely be needed by application developers.
 		"""
 		if not self._running:
-			raise ValueError("ExifTool instance not running.")
+			raise RuntimeError("ExifTool instance not running.")
 		
-		cmd_text = b"\n".join(params + (b"-execute\n",))
+		cmd_text = b"\n".join(params + (b"-execute\n",)) #TODO constant
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 		self._process.stdin.write(cmd_text)
@@ -466,13 +481,13 @@ class ExifTool(object):
 			if constants.PLATFORM_WINDOWS:
 				# windows does not support select() for anything except sockets
 				# https://docs.python.org/3.7/library/select.html
-				output += os.read(fd, block_size)
+				output += os.read(fd, self._block_size)
 			else:
 				# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
 				inputready,outputready,exceptready = select.select([fd],[],[])
 				for i in inputready:
 					if i == fd:
-						output += os.read(fd, block_size)
+						output += os.read(fd, self._block_size)
 		return output.strip()[:-len(sentinel)]
 
 
