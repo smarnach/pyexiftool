@@ -62,6 +62,8 @@ import select
 import sys
 import subprocess
 import os
+import shutil
+
 try:
 	import ujson as json
 except ImportError:
@@ -187,47 +189,6 @@ def format_error (result):
 
 
 
-# ======================================================================================================================
-
-
-# https://gist.github.com/techtonik/4368898
-# Public domain code by anatoly techtonik <techtonik@gmail.com>
-# AKA Linux `which` and Windows `where`
-def find_executable(executable, path=None):
-	"""Find if 'executable' can be run. Looks for it in 'path'
-	(string that lists directories separated by 'os.pathsep';
-	defaults to os.environ['PATH']). Checks for all executable
-	extensions. Returns full path or None if no command is found.
-	"""
-	if path is None:
-		path = os.environ['PATH']
-	paths = path.split(os.pathsep)
-	extlist = ['']
-	
-	if os.name == 'os2':
-		(base, ext) = os.path.splitext(executable)
-		# executable files on OS/2 can have an arbitrary extension, but
-		# .exe is automatically appended if no dot is present in the name
-		if not ext:
-			executable = executable + ".exe"
-	elif constants.PLATFORM_WINDOWS:
-		pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
-		(base, ext) = os.path.splitext(executable)
-		if ext.lower() not in pathext:
-			extlist = pathext
-	
-	for ext in extlist:
-		execname = executable + ext
-		#print(execname)
-		if os.path.isfile(execname):
-			return execname
-		else:
-			for p in paths:
-				f = os.path.join(p, execname)
-				if os.path.isfile(f):
-					return f
-	else:
-		return None
 
 
 
@@ -417,7 +378,8 @@ class ExifTool(object):
 		if self._running:
 			raise RuntimeError( 'Cannot set new executable while Exiftool is running' )
 		
-		abs_path = find_executable(new_executable)
+		# Python 3.3+ required
+		abs_path = shutil.which(new_executable)
 		
 		if abs_path is None:
 			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(new_executable) )
