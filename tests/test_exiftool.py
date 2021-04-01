@@ -30,7 +30,7 @@ class TestExifTool(unittest.TestCase):
 	def test_executable_attribute(self):
 		# test if we can read "running" but can't set it
 		self.assertFalse(self.et.running)
-		self.et.start()
+		self.et.run()
 		self.assertTrue(self.et.running)
 		with self.assertRaises(RuntimeError):
 			self.et.executable = "x"
@@ -43,11 +43,11 @@ class TestExifTool(unittest.TestCase):
 		# Test correct subprocess start and termination when using
 		# self.et as a context manager
 		self.assertFalse(self.et.running)
-		self.assertRaises(ValueError, self.et.execute)
+		self.assertRaises(RuntimeError, self.et.execute)
 		with self.et:
 			self.assertTrue(self.et.running)
 			with warnings.catch_warnings(record=True) as w:
-				self.et.start()
+				self.et.run()
 				self.assertEquals(len(w), 1)
 				self.assertTrue(issubclass(w[0].category, UserWarning))
 			self.process = self.et._process
@@ -58,7 +58,7 @@ class TestExifTool(unittest.TestCase):
 	def test_termination_explicit(self):
 		# Test correct subprocess start and termination when
 		# explicitly using start() and terminate()
-		self.et.start()
+		self.et.run()
 		self.process = self.et._process
 		self.assertEqual(self.process.poll(), None)
 		self.et.terminate()
@@ -66,7 +66,7 @@ class TestExifTool(unittest.TestCase):
 	#---------------------------------------------------------------------------------------------------------
 	def test_termination_implicit(self):
 		# Test implicit process termination on garbage collection
-		self.et.start()
+		self.et.run()
 		self.process = self.et._process
 		del self.et
 		self.assertNotEqual(self.process.poll(), None)
@@ -163,29 +163,6 @@ class TestExifTool(unittest.TestCase):
 			self.assertEqual(kwtag1, d["Keywords"][0])
 			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
 
-
-	#---------------------------------------------------------------------------------------------------------
-	def test_executable_found(self):
-		# test if executable is found on path
-		save_sys_path = os.environ['PATH']
-
-		if sys.platform == 'win32':
-			test_path = "C:\\"
-		else:
-			test_path = "/"
-
-		test_exec = exiftool.DEFAULT_EXECUTABLE
-		
-		# should be found in path as is
-		self.assertTrue(exiftool.find_executable(test_exec, path=None))
-		
-		# modify path and search again
-		self.assertFalse(exiftool.find_executable(test_exec, path=test_path))
-		os.environ['PATH'] = test_path
-		self.assertFalse(exiftool.find_executable(test_exec, path=None))
-		
-		# restore it
-		os.environ['PATH'] = save_sys_path
 
 #---------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':

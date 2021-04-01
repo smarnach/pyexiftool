@@ -254,7 +254,7 @@ class ExifTool(object):
 		self.executable = executable if executable is not None else constants.DEFAULT_EXECUTABLE
 		
 		# set to default block size
-		self._block_size = DEFAULT_BLOCK_SIZE
+		self._block_size = constants.DEFAULT_BLOCK_SIZE
 		
 		self._common_args = common_args
 		# it can't be none, check if it's a list, if not, error
@@ -272,7 +272,7 @@ class ExifTool(object):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def start(self):
+	def run(self):
 		"""Start an ``exiftool`` process in batch mode for this instance.
 
 		This method will issue a ``UserWarning`` if the subprocess is
@@ -353,7 +353,7 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __enter__(self):
-		self.start()
+		self.run()
 		return self
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -475,7 +475,7 @@ class ExifTool(object):
 			except (IOError, error):
 				# Restart the exiftool child process in these cases since something is going wrong
 				self.terminate()
-				self.start()
+				self.run()
 
 				if retry_on_error:
 					result = self.execute_json_filenames(filenames, params, retry_on_error=False)
