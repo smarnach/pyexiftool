@@ -86,7 +86,7 @@ from . import constants
 
 #from pathlib import Path # requires Python 3.4+
 
-
+import random
 
 # Sentinel indicating the end of the output of a sequence of commands.
 # The standard value should be fine.
@@ -242,7 +242,9 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __init__(self, executable=None, common_args=None, win_shell=True):
-
+		
+		random.seed(None) # initialize random number generator
+		
 		# default settings
 		self._executable = None  # executable absolute path
 		self._win_shell = win_shell  # do you want to see the shell on Windows?
@@ -335,7 +337,8 @@ class ExifTool(object):
 		If the subprocess isn't running, this method will do nothing.
 		"""
 		if not self._running:
-			# TODO, might raise an error, or add an optional parameter that says ignore_running
+			warnings.warn("ExifTool not running; doing nothing.", UserWarning)
+			# TODO, maybe add an optional parameter that says ignore_running/check/force or something which will not warn
 			return
 		
 		self._process.stdin.write(b"-stay_open\nFalse\n") # TODO these are constants which should be elsewhere defined
@@ -358,11 +361,13 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.terminate()
+		if self._running:
+			self.terminate()
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __del__(self):
-		self.terminate()
+		if self._running:
+			self.terminate()
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
@@ -437,9 +442,11 @@ class ExifTool(object):
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
-		output = b""
+		
 		fd = self._process.stdout.fileno()
-		while not output[-32:].strip().endswith(sentinel):
+		
+		output = b""
+		while not output[-32:].strip().endswith(sentinel): #TODO this is arbitrary number 32
 			if constants.PLATFORM_WINDOWS:
 				# windows does not support select() for anything except sockets
 				# https://docs.python.org/3.7/library/select.html
@@ -450,6 +457,8 @@ class ExifTool(object):
 				for i in inputready:
 					if i == fd:
 						output += os.read(fd, self._block_size)
+			#print(output[-32:])
+		
 		return output.strip()[:-len(sentinel)]
 
 
@@ -520,6 +529,18 @@ class ExifTool(object):
 		# http://stackoverflow.com/a/5552623/1318758
 		# https://github.com/jmathai/elodie/issues/127
 		res = self.execute(b"-j", *params)
+		
+		if len(res) == 0:
+			# if the command has no files it's worked on, or some other type of error
+			# we can either return None, or [], or FileNotFoundError ..
+			
+			# but, since it's technically not an error to have no files, 
+			# returning None is the best.  
+			# Even [] could be ambugious if Exiftool changes the returned JSON structure in the future
+			# TODO haven't decidedd on [] or None yet
+			return None
+		
+		
 		try:
 			res_decoded = res.decode("utf-8")
 		except UnicodeDecodeError:
