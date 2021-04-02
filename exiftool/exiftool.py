@@ -88,13 +88,13 @@ from . import constants
 
 import random
 
-# Sentinel indicating the end of the output of a sequence of commands.
-# The standard value should be fine.
-sentinel = b"{ready}"
-
 # constants related to keywords manipulations
 KW_TAGNAME = "IPTC:Keywords"
 KW_REPLACE, KW_ADD, KW_REMOVE = range(3)
+
+
+ENCODING_UTF8 = "utf-8"
+ENCODING_LATIN1 = "latin-1"
 
 # ======================================================================================================================
 
@@ -437,7 +437,19 @@ class ExifTool(object):
 		if not self._running:
 			raise RuntimeError("ExifTool instance not running.")
 		
-		cmd_text = b"\n".join(params + (b"-execute\n",)) #TODO constant
+		# constant special sequences when running -stay_open mode
+		SEQ_EXECUTE_FMT = "-execute{}\n" # this is the PYFORMAT ... the actual string is b"-execute\n"
+		SEQ_READY_FMT = "{{ready{}}}" # this is the PYFORMAT ... the actual string is b"{ready}"
+		
+		
+		# there's a special usage of execute/ready specified in the manual which make almost ensure we are receiving the right signal back
+		signal_num = random.randint(10000000, 99999999) # arbitrary create a 8 digit number
+		seq_execute = SEQ_EXECUTE_FMT.format(signal_num).encode(ENCODING_UTF8)
+		seq_ready = SEQ_READY_FMT.format(signal_num).encode(ENCODING_UTF8)
+		endswith_count = len(seq_ready) + 4 # if we're only looking at the last few bytes, make it meaningful.  4 is max size of \r\n? (or 2)
+		
+		
+		cmd_text = b"\n".join(params + (seq_execute,))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 		self._process.stdin.write(cmd_text)
@@ -446,7 +458,7 @@ class ExifTool(object):
 		fd = self._process.stdout.fileno()
 		
 		output = b""
-		while not output[-32:].strip().endswith(sentinel): #TODO this is arbitrary number 32
+		while not output[-endswith_count:].strip().endswith(seq_ready):
 			if constants.PLATFORM_WINDOWS:
 				# windows does not support select() for anything except sockets
 				# https://docs.python.org/3.7/library/select.html
@@ -457,9 +469,8 @@ class ExifTool(object):
 				for i in inputready:
 					if i == fd:
 						output += os.read(fd, self._block_size)
-			#print(output[-32:])
 		
-		return output.strip()[:-len(sentinel)]
+		return output.strip()[:-len(seq_ready)]
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -542,9 +553,9 @@ class ExifTool(object):
 		
 		
 		try:
-			res_decoded = res.decode("utf-8")
+			res_decoded = res.decode(ENCODING_UTF8)
 		except UnicodeDecodeError:
-			res_decoded = res.decode("latin-1")
+			res_decoded = res.decode(ENCODING_LATIN1)
 		# res_decoded can be invalid json if `-w` flag is specified in common_args
 		# which will return something like
 		# image files read
