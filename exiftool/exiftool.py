@@ -241,7 +241,7 @@ class ExifTool(object):
 	"""
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __init__(self, executable=None, common_args=None, win_shell=True):
+	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False):
 		
 		random.seed(None) # initialize random number generator
 		
@@ -250,6 +250,10 @@ class ExifTool(object):
 		self._win_shell = win_shell  # do you want to see the shell on Windows?
 		self._process = None # this is set to the process to interact with when _running=True
 		self._running = False  # is it running?
+		
+		self._return_tuple = return_tuple # are we returning a tuple in the execute?
+		self._last_stdout = None # previous output
+		self._last_stderr = None # previous stderr
 
 		# use the passed in parameter, or the default if not set
 		# error checking is done in the property.setter
@@ -296,7 +300,7 @@ class ExifTool(object):
 
 		logging.debug(proc_args)
 		
-		with open(os.devnull, "w") as devnull:
+		with open(os.devnull, "w") as devnull: # TODO can probably remove or make it a parameter
 			try:
 				if constants.PLATFORM_WINDOWS:
 					startup_info = subprocess.STARTUPINFO()
@@ -308,14 +312,14 @@ class ExifTool(object):
 					self._process = subprocess.Popen(
 						proc_args,
 						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-						stderr=devnull, startupinfo=startup_info)
+						stderr=subprocess.PIPE, startupinfo=startup_info) #stderr=devnull
 					# TODO check error before saying it's running
 				else:
 					# assume it's linux
 					self._process = subprocess.Popen(
 						proc_args,
 						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-						stderr=devnull, preexec_fn=set_pdeathsig(signal.SIGTERM))
+						stderr=subprocess.PIPE, preexec_fn=set_pdeathsig(signal.SIGTERM)) #stderr=devnull
 						# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application. 
 						# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
 			except FileNotFoundError as fnfe:
@@ -413,6 +417,20 @@ class ExifTool(object):
 	def running(self):
 		# read-only property
 		return self._running
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def last_stdout(self):
+		"""last output stdout from execute()"""
+		return self._last_stdout
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def last_stderr(self):
+		"""last output stderr from execute()"""
+		return self._last_stderr
+
 	
 	# ----------------------------------------------------------------------------------------------------------------------
 	def execute(self, *params):
@@ -443,6 +461,7 @@ class ExifTool(object):
 		
 		
 		# there's a special usage of execute/ready specified in the manual which make almost ensure we are receiving the right signal back
+		# from exiftool man pages:  When this number is added, -q no longer suppresses the "{ready}"
 		signal_num = random.randint(10000000, 99999999) # arbitrary create a 8 digit number
 		seq_execute = SEQ_EXECUTE_FMT.format(signal_num).encode(ENCODING_UTF8)
 		seq_ready = SEQ_READY_FMT.format(signal_num).encode(ENCODING_UTF8)
@@ -455,22 +474,54 @@ class ExifTool(object):
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
 		
-		fd = self._process.stdout.fileno()
+		fdout = self._process.stdout.fileno()
 		
 		output = b""
 		while not output[-endswith_count:].strip().endswith(seq_ready):
 			if constants.PLATFORM_WINDOWS:
 				# windows does not support select() for anything except sockets
 				# https://docs.python.org/3.7/library/select.html
-				output += os.read(fd, self._block_size)
+				output += os.read(fdout, self._block_size)
 			else:
 				# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
-				inputready,outputready,exceptready = select.select([fd],[],[])
+				inputready,outputready,exceptready = select.select([fdout], [], [])
 				for i in inputready:
-					if i == fd:
-						output += os.read(fd, self._block_size)
+					if i == fdout:
+						output += os.read(fdout, self._block_size)
 		
-		return output.strip()[:-len(seq_ready)]
+		
+		# when it's ready, we can safely read all of stderr out, as the command is already done
+		fderr = self._process.stderr.fileno()
+
+		# TODO THIS CODE IS NOT YET TESTED ON LINUX, TEST BEFORE PUBLISH
+		outerr = b""
+		eof_signal = False
+		while not eof_signal:
+			if constants.PLATFORM_WINDOWS:
+				outtmp = os.read(fderr, self._block_size)
+				if len(outtmp) == 0 or len(outtmp) < self._block_size:  # TODO currently using a "hack" that if we read less bytes than we requested, EOF is coming ... getting a non-blocking Windows read is a complex endeavor
+					# break loop
+					eof_signal = True
+				
+				outerr += outtmp
+			else:
+				inputready,outputready,exceptready = select.select([fderr], [], [], 0) # set a timeout to 0, so this never blocks
+				if len(inputready) == 0:
+					eof_signal = True
+				else:
+					for i in inputready:
+						if i == fderr:
+							outerr += os.read(fderr, self._block_size)
+		
+		# save the output to class vars for retrieval
+		self._last_stdout = output.strip()[:-len(seq_ready)]
+		self._last_stderr = outerr
+		
+		if self._return_tuple:
+			return (self._last_stdout, self._last_stderr,)
+		else:
+			# this was the standard return before, just stdout
+			return self._last_stdout
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -539,7 +590,12 @@ class ExifTool(object):
 		# Try utf-8 and fallback to latin.
 		# http://stackoverflow.com/a/5552623/1318758
 		# https://github.com/jmathai/elodie/issues/127
-		res = self.execute(b"-j", *params)
+		std = self.execute(b"-j", *params)
+		
+		if self._return_tuple:
+			res = std[0]
+		else:
+			res = std
 		
 		if len(res) == 0:
 			# if the command has no files it's worked on, or some other type of error
