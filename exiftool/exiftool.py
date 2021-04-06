@@ -335,7 +335,7 @@ class ExifTool(object):
 		self._running = True
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def terminate(self, wait_timeout=30, _del=False):
+	def terminate(self, timeout=30, _del=False):
 		"""Terminate the ``exiftool`` process of this instance.
 
 		If the subprocess isn't running, this method will do nothing.
@@ -359,7 +359,7 @@ class ExifTool(object):
 						
 					On Linux, this runs as is, and the process terminates properly
 				"""
-				self._process.communicate(input=b"-stay_open\nFalse\n", timeout=wait_timeout) # TODO these are constants which should be elsewhere defined
+				self._process.communicate(input=b"-stay_open\nFalse\n", timeout=timeout) # TODO these are constants which should be elsewhere defined
 				self._process.kill()
 			except subprocess.TimeoutExpired: # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
 				self._process.kill()
