@@ -335,26 +335,37 @@ class ExifTool(object):
 		self._running = True
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def terminate(self, wait_timeout=30):
+	def terminate(self, wait_timeout=30, _del=False):
 		"""Terminate the ``exiftool`` process of this instance.
 
 		If the subprocess isn't running, this method will do nothing.
 		"""
+		print("terminate")
 		if not self._running:
 			warnings.warn("ExifTool not running; doing nothing.", UserWarning)
 			# TODO, maybe add an optional parameter that says ignore_running/check/force or something which will not warn
 			return
 		
-		self._process.stdin.write(b"-stay_open\nFalse\n") # TODO these are constants which should be elsewhere defined
-		self._process.stdin.flush()
-		
-		try:
-			self._process.communicate(timeout=wait_timeout)
-		except subprocess.TimeoutExpired: # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
+		if _del and constants.PLATFORM_WINDOWS:
+			# don't cleanly exit on windows, during __del__ as it'll freeze at communicate()
 			self._process.kill()
-			outs, errs = proc.communicate()
-			# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
-			
+		else:
+			try:
+				"""
+					On Windows, running this after __del__ freezes at communicate(), regardless of timeout
+						this is possibly because the file descriptors are no longer valid or were closed at __del__
+						
+						test yourself with simple code that calls .run() and then end of script
+						
+					On Linux, this runs as is, and the process terminates properly
+				"""
+				self._process.communicate(input=b"-stay_open\nFalse\n", timeout=wait_timeout) # TODO these are constants which should be elsewhere defined
+				self._process.kill()
+			except subprocess.TimeoutExpired: # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
+				self._process.kill()
+				outs, errs = proc.communicate()
+				# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
+		
 		self._process = None # don't delete, just leave as None
 		self._running = False
 
@@ -371,7 +382,8 @@ class ExifTool(object):
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __del__(self):
 		if self._running:
-			self.terminate()
+			# indicate that __del__ has been started - allows running alternate code path in terminate()
+			self.terminate(_del=True)
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
