@@ -290,7 +290,7 @@ class ExifTool(object):
 		However, you can override these default arguments with the 
 		``common_args`` parameter in the constructor.
 		"""
-		if self._running:
+		if self.running:
 			warnings.warn("ExifTool already running; doing nothing.", UserWarning)
 			return
 
@@ -322,6 +322,7 @@ class ExifTool(object):
 						stderr=subprocess.PIPE, preexec_fn=set_pdeathsig(signal.SIGTERM)) #stderr=devnull
 						# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application. 
 						# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+					# TODO check error before saying it's running
 			except FileNotFoundError as fnfe:
 				raise fnfe
 			except OSError as oe:
@@ -340,8 +341,7 @@ class ExifTool(object):
 
 		If the subprocess isn't running, this method will do nothing.
 		"""
-		print("terminate")
-		if not self._running:
+		if not self.running:
 			warnings.warn("ExifTool not running; doing nothing.", UserWarning)
 			# TODO, maybe add an optional parameter that says ignore_running/check/force or something which will not warn
 			return
@@ -376,12 +376,12 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __exit__(self, exc_type, exc_val, exc_tb):
-		if self._running:
+		if self.running:
 			self.terminate()
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __del__(self):
-		if self._running:
+		if self.running:
 			# indicate that __del__ has been started - allows running alternate code path in terminate()
 			self.terminate(_del=True)
 
@@ -396,7 +396,7 @@ class ExifTool(object):
 		Set the executable.  Does error checking.
 		"""
 		# cannot set executable when process is running
-		if self._running:
+		if self.running:
 			raise RuntimeError( 'Cannot set new executable while Exiftool is running' )
 		
 		# Python 3.3+ required
@@ -428,6 +428,15 @@ class ExifTool(object):
 	@property
 	def running(self):
 		# read-only property
+		
+		if self._running:
+			# check if the process is actually alive
+			if self._process.poll() is not None:
+				# process died
+				warnings.warn("ExifTool process was previously running but died")
+				self._process = None
+				self._running = False
+		
 		return self._running
 
 
@@ -464,7 +473,7 @@ class ExifTool(object):
 		.. note:: This is considered a low-level method, and should
 		   rarely be needed by application developers.
 		"""
-		if not self._running:
+		if not self.running:
 			raise RuntimeError("ExifTool instance not running.")
 		
 		# constant special sequences when running -stay_open mode
