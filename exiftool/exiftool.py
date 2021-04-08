@@ -186,7 +186,7 @@ class ExifTool(object):
 	"""
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False):
+	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False, config_file=None):
 		
 		random.seed(None) # initialize random number generator
 		
@@ -209,6 +209,11 @@ class ExifTool(object):
 		
 		self._common_args = common_args
 		# it can't be none, check if it's a list, if not, error
+
+		if config_file and not os.path.exists(config_file):
+			raise FileNotFoundError("The config file could not be found")
+
+		self._config_file = config_file
 
 		if common_args is None:
 			# default parameters to exiftool
@@ -240,8 +245,12 @@ class ExifTool(object):
 			return
 
 		# TODO changing common args means it needs a restart, or error, have a restart=True for change common_args or error if running
-		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
-		proc_args.extend(self._common_args) # add the common arguments
+		proc_args = [self.executable, ]
+		# If working with a config file, it must be the first argument after the executable per: https://exiftool.org/config.html
+		if self._config_file:
+			proc_args.extend(["-config", self._config_file])
+		proc_args.extend(["-stay_open", "True", "-@", "-", "-common_args"])
+		proc_args.extend(self.common_args)  # add the common arguments
 
 		logging.debug(proc_args)
 		

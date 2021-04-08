@@ -148,7 +148,7 @@ class ExifToolHelper(ExifTool):
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_metadata(self, in_files):
+	def get_metadata(self, in_files, params=None):
 		"""Return all meta-data for the given files.
 		
 			This will ALWAYS return a list
@@ -160,7 +160,10 @@ class ExifToolHelper(ExifTool):
 		The return value will have the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
-		self.get_tags(None, in_files)
+		if not params:
+			params = []
+		
+		self.get_tags(None, in_files, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
@@ -174,7 +177,7 @@ class ExifToolHelper(ExifTool):
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_tags(self, in_tags, in_files):
+	def get_tags(self, in_tags, in_files, params=None):
 		"""Return only specified tags for the given files.
 
 		The first argument is an iterable of tags.  The tag names may
@@ -209,14 +212,22 @@ class ExifToolHelper(ExifTool):
 		else:
 			raise TypeError("The argument 'in_files' must be a str/bytes or a list")
 		
-		if tags is None:
-			params = []
+		
+		exec_params = []
+		
+		if not params:
+			pass
 		else:
-			params = ["-" + t for t in tags]
+			exec_params.extend(params)
 		
-		params.extend(files)
+		if tags is not None:
+			pass
+		else:
+			exec_params.extend( ["-" + t for t in tags] )
 		
-		return self.execute_json(*params)
+		exec_params.extend(files)
+		
+		return self.execute_json(*exec_params)
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
