@@ -111,7 +111,8 @@ def _fscodec():
 		if isinstance(filename, bytes):
 			return filename
 		else:
-			return filename.encode(encoding, errors)
+			# cannot assume that filename will be a str.  In the off-chance we're using a filename which is a number, this will throw an error
+			return str(filename).encode(encoding, errors)
 
 	return fsencode
 
