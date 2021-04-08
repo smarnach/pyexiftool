@@ -138,53 +138,6 @@ def set_pdeathsig(sig=signal.SIGTERM):
 	else:
 		return None
 
-# ======================================================================================================================
-
-
-
-#string helper
-def strip_nl (s):
-	return ' '.join(s.splitlines())
-
-# ======================================================================================================================
-
-# Error checking function
-# very rudimentary checking
-# Note: They are quite fragile, because this just parse the output text from exiftool
-def check_ok (result):
-	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
-
-	The argument is the result from the execute method.
-
-	The result is True or False.
-	"""
-	return not result is None and (not "due to errors" in result)
-
-# ======================================================================================================================
-
-def format_error (result):
-	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
-
-	The argument is the result from the execute method.
-
-	The result is a human readable one-line string.
-	"""
-	if check_ok (result):
-		return 'exiftool finished probably properly. ("%s")' % strip_nl(result)
-	else:
-		if result is None:
-			return "exiftool operation can't be evaluated: No result given"
-		else:
-			return 'exiftool finished with error: "%s"' % strip_nl(result)
-
-
-
-
-
-
-
-
-
 
 # ======================================================================================================================
 class ExifTool(object):
