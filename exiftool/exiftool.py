@@ -290,7 +290,7 @@ class ExifTool(object):
 	   associated with a running subprocess.
 	"""
 
-	def __init__(self, executable_=None, common_args=None, win_shell=True):
+	def __init__(self, executable_=None, common_args=None, win_shell=True, config_file=None):
 
 		self.win_shell = win_shell
 
@@ -307,6 +307,11 @@ class ExifTool(object):
 
 		self._common_args = common_args
 		# it can't be none, check if it's a list, if not, error
+
+		if config_file and not os.path.exists(config_file):
+			raise FileNotFoundError("The config file could not be found")
+
+		self._config_file = config_file
 
 		self._process = None
 
@@ -338,8 +343,12 @@ class ExifTool(object):
 			warnings.warn("ExifTool already running; doing nothing.")
 			return
 
-		proc_args = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args"]
-		proc_args.extend(self.common_args) # add the common arguments
+		proc_args = [self.executable, ]
+		# If working with a config file, it must be the first argument after the executable per: https://exiftool.org/config.html
+		if self._config_file:
+			proc_args.extend(["-config", self._config_file])
+		proc_args.extend(["-stay_open", "True", "-@", "-", "-common_args"])
+		proc_args.extend(self.common_args)  # add the common arguments
 
 		logging.debug(proc_args)
 		
@@ -533,25 +542,29 @@ class ExifTool(object):
 	def get_metadata_batch_wrapper(self, filenames, params=None):
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
-	def get_metadata_batch(self, filenames):
+	def get_metadata_batch(self, filenames, params=None):
 		"""Return all meta-data for the given files.
 
 		The return value will have the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
-		return self.execute_json(*filenames)
+		if not params:
+			params = []
+		return self.execute_json(*filenames, *params)
 
 	# (#11)
 	def get_metadata_wrapper(self, filename, params=None):
 		return self.execute_json_wrapper(filenames=[filename], params=params)[0]
 
-	def get_metadata(self, filename):
+	def get_metadata(self, filename, params=None):
 		"""Return meta-data for a single file.
 
 		The returned dictionary has the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
-		return self.execute_json(filename)[0]
+		if not params:
+			params = None
+		return self.execute_json(filename, *params)[0]
 
 	# (#11)
 	def get_tags_batch_wrapper(self, tags, filenames, params=None):
