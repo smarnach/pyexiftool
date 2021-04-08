@@ -26,6 +26,10 @@ This contains a helper class, which makes it easier to use the low-level ExifToo
 
 from .exiftool import ExifTool
 
+try:        # Py3k compatibility
+	basestring
+except NameError:
+	basestring = (bytes, str)
 
 
 # ======================================================================================================================
@@ -97,27 +101,29 @@ class ExifToolHelper(ExifTool):
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_metadata_batch(self, filenames):
+	def get_metadata(self, in_param):
 		"""Return all meta-data for the given files.
+		
+			This will ALWAYS return a list
+			
+			in_param can be a list(strings) or a string.
+			
+			wildcard strings are accepted as it's passed straight to exiftool
 
 		The return value will have the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
-		return self.execute_json(*filenames)
+		if isinstance(in_param, basestring):
+			return self.execute_json(in_param)
+		elif isinstance(in_param, list):
+			return self.execute_json(*in_param)
+		else:
+			raise TypeError("get_metadata only accepts a str/bytes or a list")
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
 	def get_metadata_wrapper(self, filename, params=None):
 		return self.execute_json_wrapper(filenames=[filename], params=params)[0]
-
-	# ----------------------------------------------------------------------------------------------------------------------
-	def get_metadata(self, filename):
-		"""Return meta-data for a single file.
-
-		The returned dictionary has the format described in the
-		documentation of :py:meth:`execute_json()`.
-		"""
-		return self.execute_json(filename)[0]
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)

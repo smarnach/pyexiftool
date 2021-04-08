@@ -76,12 +76,6 @@ import codecs
 import signal
 import ctypes
 
-try:        # Py3k compatibility
-	basestring
-except NameError:
-	basestring = (bytes, str)
-
-
 from . import constants
 
 #from pathlib import Path # requires Python 3.4+
