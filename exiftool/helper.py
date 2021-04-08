@@ -23,6 +23,7 @@ This contains a helper class, which makes it easier to use the low-level ExifToo
 
 """
 
+import logging
 
 from .exiftool import ExifTool
 
@@ -101,24 +102,26 @@ class ExifToolHelper(ExifTool):
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_metadata(self, in_param):
+	def get_metadata(self, in_files):
 		"""Return all meta-data for the given files.
 		
 			This will ALWAYS return a list
 			
-			in_param can be a list(strings) or a string.
+			in_files can be an iterable(strings) or a string.
 			
 			wildcard strings are accepted as it's passed straight to exiftool
 
 		The return value will have the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
-		if isinstance(in_param, basestring):
-			return self.execute_json(in_param)
-		elif isinstance(in_param, list):
-			return self.execute_json(*in_param)
+		if isinstance(in_files, basestring):
+			return self.execute_json(in_files)
 		else:
-			raise TypeError("get_metadata only accepts a str/bytes or a list")
+			if not ExifToolHelper._check_iterable(in_files):
+				raise TypeError("The argument 'in_files' must be a str/bytes or an iterable")
+			
+			return self.execute_json(*in_files)
+			
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
@@ -132,7 +135,7 @@ class ExifToolHelper(ExifTool):
 		return self.execute_json_wrapper(filenames=filenames, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_tags_batch(self, tags, filenames):
+	def get_tags(self, in_tags, in_files):
 		"""Return only specified tags for the given files.
 
 		The first argument is an iterable of tags.  The tag names may
@@ -143,31 +146,35 @@ class ExifToolHelper(ExifTool):
 		The format of the return value is the same as for
 		:py:meth:`execute_json()`.
 		"""
-		# Explicitly ruling out strings here because passing in a
-		# string would lead to strange and hard-to-find errors
-		if isinstance(tags, basestring):
-			raise TypeError("The argument 'tags' must be "
-							"an iterable of strings")
-		if isinstance(filenames, basestring):
-			raise TypeError("The argument 'filenames' must be "
-							"an iterable of strings")
+		
+		tags = None
+		files = None
+		
+		if isinstance(in_tags, basestring):
+			tags = [in_tags]
+		elif ExifToolHelper._check_iterable(in_tags):
+			tags = in_tags
+		else:
+			raise TypeError("The argument 'in_tags' must be a str/bytes or a list")
+		
+		
+		if isinstance(in_files, basestring):
+			files = [in_files]
+		elif ExifToolHelper._check_iterable(in_files):
+			files = in_files
+		else:
+			raise TypeError("The argument 'in_files' must be a str/bytes or a list")
+		
 		params = ["-" + t for t in tags]
-		params.extend(filenames)
+		params.extend(files)
+		
 		return self.execute_json(*params)
+
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
 	def get_tags_wrapper(self, tags, filename, params=None):
 		return self.get_tags_batch_wrapper(tags, [filename], params=params)[0]
-
-	# ----------------------------------------------------------------------------------------------------------------------
-	def get_tags(self, tags, filename):
-		"""Return only specified tags for a single file.
-
-		The returned dictionary has the format described in the
-		documentation of :py:meth:`execute_json()`.
-		"""
-		return self.get_tags_batch(tags, [filename])[0]
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
@@ -192,7 +199,7 @@ class ExifToolHelper(ExifTool):
 		The return value is a list of tag values or ``None`` for
 		non-existent tags, in the same order as ``filenames``.
 		"""
-		data = self.get_tags_batch([tag], filenames)
+		data = self.get_tags([tag], filenames)
 		result = []
 		for d in data:
 			d.pop("SourceFile")
@@ -335,3 +342,22 @@ class ExifToolHelper(ExifTool):
 				raise IOError('exiftool returned data for file %s, but expected was %s'
 							  % (returned_source_file, requested_file))
 
+	# ----------------------------------------------------------------------------------------------------------------------
+	@staticmethod
+	def _check_iterable(in_param):
+		"""
+		Checks if this item is iterable, instead of using isinstance(list), anything iterable can be ok
+		
+		NOTE: STRINGS ARE CONSIDERED ITERABLE by Python
+		
+		if you need to consider a code path for strings first, check that before checking if a parameter is iterable via this function
+		"""
+		# a different type of test of iterability, instead of using isinstance(list)
+		# https://stackoverflow.com/questions/1952464/in-python-how-do-i-determine-if-an-object-is-iterable
+		try:
+			iterator = iter(in_param)
+		except TypeError:
+			return False
+		
+		return True
+		
