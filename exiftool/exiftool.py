@@ -140,6 +140,7 @@ def set_pdeathsig(sig=signal.SIGTERM):
 
 
 # ======================================================================================================================
+
 class ExifTool(object):
 	"""Run the `exiftool` command-line tool and communicate to it.
 
@@ -290,9 +291,10 @@ class ExifTool(object):
 			# TODO, maybe add an optional parameter that says ignore_running/check/force or something which will not warn
 			return
 		
-		if _del and constants.PLATFORM_WINDOWS:
+		if _del and constants.PLATFORM_WINDOWS and 0:
 			# don't cleanly exit on windows, during __del__ as it'll freeze at communicate()
 			self._process.kill()
+			outs, errs = proc.communicate() # have to cleanup the process or else .poll() will return None
 		else:
 			try:
 				"""
