@@ -563,7 +563,7 @@ class ExifTool(object):
 		documentation of :py:meth:`execute_json()`.
 		"""
 		if not params:
-			params = None
+			params = []
 		return self.execute_json(filename, *params)[0]
 
 	# (#11)
