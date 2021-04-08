@@ -16,7 +16,8 @@ class TestExifToolHelper(unittest.TestCase):
 		self.et = exiftool.ExifToolHelper(common_args=["-G", "-n", "-overwrite_original"])
 	def tearDown(self):
 		if hasattr(self, "et"):
-			self.et.terminate()
+			if self.et.running:
+				self.et.terminate()
 		if hasattr(self, "process"):
 			if self.process.poll() is None:
 				self.process.terminate()
