@@ -480,63 +480,37 @@ class ExifTool(object):
 		SEQ_EXECUTE_FMT = "-execute{}\n" # this is the PYFORMAT ... the actual string is b"-execute\n"
 		SEQ_READY_FMT = "{{ready{}}}" # this is the PYFORMAT ... the actual string is b"{ready}"
 		
+		# these are special sequences to help with synchronization.  It will print specific text to STDERR before and after processing
+		#SEQ_STDERR_PRE_FMT = "pre{}"
+		SEQ_STDERR_POST_FMT = "post{}"
+		
 		
 		# there's a special usage of execute/ready specified in the manual which make almost ensure we are receiving the right signal back
 		# from exiftool man pages:  When this number is added, -q no longer suppresses the "{ready}"
 		signal_num = random.randint(10000000, 99999999) # arbitrary create a 8 digit number
 		seq_execute = SEQ_EXECUTE_FMT.format(signal_num).encode(ENCODING_UTF8)
 		seq_ready = SEQ_READY_FMT.format(signal_num).encode(ENCODING_UTF8)
-		endswith_count = len(seq_ready) + 4 # if we're only looking at the last few bytes, make it meaningful.  4 is max size of \r\n? (or 2)
 		
+		#seq_err_pre = SEQ_STDERR_PRE_FMT.format(signal_num).encode(ENCODING_UTF8)
+		seq_err_post = SEQ_STDERR_POST_FMT.format(signal_num).encode(ENCODING_UTF8)
 		
-		cmd_text = b"\n".join(params + (seq_execute,))
+		cmd_text = b"\n".join(params + (b"-echo4",seq_err_post, seq_execute,))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
 		
 		fdout = self._process.stdout.fileno()
-		
-		output = b""
-		while not output[-endswith_count:].strip().endswith(seq_ready):
-			if constants.PLATFORM_WINDOWS:
-				# windows does not support select() for anything except sockets
-				# https://docs.python.org/3.7/library/select.html
-				output += os.read(fdout, self._block_size)
-			else:
-				# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
-				inputready,outputready,exceptready = select.select([fdout], [], [])
-				for i in inputready:
-					if i == fdout:
-						output += os.read(fdout, self._block_size)
-		
+		output = ExifTool._read_fd_endswith(fdout, seq_ready, self._block_size)
 		
 		# when it's ready, we can safely read all of stderr out, as the command is already done
 		fderr = self._process.stderr.fileno()
-
-		# TODO THIS CODE IS NOT YET TESTED ON LINUX, TEST BEFORE PUBLISH
-		outerr = b""
-		eof_signal = False
-		while not eof_signal:
-			if constants.PLATFORM_WINDOWS:
-				outtmp = os.read(fderr, self._block_size)
-				if len(outtmp) == 0 or len(outtmp) < self._block_size:  # TODO currently using a "hack" that if we read less bytes than we requested, EOF is coming ... getting a non-blocking Windows read is a complex endeavor
-					# break loop
-					eof_signal = True
-				
-				outerr += outtmp
-			else:
-				inputready,outputready,exceptready = select.select([fderr], [], [], 0) # set a timeout to 0, so this never blocks
-				if len(inputready) == 0:
-					eof_signal = True
-				else:
-					for i in inputready:
-						if i == fderr:
-							outerr += os.read(fderr, self._block_size)
+		outerr = ExifTool._read_fd_endswith(fderr, seq_err_post, self._block_size)
 		
 		# save the output to class vars for retrieval
 		self._last_stdout = output.strip()[:-len(seq_ready)]
-		self._last_stderr = outerr
+		self._last_stderr = outerr.strip()[:-len(seq_err_post)]
+		print(self._last_stderr)
 		
 		if self._return_tuple:
 			return (self._last_stdout, self._last_stderr,)
@@ -880,3 +854,33 @@ class ExifTool(object):
 			if returned_source_file != requested_file:
 				raise IOError('exiftool returned data for file %s, but expected was %s'
 							  % (returned_source_file, requested_file))
+
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@staticmethod
+	def _read_fd_endswith(fd, b_endswith, block_size):
+		""" read an fd and keep reading until it endswith the seq_ends 
+			
+			this allows a consolidated read function that is platform indepdent
+			
+			if you're not careful, on windows, this will block
+		"""
+		output = b""
+		endswith_count = len(b_endswith) + 4 # if we're only looking at the last few bytes, make it meaningful.  4 is max size of \r\n? (or 2)
+		
+		# I believe doing a splice, then a strip is more efficient in memory hence the original code did it this way.
+		# need to benchmark to see if in large strings, strip()[-endswithcount:] is more expensive
+		while not output[-endswith_count:].strip().endswith(b_endswith):
+			if constants.PLATFORM_WINDOWS:
+				# windows does not support select() for anything except sockets
+				# https://docs.python.org/3.7/library/select.html
+				output += os.read(fd, block_size)
+			else:
+				# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
+				inputready,outputready,exceptready = select.select([fd], [], [])
+				for i in inputready:
+					if i == fd:
+						output += os.read(fd, block_size)
+		
+		return output
