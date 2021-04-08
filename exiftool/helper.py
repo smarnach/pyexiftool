@@ -106,11 +106,6 @@ class ExifToolHelper(ExifTool):
 		super().__init__(executable=executable, common_args=common_args, win_shell=win_shell, return_tuple=return_tuple)
 
 
-
-	# ----------------------------------------------------------------------------------------------------------------------
-	#def metadata_json(self, filenames):
-	#	pass
-
 	# ----------------------------------------------------------------------------------------------------------------------
 	# i'm not sure if the verification works, but related to pull request (#11)
 	def execute_json_wrapper(self, filenames, params=None, retry_on_error=True):
@@ -165,14 +160,7 @@ class ExifToolHelper(ExifTool):
 		The return value will have the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
-		if isinstance(in_files, basestring):
-			return self.execute_json(in_files)
-		else:
-			if not ExifToolHelper._check_iterable(in_files):
-				raise TypeError("The argument 'in_files' must be a str/bytes or an iterable")
-			
-			return self.execute_json(*in_files)
-			
+		self.get_tags(None, in_files)
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
@@ -191,6 +179,8 @@ class ExifToolHelper(ExifTool):
 
 		The first argument is an iterable of tags.  The tag names may
 		include group names, as usual in the format <group>:<tag>.
+		
+		If in_tags is None, or [], then returns all tags
 
 		The second argument is an iterable of file names.
 
@@ -201,7 +191,10 @@ class ExifToolHelper(ExifTool):
 		tags = None
 		files = None
 		
-		if isinstance(in_tags, basestring):
+		if in_tags is None:
+			# all tags
+			tags = []
+		elif isinstance(in_tags, basestring):
 			tags = [in_tags]
 		elif ExifToolHelper._check_iterable(in_tags):
 			tags = in_tags
@@ -216,7 +209,11 @@ class ExifToolHelper(ExifTool):
 		else:
 			raise TypeError("The argument 'in_files' must be a str/bytes or a list")
 		
-		params = ["-" + t for t in tags]
+		if tags is None:
+			params = []
+		else:
+			params = ["-" + t for t in tags]
+		
 		params.extend(files)
 		
 		return self.execute_json(*params)
