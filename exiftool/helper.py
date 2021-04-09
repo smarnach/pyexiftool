@@ -163,7 +163,7 @@ class ExifToolHelper(ExifTool):
 		if not params:
 			params = []
 		
-		self.get_tags(None, in_files, params=params)
+		return self.get_tags(None, in_files, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	# (#11)
@@ -220,7 +220,7 @@ class ExifToolHelper(ExifTool):
 		else:
 			exec_params.extend(params)
 		
-		if tags is not None:
+		if tags is None:
 			pass
 		else:
 			exec_params.extend( ["-" + t for t in tags] )

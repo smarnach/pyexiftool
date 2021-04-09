@@ -250,7 +250,7 @@ class ExifTool(object):
 		if self._config_file:
 			proc_args.extend(["-config", self._config_file])
 		proc_args.extend(["-stay_open", "True", "-@", "-", "-common_args"])
-		proc_args.extend(self.common_args)  # add the common arguments
+		proc_args.extend(self._common_args)  # add the common arguments
 
 		logging.debug(proc_args)
 		
