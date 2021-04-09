@@ -72,6 +72,20 @@ class TestExifTool(unittest.TestCase):
 		del self.et
 		self.assertNotEqual(self.process.poll(), None)
 	#---------------------------------------------------------------------------------------------------------
+	def test_process_died_running_status(self):
+		# Test correct .running status if process dies by itself
+		self.et.run()
+		self.process = self.et._process
+		self.assertTrue(self.et.running)
+		# kill the process, out of ExifTool's control
+		self.process.kill()
+		outs, errs = self.process.communicate()
+		
+		with warnings.catch_warnings(record=True) as w:
+			self.assertFalse(self.et.running)
+			self.assertEquals(len(w), 1)
+			self.assertTrue(issubclass(w[0].category, UserWarning))
+	#---------------------------------------------------------------------------------------------------------
 	def test_invalid_args_list(self):
 		# test to make sure passing in an invalid args list will cause it to error out
 		with self.assertRaises(TypeError):
