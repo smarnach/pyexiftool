@@ -67,7 +67,7 @@ import shutil
 try:
 	import ujson as json
 except ImportError:
-	import json
+	import json # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
 import warnings
 import logging
 import codecs
@@ -81,6 +81,11 @@ from . import constants
 from pathlib import Path # requires Python 3.4+
 
 import random
+
+# for type checking - Python 3.5+
+from collections.abc import Callable
+from typing import Optional
+
 
 # constants to make typos obsolete!
 ENCODING_UTF8 = "utf-8"
@@ -122,7 +127,7 @@ del _fscodec
 
 # ======================================================================================================================
 
-def set_pdeathsig(sig=signal.SIGTERM):
+def set_pdeathsig(sig=signal.SIGTERM) -> Optional[Callable]:
 	"""
 	Use this method in subprocess.Popen(preexec_fn=set_pdeathsig()) to make sure,
 	the exiftool childprocess is stopped if this process dies.
@@ -187,7 +192,7 @@ class ExifTool(object):
 	"""
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False, config_file=None):
+	def __init__(self, executable: Optional[str] = None, common_args=None, win_shell:bool=True, return_tuple:bool=False, config_file:Optional[str]=None) -> None:
 		
 		random.seed(None) # initialize random number generator
 		
@@ -235,7 +240,7 @@ class ExifTool(object):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def run(self):
+	def run(self) -> None:
 		"""Start an ``exiftool`` process in batch mode for this instance.
 
 		This method will issue a ``UserWarning`` if the subprocess is
@@ -246,6 +251,9 @@ class ExifTool(object):
 
 		However, you can override these default arguments with the 
 		``common_args`` parameter in the constructor.
+		
+		If it doesn't run successfully, an error will be raised, otherwise, the ``exiftool`` process has started
+		if you have another executable named exiftool which isn't exiftool, that's your fault
 		"""
 		if self.running:
 			warnings.warn("ExifTool already running; doing nothing.", UserWarning)
@@ -302,7 +310,7 @@ class ExifTool(object):
 		self._running = True
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def terminate(self, timeout=30, _del=False):
+	def terminate(self, timeout: int = 30, _del: bool = False) -> None:
 		"""Terminate the ``exiftool`` process of this instance.
 
 		If the subprocess isn't running, this method will do nothing.
@@ -345,17 +353,17 @@ class ExifTool(object):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __enter__(self):
+	def __enter__(self) -> None:
 		self.run()
 		return self
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __exit__(self, exc_type, exc_val, exc_tb):
+	def __exit__(self, exc_type, exc_val, exc_tb) -> None:
 		if self.running:
 			self.terminate()
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __del__(self):
+	def __del__(self) -> None:
 		if self.running:
 			# indicate that __del__ has been started - allows running alternate code path in terminate()
 			self.terminate(_del=True)
@@ -405,7 +413,7 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def running(self):
+	def running(self) -> bool:
 		# read-only property
 		
 		if self._running:
