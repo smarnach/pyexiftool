@@ -78,7 +78,7 @@ import ctypes
 
 from . import constants
 
-#from pathlib import Path # requires Python 3.4+
+from pathlib import Path # requires Python 3.4+
 
 import random
 
@@ -191,10 +191,12 @@ class ExifTool(object):
 		random.seed(None) # initialize random number generator
 		
 		# default settings
+		self._running = False  # is it running?
 		self._executable = None  # executable absolute path
 		self._win_shell = win_shell  # do you want to see the shell on Windows?
+		
 		self._process = None # this is set to the process to interact with when _running=True
-		self._running = False  # is it running?
+		self._config_file = None # config file that can only be set when exiftool is not running
 		
 		self._return_tuple = return_tuple # are we returning a tuple in the execute?
 		self._last_stdout = None # previous output
@@ -207,13 +209,16 @@ class ExifTool(object):
 		# set to default block size
 		self._block_size = constants.DEFAULT_BLOCK_SIZE
 		
-		self._common_args = common_args
+		# set the property, error checking happens in the property.setter
+		self.config_file = config_file
+
+
+
+
+		# TODO set this as a property, and may not use these defaults if they cause errors (I recall seeing an issue filed)
+		
 		# it can't be none, check if it's a list, if not, error
-
-		if config_file and not os.path.exists(config_file):
-			raise FileNotFoundError("The config file could not be found")
-
-		self._config_file = config_file
+		self._common_args = common_args
 
 		if common_args is None:
 			# default parameters to exiftool
@@ -225,6 +230,7 @@ class ExifTool(object):
 			raise TypeError("common_args not a list of strings")
 
 		self._no_output = '-w' in self._common_args
+
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -246,9 +252,11 @@ class ExifTool(object):
 
 		# TODO changing common args means it needs a restart, or error, have a restart=True for change common_args or error if running
 		proc_args = [self.executable, ]
+		
 		# If working with a config file, it must be the first argument after the executable per: https://exiftool.org/config.html
 		if self._config_file:
 			proc_args.extend(["-config", self._config_file])
+		
 		proc_args.extend(["-stay_open", "True", "-@", "-", "-common_args"])
 		proc_args.extend(self._common_args)  # add the common arguments
 
@@ -262,12 +270,11 @@ class ExifTool(object):
 						# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
 						# keep it from throwing up a DOS shell when it launches.
 						startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
-
+					
 					self._process = subprocess.Popen(
 						proc_args,
 						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
 						stderr=subprocess.PIPE, startupinfo=startup_info) #stderr=devnull
-					# TODO check error before saying it's running
 				else:
 					# assume it's linux
 					self._process = subprocess.Popen(
@@ -276,7 +283,6 @@ class ExifTool(object):
 						stderr=subprocess.PIPE, preexec_fn=set_pdeathsig(signal.SIGTERM)) #stderr=devnull
 						# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application. 
 						# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
-					# TODO check error before saying it's running
 			except FileNotFoundError as fnfe:
 				raise fnfe
 			except OSError as oe:
@@ -285,8 +291,13 @@ class ExifTool(object):
 				raise ve
 			except subprocess.CalledProcessError as cpe:
 				raise cpe
+			# TODO print out more useful error messages to these different errors above
 		
 		# check error above before saying it's running
+		if self._process.poll() is not None:
+			# the Popen launched, then process terminated
+			raise RuntimeError("exiftool did not execute successfully")
+		
 		self._running = True
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -300,10 +311,14 @@ class ExifTool(object):
 			# TODO, maybe add an optional parameter that says ignore_running/check/force or something which will not warn
 			return
 		
-		if _del and constants.PLATFORM_WINDOWS and 0:
+		if _del and constants.PLATFORM_WINDOWS:
 			# don't cleanly exit on windows, during __del__ as it'll freeze at communicate()
 			self._process.kill()
-			outs, errs = proc.communicate() # have to cleanup the process or else .poll() will return None
+			#print("before comm", self._process.poll(), self._process)
+			self._process.kill()
+			outs, errs = self._process.communicate() # have to cleanup the process or else .poll() will return None
+			#print("after comm")
+			# TODO a bug filed with Python, or user error... this doesn't seem to work at all ... .communicate() still hangs
 		else:
 			try:
 				"""
@@ -324,6 +339,10 @@ class ExifTool(object):
 		self._process = None # don't delete, just leave as None
 		self._running = False
 
+
+
+
+
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __enter__(self):
 		self.run()
@@ -339,6 +358,10 @@ class ExifTool(object):
 		if self.running:
 			# indicate that __del__ has been started - allows running alternate code path in terminate()
 			self.terminate(_del=True)
+
+
+
+
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
@@ -397,6 +420,31 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
+	def config_file(self):
+		return self._config_file
+	
+	@config_file.setter
+	def config_file(self, new_config_file):
+		""" set the config_file parameter
+		
+		if running==True, it will throw an error.  Can only set config_file when exiftool is not running
+		"""
+		if self.running:
+			raise RuntimeError("cannot set a new config_file while exiftool is running!")
+		
+		if new_config_file is None:
+			self._config_file = None
+		elif not Path(new_config_file).exists():
+			raise FileNotFoundError("The config file could not be found")
+		else:
+			self._config_file = new_config_file
+
+
+
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
 	def last_stdout(self):
 		"""last output stdout from execute()"""
 		return self._last_stdout
@@ -406,6 +454,8 @@ class ExifTool(object):
 	def last_stderr(self):
 		"""last output stderr from execute()"""
 		return self._last_stderr
+
+
 
 	
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -504,6 +554,7 @@ class ExifTool(object):
 		std = self.execute(b"-j", *params)
 		
 		if self._return_tuple:
+			# get stdout only
 			res = std[0]
 		else:
 			res = std
@@ -523,7 +574,7 @@ class ExifTool(object):
 			res_decoded = res.decode(ENCODING_UTF8)
 		except UnicodeDecodeError:
 			res_decoded = res.decode(ENCODING_LATIN1)
-		# TODO res_decoded can be invalid json if `-w` flag is specified in common_args
+		# TODO res_decoded can be invalid json (test this) if `-w` flag is specified in common_args
 		# which will return something like
 		# image files read
 		# output files created

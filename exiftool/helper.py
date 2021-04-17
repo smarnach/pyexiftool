@@ -220,10 +220,8 @@ class ExifToolHelper(ExifTool):
 		else:
 			exec_params.extend(params)
 		
-		if tags is None:
-			pass
-		else:
-			exec_params.extend( ["-" + t for t in tags] )
+		# tags is always a list by this point.  It will always be iterable... don't have to check for None
+		exec_params.extend( ["-" + t for t in tags] )
 		
 		exec_params.extend(files)
 		
