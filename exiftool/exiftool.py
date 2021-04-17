@@ -84,7 +84,7 @@ import random
 
 # for type checking - Python 3.5+
 from collections.abc import Callable
-from typing import Optional
+from typing import Optional, List
 
 
 # constants to make typos obsolete!
@@ -192,28 +192,28 @@ class ExifTool(object):
 	"""
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __init__(self, executable: Optional[str] = None, common_args=None, win_shell:bool=True, return_tuple:bool=False, config_file:Optional[str]=None) -> None:
+	def __init__(self, executable: Optional[str] = None, common_args=None, win_shell: bool = True, return_tuple: bool = False, config_file: Optional[str] = None) -> None:
 		
 		random.seed(None) # initialize random number generator
 		
 		# default settings
-		self._running = False  # is it running?
-		self._executable = None  # executable absolute path
-		self._win_shell = win_shell  # do you want to see the shell on Windows?
+		self._running: bool = False  # is it running?
+		self._executable: Optional[str] = None  # executable absolute path
+		self._win_shell: bool = win_shell  # do you want to see the shell on Windows?
 		
 		self._process = None # this is set to the process to interact with when _running=True
-		self._config_file = None # config file that can only be set when exiftool is not running
+		self._config_file: Optional[str] = None # config file that can only be set when exiftool is not running
 		
-		self._return_tuple = return_tuple # are we returning a tuple in the execute?
-		self._last_stdout = None # previous output
-		self._last_stderr = None # previous stderr
+		self._return_tuple: bool = return_tuple # are we returning a tuple in the execute?
+		self._last_stdout: Optional[str] = None # previous output
+		self._last_stderr: Optional[str] = None # previous stderr
 
 		# use the passed in parameter, or the default if not set
 		# error checking is done in the property.setter
 		self.executable = executable if executable is not None else constants.DEFAULT_EXECUTABLE
 		
 		# set to default block size
-		self._block_size = constants.DEFAULT_BLOCK_SIZE
+		self._block_size: int = constants.DEFAULT_BLOCK_SIZE
 		
 		# set the property, error checking happens in the property.setter
 		self.config_file = config_file
@@ -224,7 +224,7 @@ class ExifTool(object):
 		# TODO set this as a property, and may not use these defaults if they cause errors (I recall seeing an issue filed)
 		
 		# it can't be none, check if it's a list, if not, error
-		self._common_args = common_args
+		self._common_args: List[str]
 
 		if common_args is None:
 			# default parameters to exiftool
@@ -342,7 +342,7 @@ class ExifTool(object):
 				self._process.kill()
 			except subprocess.TimeoutExpired: # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
 				self._process.kill()
-				outs, errs = proc.communicate()
+				outs, errs = self._process.communicate()
 				# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
 		
 		self._process = None # don't delete, just leave as None
@@ -387,7 +387,7 @@ class ExifTool(object):
 			raise RuntimeError( 'Cannot set new executable while Exiftool is running' )
 		
 		# Python 3.3+ required
-		abs_path = shutil.which(new_executable)
+		abs_path: Optional[str] = shutil.which(new_executable)
 		
 		if abs_path is None:
 			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(new_executable) )
@@ -402,7 +402,7 @@ class ExifTool(object):
 		return self._block_size
 	
 	@block_size.setter
-	def block_size(self, new_block_size):
+	def block_size(self, new_block_size: int):
 		"""
 		Set the block_size.  Does error checking.
 		"""
@@ -454,13 +454,13 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def last_stdout(self):
+	def last_stdout(self) -> Optional[str]:
 		"""last output stdout from execute()"""
 		return self._last_stdout
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def last_stderr(self):
+	def last_stderr(self) -> Optional[str]:
 		"""last output stderr from execute()"""
 		return self._last_stderr
 
@@ -596,7 +596,7 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@staticmethod
-	def _read_fd_endswith(fd, b_endswith, block_size):
+	def _read_fd_endswith(fd, b_endswith, block_size: int):
 		""" read an fd and keep reading until it endswith the seq_ends 
 			
 			this allows a consolidated read function that is platform indepdent
