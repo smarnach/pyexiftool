@@ -82,14 +82,14 @@ from pathlib import Path # requires Python 3.4+
 
 import random
 
-# for type checking - Python 3.5+
+# for static analysis / type checking - Python 3.5+
 from collections.abc import Callable
 from typing import Optional, List
 
 
 # constants to make typos obsolete!
-ENCODING_UTF8 = "utf-8"
-ENCODING_LATIN1 = "latin-1"
+ENCODING_UTF8: str = "utf-8"
+ENCODING_LATIN1: str = "latin-1"
 
 # ======================================================================================================================
 
@@ -433,7 +433,7 @@ class ExifTool(object):
 		return self._config_file
 	
 	@config_file.setter
-	def config_file(self, new_config_file) -> None:
+	def config_file(self, new_config_file: Optional[str]) -> None:
 		""" set the config_file parameter
 		
 		if running==True, it will throw an error.  Can only set config_file when exiftool is not running
@@ -560,8 +560,10 @@ class ExifTool(object):
 		if self._return_tuple:
 			# get stdout only
 			res = std[0]
+			res_err = std[1]
 		else:
 			res = std
+			res_err = self._last_stderr
 		
 		if len(res) == 0:
 			# if the command has no files it's worked on, or some other type of error
@@ -584,6 +586,7 @@ class ExifTool(object):
 		# output files created
 		if self._no_output:
 			print(res_decoded)
+			# TODO: test why is this not returning anything from this function?? what if we are SETTING something and not GETTING?
 		else:
 			# TODO: if len(res_decoded) == 0, then there's obviously an error here
 			return json.loads(res_decoded)

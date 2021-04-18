@@ -21,14 +21,16 @@ import sys
 
 # instead of comparing everywhere sys.platform, do it all here in the constants (less typo chances)
 # True if Windows
-PLATFORM_WINDOWS = (sys.platform == 'win32')
+PLATFORM_WINDOWS: bool = (sys.platform == 'win32')
 # Prior to Python 3.3, the value for any Linux version is always linux2; after, it is linux.
 # https://stackoverflow.com/a/13874620/15384838
-PLATFORM_LINUX = (sys.platform == 'linux' or sys.platform == 'linux2')
+PLATFORM_LINUX: bool = (sys.platform == 'linux' or sys.platform == 'linux2')
 
 
 
 # specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
+DEFAULT_EXECUTABLE: str
+
 if PLATFORM_WINDOWS:
 	DEFAULT_EXECUTABLE = "exiftool.exe"
 else:
@@ -40,10 +42,10 @@ If the executable is not located in one of the paths listed in the
 """
 
 
-SW_FORCEMINIMIZE = 11 # from win32con
+SW_FORCEMINIMIZE: int = 11 # from win32con
 
 
 # The default block size when reading from exiftool.  The standard value
 # should be fine, though other values might give better performance in
 # some cases.
-DEFAULT_BLOCK_SIZE = 4096
+DEFAULT_BLOCK_SIZE: int = 4096
