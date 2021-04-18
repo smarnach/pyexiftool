@@ -353,7 +353,7 @@ class ExifTool(object):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __enter__(self) -> None:
+	def __enter__(self):
 		self.run()
 		return self
 
@@ -378,7 +378,7 @@ class ExifTool(object):
 		return self._executable
 	
 	@executable.setter
-	def executable(self, new_executable):
+	def executable(self, new_executable) -> None:
 		"""
 		Set the executable.  Does error checking.
 		"""
@@ -390,7 +390,7 @@ class ExifTool(object):
 		abs_path: Optional[str] = shutil.which(new_executable)
 		
 		if abs_path is None:
-			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(new_executable) )
+			raise FileNotFoundError( f'"{new_executable}" is not found, on path or as absolute path' )
 		
 		# absolute path is returned
 		self._executable = abs_path
@@ -398,11 +398,11 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def block_size(self):
+	def block_size(self) -> int:
 		return self._block_size
 	
 	@block_size.setter
-	def block_size(self, new_block_size: int):
+	def block_size(self, new_block_size: int) -> None:
 		"""
 		Set the block_size.  Does error checking.
 		"""
@@ -429,11 +429,11 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def config_file(self):
+	def config_file(self) -> Optional[str]:
 		return self._config_file
 	
 	@config_file.setter
-	def config_file(self, new_config_file):
+	def config_file(self, new_config_file) -> None:
 		""" set the config_file parameter
 		
 		if running==True, it will throw an error.  Can only set config_file when exiftool is not running
@@ -490,23 +490,18 @@ class ExifTool(object):
 		if not self.running:
 			raise RuntimeError("ExifTool instance not running.")
 		
-		# constant special sequences when running -stay_open mode
-		SEQ_EXECUTE_FMT = "-execute{}\n" # this is the PYFORMAT ... the actual string is b"-execute\n"
-		SEQ_READY_FMT = "{{ready{}}}" # this is the PYFORMAT ... the actual string is b"{ready}"
-		
-		# these are special sequences to help with synchronization.  It will print specific text to STDERR before and after processing
-		#SEQ_STDERR_PRE_FMT = "pre{}"
-		SEQ_STDERR_POST_FMT = "post{}"
-		
 		
 		# there's a special usage of execute/ready specified in the manual which make almost ensure we are receiving the right signal back
 		# from exiftool man pages:  When this number is added, -q no longer suppresses the "{ready}"
-		signal_num = random.randint(10000000, 99999999) # arbitrary create a 8 digit number
-		seq_execute = SEQ_EXECUTE_FMT.format(signal_num).encode(ENCODING_UTF8)
-		seq_ready = SEQ_READY_FMT.format(signal_num).encode(ENCODING_UTF8)
+		signal_num = random.randint(100000, 999999) # arbitrary create a 6 digit number (keep it down to save memory maybe)
 		
-		#seq_err_pre = SEQ_STDERR_PRE_FMT.format(signal_num).encode(ENCODING_UTF8)
-		seq_err_post = SEQ_STDERR_POST_FMT.format(signal_num).encode(ENCODING_UTF8)
+		# constant special sequences when running -stay_open mode
+		seq_execute = f"-execute{signal_num}\n".encode(ENCODING_UTF8) # the default string is b"-execute\n"
+		seq_ready = f"{{ready{signal_num}}}".encode(ENCODING_UTF8) # the default string is b"{ready}"
+		
+		# these are special sequences to help with synchronization.  It will print specific text to STDERR before and after processing
+		#SEQ_STDERR_PRE_FMT = "pre{}" # can have a PRE sequence too but we don't need it for syncing
+		seq_err_post = f"post{signal_num}".encode(ENCODING_UTF8) # default there isn't any string
 		
 		cmd_text = b"\n".join(params + (b"-echo4",seq_err_post, seq_execute,))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
