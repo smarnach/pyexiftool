@@ -27,8 +27,11 @@ Date (Timezone)              | Version | Comment
 02/01/2020 05:09:43 PM (PST) | 0.4.1   | incorporated pull request #2 and #3 by ickc which added a "no_output" feature and an import for ujson if it's installed.  Thanks for the updates!
 04/09/2020 04:25:31 AM (PDT) | 0.4.2   | roll back 0.4.0's pyexiftool rename.  It appears there's no specific PEP to have to to name PyPI projects to be py<something>.  The only convention I found was https://www.python.org/dev/peps/pep-0423/#use-standard-pattern-for-community-contributions which I might look at in more detail
 04/09/2020 05:15:40 AM (PDT) | 0.4.3   | initial work of moving the exiftool.py into a directory preparing to break it down into separate files to make the codebase more manageable
-03/12/2021 01:37:30 PM (PDT) | 0.4.4   | no functional code changes.  Revamped the setup.py and related files to release to PyPI.  Added all necessary and recommended files into release
-03/12/2021 02:03:38 PM (PDT) | 0.4.5   | no functional code changes.  re-release with new version because I accidentally included the "test" package with the PyPI 0.4.4 release.  I deleted it instead of yanking or doing a post release this time... just bumped the version.  "test" folder renamed to "tests" as per convention, so the build will automatically ignore it
+03/12/2021 01:37:30 PM (PST) | 0.4.4   | no functional code changes.  Revamped the setup.py and related files to release to PyPI.  Added all necessary and recommended files into release
+03/12/2021 02:03:38 PM (PST) | 0.4.5   | no functional code changes.  re-release with new version because I accidentally included the "test" package with the PyPI 0.4.4 release.  I deleted it instead of yanking or doing a post release this time... just bumped the version.  "test" folder renamed to "tests" as per convention, so the build will automatically ignore it
+04/08/2021 03:38:46 PM (PDT) | 0.4.6   | added support for config files in constructor -- Merged pull request #7 from @asielen and fixed a bug referenced in the discussion https://github.com/sylikc/pyexiftool/pull/7
+04/19/2021 02:37:02 PM (PDT) | 0.4.7   | added support for writing a list of values in set_tags_batch() which allows setting individual keywords (and other tags which are exiftool lists) -- contribution from @davidorme referenced in issue https://github.com/sylikc/pyexiftool/issues/12#issuecomment-821879234
+
 
 On version changes, update setup.py to reflect version
 
