@@ -296,6 +296,9 @@ class ExifToolHelper(ExifTool):
 		:py:meth:`execute()`.
 
 		It can be passed into `check_ok()` and `format_error()`.
+
+		tags items can be lists, in which case, the tag will be passed 
+		with each item in the list, in the order given
 		"""
 		# Explicitly ruling out strings here because passing in a
 		# string would lead to strange and hard-to-find errors
@@ -309,6 +312,14 @@ class ExifToolHelper(ExifTool):
 		params = []
 		params_utf8 = []
 		for tag, value in tags.items():
+			# contributed by @daviddorme in https://github.com/sylikc/pyexiftool/issues/12#issuecomment-821879234
+			# allows setting things like Keywords which require separate directives 
+			# > exiftool -Keywords=keyword1 -Keywords=keyword2 -Keywords=keyword3 file.jpg
+			# which are not supported as duplicate keys in a dictionary
+			if isinstance(value, list):
+				for item in value:
+					params.append(u'-%s=%s' % (tag, item))
+			else:
 			params.append(u'-%s=%s' % (tag, value))
 
 		params.extend(filenames)
