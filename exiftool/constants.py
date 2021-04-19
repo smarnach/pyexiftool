@@ -33,7 +33,7 @@ DEFAULT_EXECUTABLE: str
 
 if PLATFORM_WINDOWS:
 	DEFAULT_EXECUTABLE = "exiftool.exe"
-else:
+else: # pytest-cov:windows: no cover
 	DEFAULT_EXECUTABLE = "exiftool"
 """The name of the executable to run.
 

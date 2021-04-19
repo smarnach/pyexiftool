@@ -59,6 +59,8 @@ class TestExifTool(unittest.TestCase):
 	def test_configfile_attribute(self):
 		current = self.et.config_file
 		
+		with self.assertRaises(FileNotFoundError):
+			self.et.config_file = "lkasjdflkjasfd"
 		
 		# TODO create a config file, and set it and test that it works
 		

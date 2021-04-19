@@ -164,7 +164,7 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 			# windows does not support select() for anything except sockets
 			# https://docs.python.org/3.7/library/select.html
 			output += os.read(fd, block_size)
-		else:
+		else: # pytest-cov:windows: no cover
 			# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
 			inputready,outputready,exceptready = select.select([fd], [], [])
 			for i in inputready:
@@ -172,6 +172,11 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 					output += os.read(fd, block_size)
 
 	return output
+
+
+
+
+
 
 # ======================================================================================================================
 
@@ -423,7 +428,7 @@ class ExifTool(object):
 	###############################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def setlogger(self, new_logger) -> None:
+	def _set_logger(self, new_logger) -> None:
 		""" set a new user-created logging.Logger object
 			can be set at any time to start logging.
 
@@ -437,7 +442,10 @@ class ExifTool(object):
 		self._logger = new_logger
 
 	# have to run this at the class level to create a special write-only property
-	logger = property(fset=setlogger, doc="'logger' property to set to the class logging.Logger")
+	# https://stackoverflow.com/questions/17576009/python-class-property-use-setter-but-evade-getter
+	# https://docs.python.org/3/howto/descriptor.html#properties
+	# can have it named same or different
+	logger = property(fset=_set_logger, doc="'logger' property to set to the class logging.Logger")
 
 
 
@@ -495,7 +503,7 @@ class ExifTool(object):
 						proc_args,
 						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
 						stderr=subprocess.PIPE, startupinfo=startup_info) #stderr=devnull
-				else:
+				else: # pytest-cov:windows: no cover
 					# assume it's linux
 					self._process = subprocess.Popen(
 						proc_args,

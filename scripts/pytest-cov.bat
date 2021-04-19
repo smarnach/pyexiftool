@@ -13,6 +13,6 @@ python -m pip show pytest-cov | findstr /l /c:"Version:"
 echo ______________________
 
 REM added the --cov= so that it doesn't try to test coverage on the virtualenv directory
-python.exe -m pytest -v --cov=exiftool --cov-report term-missing tests/
+python.exe -m pytest -v --cov-config=%~dp0windows.coveragerc --cov=exiftool --cov-report term-missing tests/
 
 popd
