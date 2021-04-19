@@ -14,6 +14,7 @@ class TestExifTool(unittest.TestCase):
 	#---------------------------------------------------------------------------------------------------------
 	def setUp(self):
 		self.et = exiftool.ExifTool(common_args=["-G", "-n", "-overwrite_original"])
+
 	def tearDown(self):
 		if hasattr(self, "et"):
 			if self.et.running:
@@ -40,6 +41,38 @@ class TestExifTool(unittest.TestCase):
 			self.et.executable = "lkajsdfoleiawjfasv"
 		self.assertFalse(self.et.running)
 	#---------------------------------------------------------------------------------------------------------
+	def test_blocksize_attribute(self):
+		current = self.et.block_size
+
+		# arbitrary
+		self.et.block_size = 4
+		self.assertEqual(self.et.block_size, 4)
+
+		with self.assertRaises(ValueError):
+			self.et.block_size = -1
+
+		# restore
+		self.et.block_size = current
+
+	#---------------------------------------------------------------------------------------------------------
+	
+	def test_configfile_attribute(self):
+		current = self.et.config_file
+		
+		
+		# TODO create a config file, and set it and test that it works
+		
+		self.assertFalse(self.et.running)
+		self.et.run()
+		self.assertTrue(self.et.running)
+		
+		with self.assertRaises(RuntimeError):
+			self.et.config_file = None
+		
+		self.et.terminate()
+		
+	
+	#---------------------------------------------------------------------------------------------------------
 	def test_termination_cm(self):
 		# Test correct subprocess start and termination when using
 		# self.et as a context manager
@@ -64,6 +97,13 @@ class TestExifTool(unittest.TestCase):
 		self.assertEqual(self.process.poll(), None)
 		self.et.terminate()
 		self.assertNotEqual(self.process.poll(), None)
+
+		# terminate when not running
+		with warnings.catch_warnings(record=True) as w:
+			self.et.terminate()
+			self.assertEquals(len(w), 1)
+			self.assertTrue(issubclass(w[0].category, UserWarning))
+
 	#---------------------------------------------------------------------------------------------------------
 	def test_termination_implicit(self):
 		# Test implicit process termination on garbage collection
@@ -80,7 +120,7 @@ class TestExifTool(unittest.TestCase):
 		# kill the process, out of ExifTool's control
 		self.process.kill()
 		outs, errs = self.process.communicate()
-		
+
 		with warnings.catch_warnings(record=True) as w:
 			self.assertFalse(self.et.running)
 			self.assertEquals(len(w), 1)
