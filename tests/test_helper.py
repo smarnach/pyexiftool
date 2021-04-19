@@ -5,15 +5,20 @@ from __future__ import unicode_literals
 import unittest
 import exiftool
 import warnings
-import os
+#import os
 import shutil
 import sys
+
+from pathlib import Path
+
+TMP_DIR = Path(__file__).parent / 'tmp'
 
 class TestExifToolHelper(unittest.TestCase):
 
 	#---------------------------------------------------------------------------------------------------------
 	def setUp(self):
 		self.et = exiftool.ExifToolHelper(common_args=["-G", "-n", "-overwrite_original"])
+
 	def tearDown(self):
 		if hasattr(self, "et"):
 			if self.et.running:
@@ -21,6 +26,7 @@ class TestExifToolHelper(unittest.TestCase):
 		if hasattr(self, "process"):
 			if self.process.poll() is None:
 				self.process.terminate()
+
 	#---------------------------------------------------------------------------------------------------------
 	def test_get_metadata(self):
 		expected_data = [{"SourceFile": "rose.jpg",
@@ -34,12 +40,13 @@ class TestExifToolHelper(unittest.TestCase):
 						  "PNG:ImageWidth": 64,
 						  "PNG:ImageHeight": 64,
 						  "Composite:ImageSize": "64 64"}] # older versions of exiftool used to display 64x64
-		script_path = os.path.dirname(__file__)
+		script_path = Path(__file__).parent
 		source_files = []
+
 		for d in expected_data:
-			d["SourceFile"] = f = os.path.join(script_path, d["SourceFile"])
-			self.assertTrue(os.path.exists(f))
-			source_files.append(f)
+			d["SourceFile"] = f = script_path / d["SourceFile"]
+			self.assertTrue(f.exists())
+			source_files.append(str(f))
 		with self.et:
 			actual_data = self.et.get_metadata(source_files)
 			tags0 = self.et.get_tags(["XMP:Subject"], source_files[0])[0]
@@ -51,10 +58,10 @@ class TestExifToolHelper(unittest.TestCase):
 				self.assertTrue(
 					et_version >= 8.40,
 					"you should at least use ExifTool version 8.40")
-			actual["SourceFile"] = os.path.normpath(actual["SourceFile"])
+			actual["SourceFile"] = Path(actual["SourceFile"]).resolve()
 			for k, v in expected.items():
 				self.assertEqual(actual[k], v)
-		tags0["SourceFile"] = os.path.normpath(tags0["SourceFile"])
+		tags0["SourceFile"] = Path(tags0["SourceFile"]).resolve()
 		self.assertEqual(tags0, dict((k, expected_data[0][k])
 									 for k in ["SourceFile", "XMP:Subject"]))
 		self.assertEqual(tag0, "Röschen")
@@ -66,19 +73,23 @@ class TestExifToolHelper(unittest.TestCase):
 						  "Caption-Abstract": "Ein Röschen ganz allein"},
 						 {"SourceFile": "skyblue.png",
 						  "Caption-Abstract": "Blauer Himmel"}]
-		script_path = os.path.dirname(__file__)
+		script_path = Path(__file__).parent
 		source_files = []
+
 		for d in expected_data:
-			d["SourceFile"] = f = os.path.join(script_path, d["SourceFile"])
-			self.assertTrue(os.path.exists(f))
-			f_mod = os.path.join(os.path.dirname(f), mod_prefix + os.path.basename(f))
-			self.assertFalse(os.path.exists(f_mod), "%s should not exist before the test. Please delete." % f_mod)
+			d["SourceFile"] = f = script_path / d["SourceFile"]
+			self.assertTrue(f.exists())
+
+			f_mod = TMP_DIR / (mod_prefix + f.name)
+			f_mod_str = str(f_mod)
+
+			self.assertFalse(f_mod.exists(), "%s should not exist before the test. Please delete." % f_mod)
 			shutil.copyfile(f, f_mod)
 			source_files.append(f_mod)
 			with self.et:
-				self.et.set_tags({"Caption-Abstract":d["Caption-Abstract"]}, f_mod)
-				tag0 = self.et.get_tag("IPTC:Caption-Abstract", f_mod)
-			os.remove(f_mod)
+				self.et.set_tags({"Caption-Abstract":d["Caption-Abstract"]}, f_mod_str)
+				tag0 = self.et.get_tag("IPTC:Caption-Abstract", f_mod_str)
+			f_mod.unlink()
 			self.assertEqual(tag0, d["Caption-Abstract"])
 
 	#---------------------------------------------------------------------------------------------------------
@@ -87,24 +98,26 @@ class TestExifToolHelper(unittest.TestCase):
 		mod_prefix = "newkw_"
 		expected_data = [{"SourceFile": "rose.jpg",
 						  "Keywords": ["nature", "red plant"]}]
-		script_path = os.path.dirname(__file__)
+		script_path = Path(__file__).parent
 		source_files = []
 		for d in expected_data:
-			d["SourceFile"] = f = os.path.join(script_path, d["SourceFile"])
-			self.assertTrue(os.path.exists(f))
-			f_mod = os.path.join(os.path.dirname(f), mod_prefix + os.path.basename(f))
-			self.assertFalse(os.path.exists(f_mod), "%s should not exist before the test. Please delete." % f_mod)
+			d["SourceFile"] = f = script_path / d["SourceFile"]
+			self.assertTrue(f.exists())
+			f_mod = TMP_DIR / (mod_prefix + f.name)
+			f_mod_str = str(f_mod)
+			self.assertFalse(f_mod.exists(), "%s should not exist before the test. Please delete." % f_mod)
+
 			shutil.copyfile(f, f_mod)
 			source_files.append(f_mod)
 			with self.et:
-				self.et.set_keywords(exiftool.helper.KW_REPLACE, d["Keywords"], f_mod)
-				kwtag0 = self.et.get_tag("IPTC:Keywords", f_mod)
+				self.et.set_keywords(exiftool.helper.KW_REPLACE, d["Keywords"], f_mod_str)
+				kwtag0 = self.et.get_tag("IPTC:Keywords", f_mod_str)
 				kwrest = d["Keywords"][1:]
-				self.et.set_keywords(exiftool.helper.KW_REMOVE, kwrest, f_mod)
-				kwtag1 = self.et.get_tag("IPTC:Keywords", f_mod)
-				self.et.set_keywords(exiftool.helper.KW_ADD, kw_to_add, f_mod)
-				kwtag2 = self.et.get_tag("IPTC:Keywords", f_mod)
-			os.remove(f_mod)
+				self.et.set_keywords(exiftool.helper.KW_REMOVE, kwrest, f_mod_str)
+				kwtag1 = self.et.get_tag("IPTC:Keywords", f_mod_str)
+				self.et.set_keywords(exiftool.helper.KW_ADD, kw_to_add, f_mod_str)
+				kwtag2 = self.et.get_tag("IPTC:Keywords", f_mod_str)
+			f_mod.unlink()
 			self.assertEqual(kwtag0, d["Keywords"])
 			self.assertEqual(kwtag1, d["Keywords"][0])
 			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)

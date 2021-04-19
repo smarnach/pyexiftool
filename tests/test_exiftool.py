@@ -5,9 +5,9 @@ from __future__ import unicode_literals
 import unittest
 import exiftool
 import warnings
-import os
-import shutil
-import sys
+#import os
+#import shutil
+#import sys
 
 class TestExifTool(unittest.TestCase):
 
