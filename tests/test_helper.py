@@ -100,6 +100,7 @@ class TestExifToolHelper(unittest.TestCase):
 						  "Keywords": ["nature", "red plant"]}]
 		script_path = Path(__file__).parent
 		source_files = []
+		
 		for d in expected_data:
 			d["SourceFile"] = f = script_path / d["SourceFile"]
 			self.assertTrue(f.exists())
@@ -122,6 +123,40 @@ class TestExifToolHelper(unittest.TestCase):
 			self.assertEqual(kwtag1, d["Keywords"][0])
 			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
 
+
+	#---------------------------------------------------------------------------------------------------------
+	"""
+	# TODO: write a test that covers keywords in set_tags_batch() and not using the keywords functionality directly
+	def test_set_list_keywords(self):
+		mod_prefix = "newkw_"
+		expected_data = [{"SourceFile": "rose.jpg",
+						  "Keywords": ["nature", "red plant"]}]
+		script_path = Path(__file__).parent
+		source_files = []
+
+		for d in expected_data:
+			d["SourceFile"] = f = script_path / d["SourceFile"]
+			self.assertTrue(f.exists())
+			f_mod = TMP_DIR / (mod_prefix + f.name)
+			f_mod_str = str(f_mod)
+			self.assertFalse(f_mod.exists(), "%s should not exist before the test. Please delete." % f_mod)
+
+			shutil.copyfile(f, f_mod)
+			source_files.append(f_mod)
+
+			with self.et:
+				self.et.set_keywords(exiftool.helper.KW_REPLACE, d["Keywords"], f_mod_str)
+				kwtag0 = self.et.get_tag("IPTC:Keywords", f_mod_str)
+				kwrest = d["Keywords"][1:]
+				self.et.set_keywords(exiftool.helper.KW_REMOVE, kwrest, f_mod_str)
+				kwtag1 = self.et.get_tag("IPTC:Keywords", f_mod_str)
+				self.et.set_keywords(exiftool.helper.KW_ADD, kw_to_add, f_mod_str)
+				kwtag2 = self.et.get_tag("IPTC:Keywords", f_mod_str)
+			f_mod.unlink()
+			self.assertEqual(kwtag0, d["Keywords"])
+			self.assertEqual(kwtag1, d["Keywords"][0])
+			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
+	"""
 
 #---------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':

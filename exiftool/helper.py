@@ -53,6 +53,28 @@ KW_REPLACE, KW_ADD, KW_REMOVE = range(3)
 # ======================================================================================================================
 
 
+def _is_iterable(in_param -> Any) -> bool:
+	"""
+	Checks if this item is iterable, instead of using isinstance(list), anything iterable can be ok
+
+	NOTE: STRINGS ARE CONSIDERED ITERABLE by Python
+
+	if you need to consider a code path for strings first, check that before checking if a parameter is iterable via this function
+	"""
+	# a different type of test of iterability, instead of using isinstance(list)
+	# https://stackoverflow.com/questions/1952464/in-python-how-do-i-determine-if-an-object-is-iterable
+	try:
+		iterator = iter(in_param)
+	except TypeError:
+		return False
+
+	return True
+
+
+
+# ======================================================================================================================
+
+
 
 #string helper
 def strip_nl (s):
@@ -99,7 +121,7 @@ class ExifToolHelper(ExifTool):
 	""" this class extends the low-level class with 'wrapper'/'helper' functionality
 	It keeps low-level functionality with the base class but adds helper functions on top of it
 	"""
-	
+
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False):
 		# call parent's constructor
@@ -150,11 +172,11 @@ class ExifToolHelper(ExifTool):
 	# ----------------------------------------------------------------------------------------------------------------------
 	def get_metadata(self, in_files, params=None):
 		"""Return all meta-data for the given files.
-		
+
 			This will ALWAYS return a list
-			
+
 			in_files can be an iterable(strings) or a string.
-			
+
 			wildcard strings are accepted as it's passed straight to exiftool
 
 		The return value will have the format described in the
@@ -162,7 +184,7 @@ class ExifToolHelper(ExifTool):
 		"""
 		if not params:
 			params = []
-		
+
 		return self.get_tags(None, in_files, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -182,7 +204,7 @@ class ExifToolHelper(ExifTool):
 
 		The first argument is an iterable of tags.  The tag names may
 		include group names, as usual in the format <group>:<tag>.
-		
+
 		If in_tags is None, or [], then returns all tags
 
 		The second argument is an iterable of file names.
@@ -190,41 +212,41 @@ class ExifToolHelper(ExifTool):
 		The format of the return value is the same as for
 		:py:meth:`execute_json()`.
 		"""
-		
+
 		tags = None
 		files = None
-		
+
 		if in_tags is None:
 			# all tags
 			tags = []
 		elif isinstance(in_tags, basestring):
 			tags = [in_tags]
-		elif ExifToolHelper._check_iterable(in_tags):
+		elif _is_iterable(in_tags):
 			tags = in_tags
 		else:
 			raise TypeError("The argument 'in_tags' must be a str/bytes or a list")
-		
-		
+
+
 		if isinstance(in_files, basestring):
 			files = [in_files]
-		elif ExifToolHelper._check_iterable(in_files):
+		elif _is_iterable(in_files):
 			files = in_files
 		else:
 			raise TypeError("The argument 'in_files' must be a str/bytes or a list")
-		
-		
+
+
 		exec_params = []
-		
+
 		if not params:
 			pass
 		else:
 			exec_params.extend(params)
-		
+
 		# tags is always a list by this point.  It will always be iterable... don't have to check for None
 		exec_params.extend( ["-" + t for t in tags] )
-		
+
 		exec_params.extend(files)
-		
+
 		return self.execute_json(*exec_params)
 
 
@@ -297,7 +319,7 @@ class ExifToolHelper(ExifTool):
 
 		It can be passed into `check_ok()` and `format_error()`.
 
-		tags items can be lists, in which case, the tag will be passed 
+		tags items can be lists, in which case, the tag will be passed
 		with each item in the list, in the order given
 		"""
 		# Explicitly ruling out strings here because passing in a
@@ -313,7 +335,7 @@ class ExifToolHelper(ExifTool):
 		params_utf8 = []
 		for tag, value in tags.items():
 			# contributed by @daviddorme in https://github.com/sylikc/pyexiftool/issues/12#issuecomment-821879234
-			# allows setting things like Keywords which require separate directives 
+			# allows setting things like Keywords which require separate directives
 			# > exiftool -Keywords=keyword1 -Keywords=keyword2 -Keywords=keyword3 file.jpg
 			# which are not supported as duplicate keys in a dictionary
 			if isinstance(value, list):
@@ -410,22 +432,3 @@ class ExifToolHelper(ExifTool):
 				raise IOError('exiftool returned data for file %s, but expected was %s'
 							  % (returned_source_file, requested_file))
 
-	# ----------------------------------------------------------------------------------------------------------------------
-	@staticmethod
-	def _check_iterable(in_param):
-		"""
-		Checks if this item is iterable, instead of using isinstance(list), anything iterable can be ok
-		
-		NOTE: STRINGS ARE CONSIDERED ITERABLE by Python
-		
-		if you need to consider a code path for strings first, check that before checking if a parameter is iterable via this function
-		"""
-		# a different type of test of iterability, instead of using isinstance(list)
-		# https://stackoverflow.com/questions/1952464/in-python-how-do-i-determine-if-an-object-is-iterable
-		try:
-			iterator = iter(in_param)
-		except TypeError:
-			return False
-		
-		return True
-		
