@@ -33,6 +33,9 @@ except NameError:
 	basestring = (bytes, str)
 
 
+from typing import Any
+
+
 # ======================================================================================================================
 
 #def atexit_handler
@@ -49,11 +52,10 @@ KW_REPLACE, KW_ADD, KW_REMOVE = range(3)
 
 
 
-
 # ======================================================================================================================
 
 
-def _is_iterable(in_param -> Any) -> bool:
+def _is_iterable(in_param: Any) -> bool:
 	"""
 	Checks if this item is iterable, instead of using isinstance(list), anything iterable can be ok
 
@@ -342,7 +344,7 @@ class ExifToolHelper(ExifTool):
 				for item in value:
 					params.append(u'-%s=%s' % (tag, item))
 			else:
-			params.append(u'-%s=%s' % (tag, value))
+				params.append(u'-%s=%s' % (tag, value))
 
 		params.extend(filenames)
 		params_utf8 = [x.encode('utf-8') for x in params]
