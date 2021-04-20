@@ -232,7 +232,7 @@ class ExifTool(object):
 
 	def __init__(self,
 	  executable: Optional[str] = None,
-	  common_args=None,
+	  common_args: Optional[List[str]] = ["-G", "-n"],
 	  win_shell: bool = True,
 	  return_tuple: bool = False,
 	  config_file: Optional[str] = None,
@@ -250,9 +250,12 @@ class ExifTool(object):
 
 		self._block_size: int = constants.DEFAULT_BLOCK_SIZE # set to default block size
 
+
 		# these are set via properties
 		self._executable: Optional[str] = None  # executable absolute path
 		self._config_file: Optional[str] = None # config file that can only be set when exiftool is not running
+		self._common_args: Optional[List[str]] = None
+		self._no_output = None # TODO examine whether this is needed
 		self._logger = None
 
 
@@ -263,6 +266,7 @@ class ExifTool(object):
 		# use the passed in parameter, or the default if not set
 		# error checking is done in the property.setter
 		self.executable = executable if executable is not None else constants.DEFAULT_EXECUTABLE
+		self.common_args = common_args
 
 		# set the property, error checking happens in the property.setter
 		self.config_file = config_file
@@ -271,21 +275,6 @@ class ExifTool(object):
 
 
 
-		# TODO set this as a property, and may not use these defaults if they cause errors (I recall seeing an issue filed)
-
-		# it can't be none, check if it's a list, if not, error
-		self._common_args: List[str]
-
-		if common_args is None:
-			# default parameters to exiftool
-			# -n = disable print conversion (speedup)
-			self._common_args = ["-G", "-n"]
-		elif type(common_args) is list:
-			self._common_args = common_args
-		else:
-			raise TypeError("common_args not a list of strings")
-
-		self._no_output = '-w' in self._common_args
 
 
 		# --- run any remaining initialization code ---
@@ -366,6 +355,38 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
+	def common_args(self) -> Optional[List[str]]:
+		return self._common_args
+
+	@common_args.setter
+	def common_args(self, new_args: Optional[List[str]]) -> None:
+		""" set the common_args parameter
+
+			this is the common_args that is passed when the Exiftool process is STARTED
+
+			so, if running==True, it will throw an error.  Can only set common_args when exiftool is not running
+		"""
+
+		if self.running:
+			raise RuntimeError("Cannot set new common_args while exiftool is running!")
+
+
+		# TODO may not use constructor defaults if they cause errors (I recall seeing an issue filed)
+
+		# it can be none, the code accomodates for that now
+
+		if new_args is None or isinstance(new_args, list):
+			# default parameters to exiftool
+			# -n = disable print conversion (speedup)
+			self._common_args = new_args
+		else:
+			raise TypeError("common_args not a list of strings")
+
+		# TODO examine if this is still a needed thing
+		self._no_output = '-w' in self._common_args
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
 	def config_file(self) -> Optional[str]:
 		return self._config_file
 
@@ -376,7 +397,7 @@ class ExifTool(object):
 		if running==True, it will throw an error.  Can only set config_file when exiftool is not running
 		"""
 		if self.running:
-			raise RuntimeError("cannot set a new config_file while exiftool is running!")
+			raise RuntimeError("Cannot set a new config_file while exiftool is running!")
 
 		if new_config_file is None:
 			self._config_file = None
@@ -478,16 +499,22 @@ class ExifTool(object):
 			warnings.warn("ExifTool already running; doing nothing.", UserWarning)
 			return
 
-		# TODO changing common args means it needs a restart, or error, have a restart=True for change common_args or error if running
+		# first the executable ...
 		proc_args = [self.executable, ]
 
 		# If working with a config file, it must be the first argument after the executable per: https://exiftool.org/config.html
 		if self._config_file:
 			proc_args.extend(["-config", self._config_file])
 
-		proc_args.extend(["-stay_open", "True", "-@", "-", "-common_args"])
-		proc_args.extend(self._common_args)  # add the common arguments
+		# this is the required stuff for the stay_open that makes pyexiftool so great!
+		proc_args.extend(["-stay_open", "True", "-@", "-"])
 
+		# only if there are any common_args.  [] and None are skipped equally with this
+		if self._common_args:
+			proc_args.append("-common_args") # add this param only if there are common_args
+			proc_args.extend(self._common_args)  # add the common arguments
+
+		# TODO logging change
 		logging.debug(proc_args)
 
 		with open(os.devnull, "w") as devnull: # TODO can probably remove or make it a parameter
@@ -525,6 +552,11 @@ class ExifTool(object):
 		if self._process.poll() is not None:
 			# the Popen launched, then process terminated
 			raise RuntimeError("exiftool did not execute successfully")
+
+
+		# TODO get ExifTool version here and any Exiftool metadata
+		# this can also verify that it is really ExifTool we ran, not some other random process
+
 
 		self._running = True
 
@@ -700,3 +732,12 @@ class ExifTool(object):
 			return json.loads(res_decoded)
 
 
+	########################################################################################
+	#################################### STATIC METHODS ####################################
+	########################################################################################
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@staticmethod
+	def _parse_version():
+		# TODO stub for parsing exiftool -v -ver
+		pass
