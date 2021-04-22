@@ -56,7 +56,7 @@ class TestExifToolHelper(unittest.TestCase):
 			self.assertTrue(isinstance(et_version, float))
 			if isinstance(et_version, float):    # avoid exception in Py3k
 				self.assertTrue(
-					et_version >= 8.40,
+					et_version >= 8.40, # TODO there's probably a bug in this test, 8.40 == 8.4 which isn't the intended behavior
 					"you should at least use ExifTool version 8.40")
 			actual["SourceFile"] = Path(actual["SourceFile"]).resolve()
 			for k, v in expected.items():

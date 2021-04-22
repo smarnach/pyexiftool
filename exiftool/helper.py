@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# PyExifTool <http://github.com/smarnach/pyexiftool>
+# PyExifTool <http://github.com/sylikc/pyexiftool>
 # Copyright 2021 Kevin M (sylikc)
 
 # More contributors in the CHANGELOG for the pull requests
