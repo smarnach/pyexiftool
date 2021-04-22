@@ -65,6 +65,7 @@ import os
 import shutil
 
 try:
+	# Optional UltraJSON library - ultra-fast JSON encoder/decoder, drop-in replacement
 	import ujson as json
 except ImportError:
 	import json # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
@@ -76,8 +77,6 @@ import codecs
 import signal
 import ctypes
 
-from . import constants
-
 from pathlib import Path # requires Python 3.4+
 
 import random
@@ -85,6 +84,9 @@ import random
 # for static analysis / type checking - Python 3.5+
 from collections.abc import Callable
 from typing import Optional, List
+
+
+from . import constants
 
 
 # constants to make typos obsolete!
@@ -157,10 +159,13 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 		if you're not careful, on windows, this will block
 	"""
 	output = b""
-	endswith_count = len(b_endswith) + 4 # if we're only looking at the last few bytes, make it meaningful.  4 is max size of \r\n? (or 2)
+	
+	# if we're only looking at the last few bytes, make it meaningful.  4 is max size of \r\n? (or 2)
+	# this value can be bigger to capture more bytes at the "tail" of the read, but if it's too small, the whitespace might miss the detection
+	endswith_count = len(b_endswith) + 4
 
 	# I believe doing a splice, then a strip is more efficient in memory hence the original code did it this way.
-	# need to benchmark to see if in large strings, strip()[-endswithcount:] is more expensive
+	# need to benchmark to see if in large strings, strip()[-endswithcount:] is more expensive or not
 	while not output[-endswith_count:].strip().endswith(b_endswith):
 		if constants.PLATFORM_WINDOWS:
 			# windows does not support select() for anything except sockets
@@ -266,6 +271,9 @@ class ExifTool(object):
 
 		# --- set variables via properties (which do the error checking) --
 
+		# set first, so that debug and info messages get logged
+		self.logger = logger
+
 		# use the passed in parameter, or the default if not set
 		# error checking is done in the property.setter
 		self.executable = executable if executable is not None else constants.DEFAULT_EXECUTABLE
@@ -274,7 +282,6 @@ class ExifTool(object):
 		# set the property, error checking happens in the property.setter
 		self.config_file = config_file
 
-		self.logger = logger
 
 
 
@@ -325,19 +332,28 @@ class ExifTool(object):
 	def executable(self, new_executable) -> None:
 		"""
 		Set the executable.  Does error checking.
+		
+		in testing, shutil.which() will work if a complete path is given, but this isn't clear, so we explicitly check and don't search if path exists
 		"""
 		# cannot set executable when process is running
 		if self.running:
 			raise RuntimeError( 'Cannot set new executable while Exiftool is running' )
 
-		# Python 3.3+ required
-		abs_path: Optional[str] = shutil.which(new_executable)
+		abs_path: Optional[str] = None
+		
+		if Path(new_executable).exists():
+			abs_path = new_executable
+		else:
+			# Python 3.3+ required
+			abs_path = shutil.which(new_executable)
 
-		if abs_path is None:
-			raise FileNotFoundError( f'"{new_executable}" is not found, on path or as absolute path' )
+			if abs_path is None:
+				raise FileNotFoundError( f'"{new_executable}" is not found, on path or as absolute path' )
 
 		# absolute path is returned
 		self._executable = abs_path
+		
+		if self._logger: self._logger.info(f"Property 'executable': set to \"{abs_path}\"")
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -354,6 +370,8 @@ class ExifTool(object):
 			raise ValueError("Block Size doesn't make sense to be <= 0")
 
 		self._block_size = new_block_size
+
+		if self._logger: self._logger.info(f"Property 'block_size': set to \"{new_block_size}\"")
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -387,6 +405,9 @@ class ExifTool(object):
 
 		# TODO examine if this is still a needed thing
 		self._no_output = '-w' in self._common_args
+		
+		if self._logger: self._logger.info(f"Property 'common_args': set to \"{self._common_args}\"")
+
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
@@ -409,6 +430,8 @@ class ExifTool(object):
 		else:
 			self._config_file = new_config_file
 
+		if self._logger: self._logger.info(f"Property 'config_file': set to \"{self._config_file}\"")
+
 
 
 	##############################################################################################
@@ -428,6 +451,8 @@ class ExifTool(object):
 				self._process = None
 				self._ver = None
 				self._running = False
+				
+				if self._logger: self._logger.warning(f"Property 'running': ExifTool process was previously running but died")
 
 		return self._running
 
@@ -596,6 +621,8 @@ class ExifTool(object):
 		# TODO get ExifTool version here and any Exiftool metadata
 		# this can also verify that it is really ExifTool we ran, not some other random process
 		self._ver = self._parse_ver()
+		
+		if self._logger: self._logger.info(f"Method 'run': Exiftool version '{self._ver}' (pid {self._process.pid}) launched with args '{proc_args}'")
 
 
 
@@ -638,6 +665,8 @@ class ExifTool(object):
 		self._process = None # don't delete, just leave as None
 		self._ver = None # unset the version
 		self._running = False
+		
+		if self._logger: self._logger.info(f"Method 'terminate': Exiftool terminated successfully.")
 
 
 
@@ -688,6 +717,8 @@ class ExifTool(object):
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
+		
+		if self._logger: self._logger.info( "Method 'execute': Command sent = {}".format(cmd_text.split(b'\n')[:-1]) )
 
 		fdout = self._process.stdout.fileno()
 		output = _read_fd_endswith(fdout, seq_ready, self._block_size)
@@ -700,11 +731,18 @@ class ExifTool(object):
 		self._last_stdout = output.strip()[:-len(seq_ready)]
 		self._last_stderr = outerr.strip()[:-len(seq_err_post)]
 
+
+		if self._logger:
+			self._logger.debug( "Method 'execute': Reply stdout = {}".format(self._last_stdout) )
+			self._logger.debug( "Method 'execute': Reply stderr = {}".format(self._last_stderr) )
+
+
 		if self._return_tuple:
 			return (self._last_stdout, self._last_stderr,)
 		else:
 			# this was the standard return before, just stdout
 			return self._last_stdout
+		
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
