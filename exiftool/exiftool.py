@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# PyExifTool <http://github.com/smarnach/pyexiftool>
+# PyExifTool <http://github.com/sylikc/pyexiftool>
 # Copyright 2012 Sven Marnach.
 # Copyright 2021 Kevin M (sylikc)
 
@@ -94,6 +94,8 @@ ENCODING_LATIN1: str = "latin-1"
 # ======================================================================================================================
 
 """
+..
+
 # This code has been adapted from Lib/os.py in the Python source tree
 # (sha1 265e36e277f3)
 def _fscodec():
@@ -181,7 +183,7 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 # ======================================================================================================================
 
 class ExifTool(object):
-	"""Run the `exiftool` command-line tool and communicate to it.
+	"""Run the `exiftool` command-line tool and communicate with it.
 
 	The argument ``print_conversion`` determines whether exiftool should
 	perform print conversion, which prints values in a human-readable way but
@@ -218,7 +220,7 @@ class ExifTool(object):
 	   non-existent files to any of the methods, since this will lead
 	   to undefied behaviour.
 
-	.. py:attribute:: running
+	.. py:attribute:: _running
 
 	   A Boolean value indicating whether this instance is currently
 	   associated with a running subprocess.
@@ -243,6 +245,7 @@ class ExifTool(object):
 		self._win_shell: bool = win_shell  # do you want to see the shell on Windows?
 
 		self._process = None # this is set to the process to interact with when _running=True
+		self._ver = None # this is set to be the exiftool -v -ver when running
 
 		self._return_tuple: bool = return_tuple # are we returning a tuple in the execute?
 		self._last_stdout: Optional[str] = None # previous output
@@ -423,9 +426,42 @@ class ExifTool(object):
 				# process died
 				warnings.warn("ExifTool process was previously running but died")
 				self._process = None
+				self._ver = None
 				self._running = False
 
 		return self._running
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def version(self) -> str:
+		""" returns a string from -ver """
+
+		if not self.running:
+			raise RuntimeError("Can't get ExifTool version when it's not running!")
+
+		return self._ver
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def version_tuple(self) -> tuple:
+		""" returns a parsed (major, minor) with integers """
+		if not self.running:
+			raise RuntimeError("Can't get ExifTool version when it's not running!")
+
+		# TODO this isn't entirely tested... possibly a version with more "." or something might break this parsing
+		arr: List = self._ver.split(".", 1) # split to (major).(whatever)
+
+		res: List = []
+		try:
+			for v in arr:
+				res.append(int(v))
+		except ValueError:
+			raise ValueError(f"Error parsing ExifTool version: '{self._ver}'")
+
+		return tuple(res)
+
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -554,11 +590,14 @@ class ExifTool(object):
 			raise RuntimeError("exiftool did not execute successfully")
 
 
+		# have to set this before doing the checks below, or else execute() will fail
+		self._running = True
+
 		# TODO get ExifTool version here and any Exiftool metadata
 		# this can also verify that it is really ExifTool we ran, not some other random process
+		self._ver = self._parse_ver()
 
 
-		self._running = True
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def terminate(self, timeout: int = 30, _del: bool = False) -> None:
@@ -597,6 +636,7 @@ class ExifTool(object):
 				# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
 
 		self._process = None # don't delete, just leave as None
+		self._ver = None # unset the version
 		self._running = False
 
 
@@ -732,12 +772,21 @@ class ExifTool(object):
 			return json.loads(res_decoded)
 
 
-	########################################################################################
-	#################################### STATIC METHODS ####################################
-	########################################################################################
+	#########################################################################################
+	#################################### PRIVATE METHODS ####################################
+	#########################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	@staticmethod
-	def _parse_version():
-		# TODO stub for parsing exiftool -v -ver
-		pass
+	def _parse_ver(self):
+		""" private method to run exiftool -ver
+			and parse out the information
+
+		"""
+		if not self.running:
+			raise RuntimeError("ExifTool instance not running.")
+
+
+		# -ver is just the version
+		# -v gives you more info (perl version, platform, libraries) but isn't helpful for this library
+		# -v2 gives you even more, but it's less useful at that point
+		return self.execute(b"-ver").decode(ENCODING_UTF8).strip()
