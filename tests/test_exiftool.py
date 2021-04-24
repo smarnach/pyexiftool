@@ -5,9 +5,17 @@ from __future__ import unicode_literals
 import unittest
 import exiftool
 import warnings
+
+import logging # to test logger
 #import os
 #import shutil
 #import sys
+
+from pathlib import Path
+
+
+TMP_DIR = Path(__file__).parent / 'tmp'
+
 
 class TestExifTool(unittest.TestCase):
 
@@ -55,25 +63,25 @@ class TestExifTool(unittest.TestCase):
 		self.et.block_size = current
 
 	#---------------------------------------------------------------------------------------------------------
-	
+
 	def test_configfile_attribute(self):
 		current = self.et.config_file
-		
+
 		with self.assertRaises(FileNotFoundError):
 			self.et.config_file = "lkasjdflkjasfd"
-		
+
 		# TODO create a config file, and set it and test that it works
-		
+
 		self.assertFalse(self.et.running)
 		self.et.run()
 		self.assertTrue(self.et.running)
-		
+
 		with self.assertRaises(RuntimeError):
 			self.et.config_file = None
-		
+
 		self.et.terminate()
-		
-	
+
+
 	#---------------------------------------------------------------------------------------------------------
 	def test_termination_cm(self):
 		# Test correct subprocess start and termination when using
@@ -111,6 +119,7 @@ class TestExifTool(unittest.TestCase):
 		# Test implicit process termination on garbage collection
 		self.et.run()
 		self.process = self.et._process
+		# TODO freze here on windows for same reason as in test_process_died_running_status() as a zombie process remains
 		del self.et
 		self.assertNotEqual(self.process.poll(), None)
 	#---------------------------------------------------------------------------------------------------------
@@ -121,6 +130,7 @@ class TestExifTool(unittest.TestCase):
 		self.assertTrue(self.et.running)
 		# kill the process, out of ExifTool's control
 		self.process.kill()
+		# TODO freeze here on windows if there is a zombie process b/c killing immediate exiftool does not kill the spawned subprocess
 		outs, errs = self.process.communicate()
 
 		with warnings.catch_warnings(record=True) as w:
@@ -132,6 +142,22 @@ class TestExifTool(unittest.TestCase):
 		# test to make sure passing in an invalid args list will cause it to error out
 		with self.assertRaises(TypeError):
 			exiftool.ExifTool(common_args="not a list")
+	#---------------------------------------------------------------------------------------------------------
+	"""
+	def test_logger(self):
+		log = logging.getLogger("log_test")
+		log.level = logging.WARNING
+
+		logpath = TMP_DIR / 'exiftool_test.log'
+		fh = logging.FileHandler(logpath)
+
+		log.addHandler(fh)
+
+		self.et.run()
+
+	"""
+
+	#---------------------------------------------------------------------------------------------------------
 
 
 #---------------------------------------------------------------------------------------------------------
