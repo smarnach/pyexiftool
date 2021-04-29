@@ -71,7 +71,7 @@ Documentation
 -------------
 
 The documentation is available at
-http://smarnach.github.com/pyexiftool/.
+http://smarnach.github.io/pyexiftool/.
 
 Licence
 -------
