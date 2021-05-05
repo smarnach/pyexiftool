@@ -131,7 +131,7 @@ del _fscodec
 
 # ======================================================================================================================
 
-def set_pdeathsig(sig=signal.SIGTERM) -> Optional[Callable]:
+def set_pdeathsig(sig) -> Optional[Callable]:
 	"""
 	Use this method in subprocess.Popen(preexec_fn=set_pdeathsig()) to make sure,
 	the exiftool childprocess is stopped if this process dies.
@@ -139,10 +139,8 @@ def set_pdeathsig(sig=signal.SIGTERM) -> Optional[Callable]:
 	"""
 	if constants.PLATFORM_LINUX:
 		def callable_method():
-			# taken from linux/prctl.h
-			pr_set_pdeathsig = 1
 			libc = ctypes.CDLL("libc.so.6")
-			return libc.prctl(pr_set_pdeathsig, sig)
+			return libc.prctl(constants.PR_SET_PDEATHSIG, sig)
 
 		return callable_method
 	else:
@@ -556,7 +554,8 @@ class ExifTool(object):
 		``common_args`` parameter in the constructor.
 
 		If it doesn't run successfully, an error will be raised, otherwise, the ``exiftool`` process has started
-		if you have another executable named exiftool which isn't exiftool, that's your fault
+
+		(if you have another executable named exiftool which isn't exiftool, then you're shooting yourself in the foot as there's no error checking for that)
 		"""
 		if self.running:
 			warnings.warn("ExifTool already running; doing nothing.", UserWarning)
@@ -577,26 +576,33 @@ class ExifTool(object):
 			proc_args.append("-common_args") # add this param only if there are common_args
 			proc_args.extend(self._common_args)  # add the common arguments
 
-		try:
-			if constants.PLATFORM_WINDOWS:
-				startup_info = subprocess.STARTUPINFO()
-				if not self._win_shell:
-					# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
-					# keep it from throwing up a DOS shell when it launches.
-					startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
 
-				self._process = subprocess.Popen(
-					proc_args,
-					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-					stderr=subprocess.PIPE, startupinfo=startup_info)
-			else: # pytest-cov:windows: no cover
-				# assume it's linux
-				self._process = subprocess.Popen(
-					proc_args,
-					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-					stderr=subprocess.PIPE, preexec_fn=set_pdeathsig(signal.SIGTERM))
-					# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application.
-					# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+		# ---- set platform-specific kwargs for Popen ----
+		kwargs: dict = {}
+
+		if constants.PLATFORM_WINDOWS:
+			startup_info = subprocess.STARTUPINFO()
+			if not self._win_shell:
+				# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
+				# keep it from throwing up a DOS shell when it launches.
+				startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
+
+			kwargs['startupinfo'] = startup_info
+		else: # pytest-cov:windows: no cover
+			# assume it's linux
+			kwargs['preexec_fn'] = set_pdeathsig(signal.SIGTERM)
+			# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application.
+			# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+
+
+		try:
+			# unify both platform calls into one subprocess.Popen call
+			self._process = subprocess.Popen(
+				proc_args,
+				stdin=subprocess.PIPE,
+				stdout=subprocess.PIPE,
+				stderr=subprocess.PIPE,
+				**kwargs)
 		except FileNotFoundError as fnfe:
 			raise fnfe
 		except OSError as oe:
@@ -617,7 +623,7 @@ class ExifTool(object):
 		# have to set this before doing the checks below, or else execute() will fail
 		self._running = True
 
-		# TODO get ExifTool version here and any Exiftool metadata
+		# get ExifTool version here and any Exiftool metadata
 		# this can also verify that it is really ExifTool we ran, not some other random process
 		self._ver = self._parse_ver()
 

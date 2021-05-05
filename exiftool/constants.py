@@ -19,6 +19,11 @@ This file defines constants which are used by others in the package
 
 import sys
 
+
+##################################
+############# HELPERS ############
+##################################
+
 # instead of comparing everywhere sys.platform, do it all here in the constants (less typo chances)
 # True if Windows
 PLATFORM_WINDOWS: bool = (sys.platform == 'win32')
@@ -26,6 +31,11 @@ PLATFORM_WINDOWS: bool = (sys.platform == 'win32')
 # https://stackoverflow.com/a/13874620/15384838
 PLATFORM_LINUX: bool = (sys.platform == 'linux' or sys.platform == 'linux2')
 
+
+
+##################################
+####### PLATFORM DEFAULTS ########
+##################################
 
 
 # specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
@@ -42,8 +52,22 @@ If the executable is not located in one of the paths listed in the
 """
 
 
+
+##################################
+####### STARTUP CONSTANTS ########
+##################################
+
+# for Windows STARTUPINFO
 SW_FORCEMINIMIZE: int = 11 # from win32con
 
+# for Linux preexec_fn
+PR_SET_PDEATHSIG: int = 1 # taken from linux/prctl.h
+
+
+
+##################################
+######## GLOBAL DEFAULTS #########
+##################################
 
 # The default block size when reading from exiftool.  The standard value
 # should be fine, though other values might give better performance in
