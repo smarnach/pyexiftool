@@ -577,9 +577,6 @@ class ExifTool(object):
 			proc_args.append("-common_args") # add this param only if there are common_args
 			proc_args.extend(self._common_args)  # add the common arguments
 
-		# TODO logging change
-		logging.debug(proc_args)
-
 		try:
 			if constants.PLATFORM_WINDOWS:
 				startup_info = subprocess.STARTUPINFO()
