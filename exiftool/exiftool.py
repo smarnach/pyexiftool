@@ -159,7 +159,7 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 		if you're not careful, on windows, this will block
 	"""
 	output = b""
-	
+
 	# if we're only looking at the last few bytes, make it meaningful.  4 is max size of \r\n? (or 2)
 	# this value can be bigger to capture more bytes at the "tail" of the read, but if it's too small, the whitespace might miss the detection
 	endswith_count = len(b_endswith) + 4
@@ -332,7 +332,7 @@ class ExifTool(object):
 	def executable(self, new_executable) -> None:
 		"""
 		Set the executable.  Does error checking.
-		
+
 		in testing, shutil.which() will work if a complete path is given, but this isn't clear, so we explicitly check and don't search if path exists
 		"""
 		# cannot set executable when process is running
@@ -340,7 +340,7 @@ class ExifTool(object):
 			raise RuntimeError( 'Cannot set new executable while Exiftool is running' )
 
 		abs_path: Optional[str] = None
-		
+
 		if Path(new_executable).exists():
 			abs_path = new_executable
 		else:
@@ -352,7 +352,7 @@ class ExifTool(object):
 
 		# absolute path is returned
 		self._executable = abs_path
-		
+
 		if self._logger: self._logger.info(f"Property 'executable': set to \"{abs_path}\"")
 
 
@@ -405,7 +405,7 @@ class ExifTool(object):
 
 		# TODO examine if this is still a needed thing
 		self._no_output = '-w' in self._common_args
-		
+
 		if self._logger: self._logger.info(f"Property 'common_args': set to \"{self._common_args}\"")
 
 
@@ -448,10 +448,8 @@ class ExifTool(object):
 			if self._process.poll() is not None:
 				# process died
 				warnings.warn("ExifTool process was previously running but died")
-				self._process = None
-				self._ver = None
-				self._running = False
-				
+				self._flag_running_false()
+
 				if self._logger: self._logger.warning(f"Property 'running': ExifTool process was previously running but died")
 
 		return self._running
@@ -492,13 +490,17 @@ class ExifTool(object):
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def last_stdout(self) -> Optional[str]:
-		"""last output stdout from execute()"""
+		"""last output stdout from execute()
+		currently it is INTENTIONALLY _NOT_ CLEARED on exiftool termination and not dependent on running state
+		This allows for executing a command and termiting, but still haven't last* around."""
 		return self._last_stdout
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def last_stderr(self) -> Optional[str]:
-		"""last output stderr from execute()"""
+		"""last output stderr from execute()
+		currently it is INTENTIONALLY _NOT_ CLEARED on exiftool termination and not dependent on running state
+		This allows for executing a command and termiting, but still haven't last* around."""
 		return self._last_stderr
 
 
@@ -612,6 +614,7 @@ class ExifTool(object):
 		# check error above before saying it's running
 		if self._process.poll() is not None:
 			# the Popen launched, then process terminated
+			self._process = None # unset it as it's now terminated
 			raise RuntimeError("exiftool did not execute successfully")
 
 
@@ -621,7 +624,7 @@ class ExifTool(object):
 		# TODO get ExifTool version here and any Exiftool metadata
 		# this can also verify that it is really ExifTool we ran, not some other random process
 		self._ver = self._parse_ver()
-		
+
 		if self._logger: self._logger.info(f"Method 'run': Exiftool version '{self._ver}' (pid {self._process.pid}) launched with args '{proc_args}'")
 
 
@@ -641,7 +644,8 @@ class ExifTool(object):
 			# don't cleanly exit on windows, during __del__ as it'll freeze at communicate()
 			self._process.kill()
 			#print("before comm", self._process.poll(), self._process)
-			self._process.kill()
+			self._process.poll()
+			# TODO freezes here on windows if subprocess zombie remains
 			outs, errs = self._process.communicate() # have to cleanup the process or else .poll() will return None
 			#print("after comm")
 			# TODO a bug filed with Python, or user error... this doesn't seem to work at all ... .communicate() still hangs
@@ -662,10 +666,8 @@ class ExifTool(object):
 				outs, errs = self._process.communicate()
 				# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
 
-		self._process = None # don't delete, just leave as None
-		self._ver = None # unset the version
-		self._running = False
-		
+		self._flag_running_false()
+
 		if self._logger: self._logger.info(f"Method 'terminate': Exiftool terminated successfully.")
 
 
@@ -717,7 +719,7 @@ class ExifTool(object):
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
-		
+
 		if self._logger: self._logger.info( "Method 'execute': Command sent = {}".format(cmd_text.split(b'\n')[:-1]) )
 
 		fdout = self._process.stdout.fileno()
@@ -742,7 +744,7 @@ class ExifTool(object):
 		else:
 			# this was the standard return before, just stdout
 			return self._last_stdout
-		
+
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -815,10 +817,21 @@ class ExifTool(object):
 	#########################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
+	def _flag_running_false(self) -> None:
+		""" private method that resets the "running" state
+			It used to be that there was only self._running to unset, but now it's a trio of variables
+
+			This method makes it less likely someone will leave off a variable if one comes up in the future
+		"""
+		self._process = None # don't delete, just leave as None
+		self._ver = None # unset the version
+		self._running = False
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
 	def _parse_ver(self):
 		""" private method to run exiftool -ver
 			and parse out the information
-
 		"""
 		if not self.running:
 			raise RuntimeError("ExifTool instance not running.")
