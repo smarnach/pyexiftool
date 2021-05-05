@@ -580,36 +580,35 @@ class ExifTool(object):
 		# TODO logging change
 		logging.debug(proc_args)
 
-		with open(os.devnull, "w") as devnull: # TODO can probably remove or make it a parameter
-			try:
-				if constants.PLATFORM_WINDOWS:
-					startup_info = subprocess.STARTUPINFO()
-					if not self._win_shell:
-						# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
-						# keep it from throwing up a DOS shell when it launches.
-						startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
+		try:
+			if constants.PLATFORM_WINDOWS:
+				startup_info = subprocess.STARTUPINFO()
+				if not self._win_shell:
+					# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
+					# keep it from throwing up a DOS shell when it launches.
+					startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
 
-					self._process = subprocess.Popen(
-						proc_args,
-						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-						stderr=subprocess.PIPE, startupinfo=startup_info) #stderr=devnull
-				else: # pytest-cov:windows: no cover
-					# assume it's linux
-					self._process = subprocess.Popen(
-						proc_args,
-						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-						stderr=subprocess.PIPE, preexec_fn=set_pdeathsig(signal.SIGTERM)) #stderr=devnull
-						# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application.
-						# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
-			except FileNotFoundError as fnfe:
-				raise fnfe
-			except OSError as oe:
-				raise oe
-			except ValueError as ve:
-				raise ve
-			except subprocess.CalledProcessError as cpe:
-				raise cpe
-			# TODO print out more useful error messages to these different errors above
+				self._process = subprocess.Popen(
+					proc_args,
+					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+					stderr=subprocess.PIPE, startupinfo=startup_info)
+			else: # pytest-cov:windows: no cover
+				# assume it's linux
+				self._process = subprocess.Popen(
+					proc_args,
+					stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+					stderr=subprocess.PIPE, preexec_fn=set_pdeathsig(signal.SIGTERM))
+					# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application.
+					# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+		except FileNotFoundError as fnfe:
+			raise fnfe
+		except OSError as oe:
+			raise oe
+		except ValueError as ve:
+			raise ve
+		except subprocess.CalledProcessError as cpe:
+			raise cpe
+		# TODO print out more useful error messages to these different errors above
 
 		# check error above before saying it's running
 		if self._process.poll() is not None:
