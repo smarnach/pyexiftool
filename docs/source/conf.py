@@ -17,7 +17,14 @@ from pathlib import Path
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(1, Path(__file__).parent.parent)
+#
+# https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.parent
+# "Path.parent is a purely lexical operation
+# If you want to walk an arbitrary filesystem path upwards,
+# it is recommended to first call Path.resolve() so as to
+# resolve symlinks and eliminate “..” components."
+sys.path.insert(1, Path(__file__).resolve().parent.parent)
+
 
 
 # -- Project information -----------------------------------------------------
@@ -44,7 +51,18 @@ release = '0.5.0a1'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc']
+extensions = [
+	'sphinx.ext.autodoc', # Core library for html generation from docstrings
+	'sphinx.ext.autosummary', # Create neat summary tables
+	'autoapi.extension', # pip install sphinx-autoapi
+]
+autosummary_generate = True # Turn on sphinx.ext.autosummary
+
+autoapi_type = 'python'
+autoapi_dirs = [ str(Path(__file__).parent.parent.parent / 'exiftool') ]
+
+
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
