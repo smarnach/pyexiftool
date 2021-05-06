@@ -9,13 +9,14 @@ import warnings
 import logging # to test logger
 #import os
 #import shutil
-#import sys
+import sys
 
 from pathlib import Path
 
 
 TMP_DIR = Path(__file__).parent / 'tmp'
 
+PLATFORM_WINDOWS: bool = (sys.platform == 'win32')
 
 class TestExifTool(unittest.TestCase):
 
@@ -70,6 +71,9 @@ class TestExifTool(unittest.TestCase):
 		with self.assertRaises(FileNotFoundError):
 			self.et.config_file = "lkasjdflkjasfd"
 
+		# see if Python 3.9.5 fixed this ... raises OSError right now and is a pathlib glitch https://bugs.python.org/issue35306
+		#self.et.config_file = "\"C:\\\"\"C:\\"
+
 		# TODO create a config file, and set it and test that it works
 
 		self.assertFalse(self.et.running)
@@ -117,6 +121,11 @@ class TestExifTool(unittest.TestCase):
 	#---------------------------------------------------------------------------------------------------------
 	def test_termination_implicit(self):
 		# Test implicit process termination on garbage collection
+
+		# QUICKFIX: take out the method that is called on load (see test_process_died_running_status())
+		if PLATFORM_WINDOWS:
+			self.et._parse_ver = lambda: None
+
 		self.et.run()
 		self.process = self.et._process
 		# TODO freze here on windows for same reason as in test_process_died_running_status() as a zombie process remains
@@ -124,10 +133,23 @@ class TestExifTool(unittest.TestCase):
 		self.assertNotEqual(self.process.poll(), None)
 	#---------------------------------------------------------------------------------------------------------
 	def test_process_died_running_status(self):
-		# Test correct .running status if process dies by itself
+		""" Test correct .running status if process dies by itself """
+
+		# There is a very weird bug triggered on WINDOWS only which I've described here: https://exiftool.org/forum/index.php?topic=12472.0
+		# it happens specifically when you forcefully kill the process, but at least one command has run since launching, the exiftool wrapper on windows does not terminate the child process
+		# it's a very strange interaction and causes a zombie process to remain, and python hangs
+		#
+		# either kill the tree with psutil, or do it this way...
+
+		# QUICKFIX: take out the method that is called on load (probably not the way to do this well... you can take out this line and watch Python interpreter hang at .kill() below
+		if PLATFORM_WINDOWS:
+			self.et._parse_ver = lambda: None
+
+
 		self.et.run()
 		self.process = self.et._process
 		self.assertTrue(self.et.running)
+
 		# kill the process, out of ExifTool's control
 		self.process.kill()
 		# TODO freeze here on windows if there is a zombie process b/c killing immediate exiftool does not kill the spawned subprocess
@@ -137,6 +159,9 @@ class TestExifTool(unittest.TestCase):
 			self.assertFalse(self.et.running)
 			self.assertEquals(len(w), 1)
 			self.assertTrue(issubclass(w[0].category, UserWarning))
+
+		# after removing that function, delete the object so it gets recreated cleanly
+		del self.et
 	#---------------------------------------------------------------------------------------------------------
 	def test_invalid_args_list(self):
 		# test to make sure passing in an invalid args list will cause it to error out
