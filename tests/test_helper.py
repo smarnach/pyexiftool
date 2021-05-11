@@ -13,6 +13,49 @@ from pathlib import Path
 
 TMP_DIR = Path(__file__).parent / 'tmp'
 
+
+class InitializationTest(unittest.TestCase):
+	@unittest.expectedFailure
+	def test_initialization(self):
+		"""
+		Initialization with all arguments at their default values.
+		"""
+		exif_tool_helper = exiftool.ExifToolHelper()
+		exif_tool_helper.run()
+
+
+class ReadingTest(unittest.TestCase):
+	@classmethod
+	def setUpClass(cls) -> None:
+		cls.exif_tool_helper = exiftool.ExifToolHelper(common_args=['-G', '-n', '-overwrite_original'])
+		cls.exif_tool_helper.run()
+
+	@unittest.expectedFailure
+	def test_read_all_from_no_file(self):
+		"""
+		Supposedly, `get_metadata` always returns a list.
+		"""
+		metadata = self.exif_tool_helper.get_metadata([])
+		self.assertEqual(metadata, [])
+
+	@unittest.expectedFailure
+	def test_read_all_from_nonexistent_file(self):
+		"""
+		Supposedly, `get_metadata` always returns a list.
+		"""
+		metadata = self.exif_tool_helper.get_metadata(['foo.bar'])
+		self.assertEqual(metadata, [])
+
+	@unittest.expectedFailure
+	def test_read_tag_from_nonexistent_file(self):
+		"""
+		Confronted with a nonexistent file, `get_tag` should probably return None (as the tag is not found) or raise an
+		appropriate exception.
+		"""
+		result = self.exif_tool_helper.get_tag('DateTimeOriginal', 'foo.bar')
+		self.assertIsNone(result)
+
+
 class TestExifToolHelper(unittest.TestCase):
 
 	#---------------------------------------------------------------------------------------------------------
