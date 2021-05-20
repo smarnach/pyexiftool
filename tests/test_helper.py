@@ -8,10 +8,56 @@ import warnings
 #import os
 import shutil
 import sys
-
+#import tempfile
 from pathlib import Path
 
-TMP_DIR = Path(__file__).parent / 'tmp'
+TMP_DIR = Path(__file__).resolve().parent / 'tmp'
+
+class TestTagCopying(unittest.TestCase):
+	def setUp(self):
+		# Prepare exiftool.
+		self.exiftool = exiftool.ExifToolHelper()
+		self.exiftool.run()
+
+		# Prepare temporary directory for copy.
+		#directory = tempfile.mkdtemp(prefix='exiftool-test-') # this requires cleanup or else it remains on the system in the $TEMP or %TEMP% directories
+		directory = TMP_DIR
+
+		# Find example image.
+		this_path = Path(__file__).resolve().parent
+		self.tag_source = str(this_path / 'rose.jpg')
+
+		# Prepare path of copy.
+		self.tag_target = str(directory / 'rose-tagcopy.jpg')
+
+		# Copy image.
+		shutil.copyfile(self.tag_source, self.tag_target)
+
+		# Clear tags in copy.
+		params = ['-overwrite_original', '-all=', self.tag_target]
+		params_utf8 = [x.encode('utf-8') for x in params]
+		self.exiftool.execute(*params_utf8)
+
+	def test_tag_copying(self):
+		tag = 'XMP:Subject'
+		expected_value = 'Röschen'
+
+		# Ensure source image has correct tag.
+		original_value = self.exiftool.get_tag(tag, self.tag_source)
+		self.assertEqual(original_value, expected_value)
+
+		# Ensure target image does not already have that tag.
+		value_before_copying = self.exiftool.get_tag(tag, self.tag_target)
+		self.assertNotEqual(value_before_copying, expected_value)
+
+		# Copy tags.
+		self.exiftool.copy_tags(self.tag_source, self.tag_target)
+
+		value_after_copying = self.exiftool.get_tag(tag, self.tag_target)
+		self.assertEqual(value_after_copying, expected_value)
+
+		self.exiftool.terminate() # do it explictly for Windows, or else will hang on exit (CPython interpreter exit bug)
+
 
 class TestExifToolHelper(unittest.TestCase):
 
@@ -100,7 +146,7 @@ class TestExifToolHelper(unittest.TestCase):
 						  "Keywords": ["nature", "red plant"]}]
 		script_path = Path(__file__).parent
 		source_files = []
-		
+
 		for d in expected_data:
 			d["SourceFile"] = f = script_path / d["SourceFile"]
 			self.assertTrue(f.exists())

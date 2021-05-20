@@ -127,7 +127,12 @@ class ExifToolHelper(ExifTool):
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False):
 		# call parent's constructor
-		super().__init__(executable=executable, common_args=common_args, win_shell=win_shell, return_tuple=return_tuple)
+		kwargs = {"executable": executable, "win_shell": win_shell, "return_tuple": return_tuple} # TODO, need a better way of doing this, and not putting in common_args if not specified
+		if common_args:
+			kwargs["common_args"] = common_args
+
+		super().__init__(**kwargs)
+		#super().__init__(executable=executable, common_args=common_args, win_shell=win_shell, return_tuple=return_tuple)
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
