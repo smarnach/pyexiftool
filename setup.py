@@ -30,7 +30,7 @@ setup(
 	
 	# overview
 	name="PyExifTool",
-	version="0.4.7",
+	version="0.4.9",
 	license="GPLv3+/BSD",
 	url="http://github.com/sylikc/pyexiftool",
 	python_requires=">=2.6",

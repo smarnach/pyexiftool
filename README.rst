@@ -31,7 +31,7 @@ Official releases are on PyPI
     https://pypi.org/project/PyExifTool/
 
 
-.. _tarball: https://github.com/smarnach/pyexiftool/tarball/master
+.. _tarball: https://github.com/sylikc/pyexiftool/tarball/master
 
 Installation
 ------------
@@ -71,7 +71,7 @@ Documentation
 -------------
 
 The documentation is available at
-http://smarnach.github.io/pyexiftool/.
+http://sylikc.github.io/pyexiftool/.
 
 Licence
 -------
