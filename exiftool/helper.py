@@ -184,9 +184,6 @@ class ExifToolHelper(ExifTool):
 		The return value will have the format described in the
 		documentation of :py:meth:`execute_json()`.
 		"""
-		if not params:
-			params = []
-
 		return self.get_tags(None, in_files, params=params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
