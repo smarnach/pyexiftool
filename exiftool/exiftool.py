@@ -648,7 +648,9 @@ class ExifTool(object):
 
 	def copy_tags(self, fromFilename, toFilename):
 		"""Copy all tags from one file to another."""
-		self.execute("-overwrite_original", "-TagsFromFile", fromFilename, toFilename)
+		params = ["-overwrite_original", "-TagsFromFile", fromFilename, toFilename]
+		params_utf8 = [x.encode('utf-8') for x in params]
+		self.execute(*params_utf8)
 
 
 	def set_tags_batch(self, tags, filenames):

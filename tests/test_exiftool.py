@@ -8,6 +8,51 @@ import warnings
 import os
 import shutil
 import sys
+import tempfile
+
+
+class TestTagCopying(unittest.TestCase):
+	def setUp(self):
+		# Prepare exiftool.
+		self.exiftool = exiftool.ExifTool()
+		self.exiftool.start()
+
+		# Prepare temporary directory for copy.
+		directory = tempfile.mkdtemp(prefix='exiftool-test-')
+
+		# Find example image.
+		this_path = os.path.dirname(__file__)
+		self.tag_source = os.path.join(this_path, 'rose.jpg')
+
+		# Prepare path of copy.
+		self.tag_target = os.path.join(directory, 'copy.jpg')
+
+		# Copy image.
+		shutil.copyfile(self.tag_source, self.tag_target)
+
+		# Clear tags in copy.
+		params = ['-overwrite_original', '-all=', self.tag_target]
+		params_utf8 = [x.encode('utf-8') for x in params]
+		self.exiftool.execute(*params_utf8)
+
+	def test_tag_copying(self):
+		tag = 'XMP:Subject'
+		expected_value = 'Röschen'
+
+		# Ensure source image has correct tag.
+		original_value = self.exiftool.get_tag(tag, self.tag_source)
+		self.assertEqual(original_value, expected_value)
+
+		# Ensure target image does not already have that tag.
+		value_before_copying = self.exiftool.get_tag(tag, self.tag_target)
+		self.assertNotEqual(value_before_copying, expected_value)
+
+		# Copy tags.
+		self.exiftool.copy_tags(self.tag_source, self.tag_target)
+
+		value_after_copying = self.exiftool.get_tag(tag, self.tag_target)
+		self.assertEqual(value_after_copying, expected_value)
+
 
 class TestExifTool(unittest.TestCase):
 
