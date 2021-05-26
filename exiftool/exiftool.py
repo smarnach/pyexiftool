@@ -788,13 +788,16 @@ class ExifTool(object):
 			res_err = self._last_stderr
 
 		if len(res) == 0:
-			# if the command has no files it's worked on, or some other type of error
-			# we can either return None, or [], or FileNotFoundError ..
+			# the output from execute() can be empty under many relatively ambiguous situations
+			# * command has no files it worked on
+			# * a file specified or files does not exist
+			# * some other type of error
+			# * a command that does not return anything (like setting tags)
+			#
+			# There's no easy way to check which params are files, or else we have to reproduce the parser exiftool does (so it's hard to detect to raise a FileNotFoundError)
 
-			# but, since it's technically not an error to have no files,
-			# returning None is the best.
-			# Even [] could be ambugious if Exiftool changes the returned JSON structure in the future
-			# TODO haven't decided on [] or None yet
+			# Returning [] could be ambugious if Exiftool changes the returned JSON structure in the future
+			# Returning None is the safest as it clearly indicates that nothing came back from execute()
 			return None
 
 

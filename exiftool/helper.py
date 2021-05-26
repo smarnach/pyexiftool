@@ -251,7 +251,12 @@ class ExifToolHelper(ExifTool):
 
 		exec_params.extend(files)
 
-		return self.execute_json(*exec_params)
+		ret = self.execute_json(*exec_params)
+
+		if ret is None:
+			raise RuntimeError("get_tags: exiftool returned no data")
+
+		return ret
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -353,6 +358,8 @@ class ExifToolHelper(ExifTool):
 		params.extend(filenames)
 		params_utf8 = [x.encode('utf-8') for x in params]
 		return self.execute(*params_utf8)
+
+		#TODO if execute returns data, then error?
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def set_tags(self, tags, filename):
