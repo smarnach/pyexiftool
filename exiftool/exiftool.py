@@ -253,6 +253,7 @@ class ExifTool(object):
 		self._return_tuple: bool = return_tuple # are we returning a tuple in the execute?
 		self._last_stdout: Optional[str] = None # previous output
 		self._last_stderr: Optional[str] = None # previous stderr
+		self._last_status: Optional[int] = None # previous exit status from exiftool (look up EXIT STATUS in exiftool documentation)
 
 		self._block_size: int = constants.DEFAULT_BLOCK_SIZE # set to default block size
 
@@ -490,7 +491,7 @@ class ExifTool(object):
 	def last_stdout(self) -> Optional[str]:
 		"""last output stdout from execute()
 		currently it is INTENTIONALLY _NOT_ CLEARED on exiftool termination and not dependent on running state
-		This allows for executing a command and termiting, but still haven't last* around."""
+		This allows for executing a command and terminating, but still haven't last* around."""
 		return self._last_stdout
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -498,9 +499,16 @@ class ExifTool(object):
 	def last_stderr(self) -> Optional[str]:
 		"""last output stderr from execute()
 		currently it is INTENTIONALLY _NOT_ CLEARED on exiftool termination and not dependent on running state
-		This allows for executing a command and termiting, but still haven't last* around."""
+		This allows for executing a command and terminating, but still haven't last* around."""
 		return self._last_stderr
 
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def last_status(self) -> Optional[int]:
+		"""last exit status from execute()
+		currently it is INTENTIONALLY _NOT_ CLEARED on exiftool termination and not dependent on running state
+		This allows for executing a command and terminating, but still haven't last* around."""
+		return self._last_status
 
 
 
@@ -715,8 +723,10 @@ class ExifTool(object):
 		# these are special sequences to help with synchronization.  It will print specific text to STDERR before and after processing
 		#SEQ_STDERR_PRE_FMT = "pre{}" # can have a PRE sequence too but we don't need it for syncing
 		seq_err_post = f"post{signal_num}".encode(ENCODING_UTF8) # default there isn't any string
+		SEQ_ERR_STATUS_DELIM = b"=" # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
+		seq_err_status = "${status}".encode(ENCODING_UTF8) # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
 
-		cmd_text = b"\n".join(params + (b"-echo4",seq_err_post, seq_execute,))
+		cmd_text = b"\n".join(params + (b"-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute, ))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 		self._process.stdin.write(cmd_text)
@@ -733,16 +743,37 @@ class ExifTool(object):
 
 		# save the output to class vars for retrieval
 		self._last_stdout = output.strip()[:-len(seq_ready)]
-		self._last_stderr = outerr.strip()[:-len(seq_err_post)]
+		self._last_stderr = outerr.strip()[:-len(seq_err_post)] # save it in case the RuntimeError happens and output can be checked easily
+
+		out_stderr = self._last_stderr
+
+		# sanity check the status code from the stderr output
+		delim_len = len(SEQ_ERR_STATUS_DELIM)
+		if out_stderr[-delim_len:] != SEQ_ERR_STATUS_DELIM:
+			# exiftool is expected to dump out the status code within the delims... if it doesn't, the class is broken
+			raise RuntimeError("Exiftool expected to return status on stderr, but got unexpected charcter")
+
+		# look for the previous delim (we could use regex here to do all this in one step, but it's probably overkill, and could slow down the code significantly)
+		# the other simplification that can be done is that, Exiftool is expected to only return 0, 1, or 2 as per documentation
+		# you could just lop the last 3 characters off... but if the return status changes in the future, then this code would break
+		err_delim_1 = out_stderr.rfind(SEQ_ERR_STATUS_DELIM, 0, -delim_len)
+		out_status = out_stderr[err_delim_1 + delim_len : -delim_len ]
+
+		# can check .isnumeric() here, but best just to duck-type cast it
+		self._last_status = int(out_status)
+		# lop off the actual status code from stderr
+		self._last_stderr = out_stderr[:err_delim_1]
+
 
 
 		if self._logger:
 			self._logger.debug( "Method 'execute': Reply stdout = {}".format(self._last_stdout) )
 			self._logger.debug( "Method 'execute': Reply stderr = {}".format(self._last_stderr) )
+			self._logger.debug( "Method 'execute': Reply status = {}".format(self._last_status) )
 
 
 		if self._return_tuple:
-			return (self._last_stdout, self._last_stderr,)
+			return (self._last_stdout, self._last_stderr, self._last_status, )
 		else:
 			# this was the standard return before, just stdout
 			return self._last_stdout
@@ -783,9 +814,11 @@ class ExifTool(object):
 			# get stdout only
 			res = std[0]
 			res_err = std[1]
+			res_status = std[2]
 		else:
 			res = std
 			res_err = self._last_stderr
+			res_status = self._last_status
 
 		if len(res) == 0:
 			# the output from execute() can be empty under many relatively ambiguous situations
@@ -816,6 +849,8 @@ class ExifTool(object):
 			# TODO: if len(res_decoded) == 0, then there's obviously an error here
 			return json.loads(res_decoded)
 
+		# TODO , return_tuple will also beautify stderr and output status as well
+
 
 	#########################################################################################
 	#################################### PRIVATE METHODS ####################################
@@ -845,4 +880,8 @@ class ExifTool(object):
 		# -ver is just the version
 		# -v gives you more info (perl version, platform, libraries) but isn't helpful for this library
 		# -v2 gives you even more, but it's less useful at that point
-		return self.execute(b"-ver").decode(ENCODING_UTF8).strip()
+		ret = self.execute(b"-ver")
+		if self._return_tuple:
+			ret = ret[0] # only take stdout if a tuple is returned
+
+		return ret.decode(ENCODING_UTF8).strip()

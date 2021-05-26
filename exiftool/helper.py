@@ -256,6 +256,8 @@ class ExifToolHelper(ExifTool):
 		if ret is None:
 			raise RuntimeError("get_tags: exiftool returned no data")
 
+		# TODO if last_status is <> 0, raise a warning that one or more files failed?
+
 		return ret
 
 
