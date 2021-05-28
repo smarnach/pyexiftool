@@ -1,0 +1,3 @@
+flake8
+# check for PEP8 Naming Conventions
+pep8-naming
