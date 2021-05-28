@@ -241,7 +241,11 @@ def find_executable(executable, path=None):
 		return None
 
 
+#------------------------------------------------------------------------------------------------
 
+
+# sets logger with name rather than using the root logger
+logger = logging.getLogger(__name__)
 
 
 
@@ -350,7 +354,7 @@ class ExifTool(object):
 		proc_args.extend(["-stay_open", "True", "-@", "-", "-common_args"])
 		proc_args.extend(self.common_args)  # add the common arguments
 
-		logging.debug(proc_args)
+		logger.debug(proc_args)
 		
 		with open(os.devnull, "w") as devnull:
 			try:
@@ -743,7 +747,7 @@ class ExifTool(object):
 
 		params.extend(kw_params)
 		params.extend(filenames)
-		logging.debug (params)
+		logger.debug(params)
 
 		params_utf8 = [x.encode('utf-8') for x in params]
 		return self.execute(*params_utf8)
