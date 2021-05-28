@@ -61,7 +61,7 @@ class TestTagCopying(unittest.TestCase):
 
 class TestExifToolHelper(unittest.TestCase):
 
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
 	def setUp(self):
 		self.et = exiftool.ExifToolHelper(common_args=["-G", "-n", "-overwrite_original"])
 
@@ -73,7 +73,7 @@ class TestExifToolHelper(unittest.TestCase):
 			if self.process.poll() is None:
 				self.process.terminate()
 
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
 	def test_get_metadata(self):
 		expected_data = [{"SourceFile": "rose.jpg",
 						  "File:FileType": "JPEG",
@@ -112,7 +112,7 @@ class TestExifToolHelper(unittest.TestCase):
 									 for k in ["SourceFile", "XMP:Subject"]))
 		self.assertEqual(tag0, "Röschen")
 
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
 	def test_set_metadata(self):
 		mod_prefix = "newcap_"
 		expected_data = [{"SourceFile": "rose.jpg",
@@ -138,7 +138,7 @@ class TestExifToolHelper(unittest.TestCase):
 			f_mod.unlink()
 			self.assertEqual(tag0, d["Caption-Abstract"])
 
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
 	def test_set_keywords(self):
 		kw_to_add = ["added"]
 		mod_prefix = "newkw_"
@@ -170,7 +170,7 @@ class TestExifToolHelper(unittest.TestCase):
 			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
 
 
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
 	"""
 	# TODO: write a test that covers keywords in set_tags_batch() and not using the keywords functionality directly
 	def test_set_list_keywords(self):
@@ -204,6 +204,6 @@ class TestExifToolHelper(unittest.TestCase):
 			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
 	"""
 
-#---------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
 	unittest.main()
