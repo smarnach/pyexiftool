@@ -7,8 +7,6 @@ echo *** PyExifTool automation ***
 echo Python Built-in Unittest Script
 echo ______________________
 
-
-python -m unittest -v
+python.exe -m unittest -v
 
 popd
-
