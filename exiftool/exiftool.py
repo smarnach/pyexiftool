@@ -59,7 +59,6 @@ Example usage::
 from __future__ import unicode_literals
 
 import select
-import sys
 import subprocess
 import os
 import shutil
@@ -68,16 +67,15 @@ try:
 	# Optional UltraJSON library - ultra-fast JSON encoder/decoder, drop-in replacement
 	import ujson as json
 except ImportError:
-	import json # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
+	import json  # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
 import warnings
 import logging
-import codecs
 
 # for the pdeathsig
 import signal
 import ctypes
 
-from pathlib import Path # requires Python 3.4+
+from pathlib import Path  # requires Python 3.4+
 
 import random
 
@@ -97,6 +95,8 @@ ENCODING_LATIN1: str = "latin-1"
 
 """
 ..
+
+import sys, codecs
 
 # This code has been adapted from Lib/os.py in the Python source tree
 # (sha1 265e36e277f3)
@@ -169,9 +169,9 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 			# windows does not support select() for anything except sockets
 			# https://docs.python.org/3.7/library/select.html
 			output += os.read(fd, block_size)
-		else: # pytest-cov:windows: no cover
+		else:  # pytest-cov:windows: no cover
 			# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
-			inputready,outputready,exceptready = select.select([fd], [], [])
+			inputready, outputready, exceptready = select.select([fd], [], [])
 			for i in inputready:
 				if i == fd:
 					output += os.read(fd, block_size)
@@ -247,22 +247,22 @@ class ExifTool(object):
 		self._running: bool = False  # is it running?
 		self._win_shell: bool = win_shell  # do you want to see the shell on Windows?
 
-		self._process = None # this is set to the process to interact with when _running=True
-		self._ver = None # this is set to be the exiftool -v -ver when running
+		self._process = None  # this is set to the process to interact with when _running=True
+		self._ver = None  # this is set to be the exiftool -v -ver when running
 
-		self._return_tuple: bool = return_tuple # are we returning a tuple in the execute?
-		self._last_stdout: Optional[str] = None # previous output
-		self._last_stderr: Optional[str] = None # previous stderr
-		self._last_status: Optional[int] = None # previous exit status from exiftool (look up EXIT STATUS in exiftool documentation)
+		self._return_tuple: bool = return_tuple  # are we returning a tuple in the execute?
+		self._last_stdout: Optional[str] = None  # previous output
+		self._last_stderr: Optional[str] = None  # previous stderr
+		self._last_status: Optional[int] = None  # previous exit status from exiftool (look up EXIT STATUS in exiftool documentation)
 
-		self._block_size: int = constants.DEFAULT_BLOCK_SIZE # set to default block size
+		self._block_size: int = constants.DEFAULT_BLOCK_SIZE  # set to default block size
 
 
 		# these are set via properties
 		self._executable: Optional[str] = None  # executable absolute path
-		self._config_file: Optional[str] = None # config file that can only be set when exiftool is not running
+		self._config_file: Optional[str] = None  # config file that can only be set when exiftool is not running
 		self._common_args: Optional[List[str]] = None
-		self._no_output = None # TODO examine whether this is needed
+		self._no_output = None  # TODO examine whether this is needed
 		self._logger = None
 
 
@@ -288,7 +288,7 @@ class ExifTool(object):
 
 		# --- run any remaining initialization code ---
 
-		random.seed(None) # initialize random number generator
+		random.seed(None)  # initialize random number generator
 
 
 
@@ -473,7 +473,7 @@ class ExifTool(object):
 			raise RuntimeError("Can't get ExifTool version when it's not running!")
 
 		# TODO this isn't entirely tested... possibly a version with more "." or something might break this parsing
-		arr: List = self._ver.split(".", 1) # split to (major).(whatever)
+		arr: List = self._ver.split(".", 1)  # split to (major).(whatever)
 
 		res: List = []
 		try:
@@ -581,7 +581,7 @@ class ExifTool(object):
 
 		# only if there are any common_args.  [] and None are skipped equally with this
 		if self._common_args:
-			proc_args.append("-common_args") # add this param only if there are common_args
+			proc_args.append("-common_args")  # add this param only if there are common_args
 			proc_args.extend(self._common_args)  # add the common arguments
 
 
@@ -596,7 +596,7 @@ class ExifTool(object):
 				startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
 
 			kwargs['startupinfo'] = startup_info
-		else: # pytest-cov:windows: no cover
+		else:  # pytest-cov:windows: no cover
 			# assume it's linux
 			kwargs['preexec_fn'] = set_pdeathsig(signal.SIGTERM)
 			# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application.
@@ -624,7 +624,7 @@ class ExifTool(object):
 		# check error above before saying it's running
 		if self._process.poll() is not None:
 			# the Popen launched, then process terminated
-			self._process = None # unset it as it's now terminated
+			self._process = None  # unset it as it's now terminated
 			raise RuntimeError("exiftool did not execute successfully")
 
 
@@ -656,7 +656,7 @@ class ExifTool(object):
 			#print("before comm", self._process.poll(), self._process)
 			self._process.poll()
 			# TODO freezes here on windows if subprocess zombie remains
-			outs, errs = self._process.communicate() # have to cleanup the process or else .poll() will return None
+			outs, errs = self._process.communicate()  # have to cleanup the process or else .poll() will return None
 			#print("after comm")
 			# TODO a bug filed with Python, or user error... this doesn't seem to work at all ... .communicate() still hangs
 		else:
@@ -669,9 +669,9 @@ class ExifTool(object):
 
 					On Linux, this runs as is, and the process terminates properly
 				"""
-				self._process.communicate(input=b"-stay_open\nFalse\n", timeout=timeout) # TODO these are constants which should be elsewhere defined
+				self._process.communicate(input=b"-stay_open\nFalse\n", timeout=timeout)  # TODO these are constants which should be elsewhere defined
 				self._process.kill()
-			except subprocess.TimeoutExpired: # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
+			except subprocess.TimeoutExpired:  # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
 				self._process.kill()
 				outs, errs = self._process.communicate()
 				# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
@@ -714,17 +714,17 @@ class ExifTool(object):
 
 		# there's a special usage of execute/ready specified in the manual which make almost ensure we are receiving the right signal back
 		# from exiftool man pages:  When this number is added, -q no longer suppresses the "{ready}"
-		signal_num = random.randint(100000, 999999) # arbitrary create a 6 digit number (keep it down to save memory maybe)
+		signal_num = random.randint(100000, 999999)  # arbitrary create a 6 digit number (keep it down to save memory maybe)
 
 		# constant special sequences when running -stay_open mode
-		seq_execute = f"-execute{signal_num}\n".encode(ENCODING_UTF8) # the default string is b"-execute\n"
-		seq_ready = f"{{ready{signal_num}}}".encode(ENCODING_UTF8) # the default string is b"{ready}"
+		seq_execute = f"-execute{signal_num}\n".encode(ENCODING_UTF8)  # the default string is b"-execute\n"
+		seq_ready = f"{{ready{signal_num}}}".encode(ENCODING_UTF8)  # the default string is b"{ready}"
 
 		# these are special sequences to help with synchronization.  It will print specific text to STDERR before and after processing
 		#SEQ_STDERR_PRE_FMT = "pre{}" # can have a PRE sequence too but we don't need it for syncing
-		seq_err_post = f"post{signal_num}".encode(ENCODING_UTF8) # default there isn't any string
-		SEQ_ERR_STATUS_DELIM = b"=" # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
-		seq_err_status = "${status}".encode(ENCODING_UTF8) # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
+		seq_err_post = f"post{signal_num}".encode(ENCODING_UTF8)  # default there isn't any string
+		SEQ_ERR_STATUS_DELIM = b"="  # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
+		seq_err_status = "${status}".encode(ENCODING_UTF8)  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
 
 		cmd_text = b"\n".join(params + (b"-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute, ))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
@@ -743,7 +743,7 @@ class ExifTool(object):
 
 		# save the output to class vars for retrieval
 		self._last_stdout = output.strip()[:-len(seq_ready)]
-		self._last_stderr = outerr.strip()[:-len(seq_err_post)] # save it in case the RuntimeError happens and output can be checked easily
+		self._last_stderr = outerr.strip()[:-len(seq_err_post)]  # save it in case the RuntimeError happens and output can be checked easily
 
 		out_stderr = self._last_stderr
 
@@ -863,8 +863,8 @@ class ExifTool(object):
 
 			This method makes it less likely someone will leave off a variable if one comes up in the future
 		"""
-		self._process = None # don't delete, just leave as None
-		self._ver = None # unset the version
+		self._process = None  # don't delete, just leave as None
+		self._ver = None  # unset the version
 		self._running = False
 
 
@@ -882,6 +882,6 @@ class ExifTool(object):
 		# -v2 gives you even more, but it's less useful at that point
 		ret = self.execute(b"-ver")
 		if self._return_tuple:
-			ret = ret[0] # only take stdout if a tuple is returned
+			ret = ret[0]  # only take stdout if a tuple is returned
 
 		return ret.decode(ENCODING_UTF8).strip()
