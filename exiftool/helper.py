@@ -127,7 +127,7 @@ class ExifToolHelper(ExifTool):
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False):
 		# call parent's constructor
-		kwargs = {"executable": executable, "win_shell": win_shell, "return_tuple": return_tuple} # TODO, need a better way of doing this, and not putting in common_args if not specified
+		kwargs = {"executable": executable, "win_shell": win_shell, "return_tuple": return_tuple}  # TODO, need a better way of doing this, and not putting in common_args if not specified
 		if common_args:
 			kwargs["common_args"] = common_args
 

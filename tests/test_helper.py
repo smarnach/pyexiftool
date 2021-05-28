@@ -56,7 +56,7 @@ class TestTagCopying(unittest.TestCase):
 		value_after_copying = self.exiftool.get_tag(tag, self.tag_target)
 		self.assertEqual(value_after_copying, expected_value)
 
-		self.exiftool.terminate() # do it explictly for Windows, or else will hang on exit (CPython interpreter exit bug)
+		self.exiftool.terminate()  # do it explictly for Windows, or else will hang on exit (CPython interpreter exit bug)
 
 
 class TestExifToolHelper(unittest.TestCase):
@@ -80,12 +80,12 @@ class TestExifToolHelper(unittest.TestCase):
 						  "File:ImageWidth": 70,
 						  "File:ImageHeight": 46,
 						  "XMP:Subject": "Röschen",
-						  "Composite:ImageSize": "70 46"}, # older versions of exiftool used to display 70x46
+						  "Composite:ImageSize": "70 46"},  # older versions of exiftool used to display 70x46
 						 {"SourceFile": "skyblue.png",
 						  "File:FileType": "PNG",
 						  "PNG:ImageWidth": 64,
 						  "PNG:ImageHeight": 64,
-						  "Composite:ImageSize": "64 64"}] # older versions of exiftool used to display 64x64
+						  "Composite:ImageSize": "64 64"}]  # older versions of exiftool used to display 64x64
 		script_path = Path(__file__).parent
 		source_files = []
 
@@ -102,7 +102,7 @@ class TestExifToolHelper(unittest.TestCase):
 			self.assertTrue(isinstance(et_version, float))
 			if isinstance(et_version, float):    # avoid exception in Py3k
 				self.assertTrue(
-					et_version >= 8.40, # TODO there's probably a bug in this test, 8.40 == 8.4 which isn't the intended behavior
+					et_version >= 8.40,  # TODO there's probably a bug in this test, 8.40 == 8.4 which isn't the intended behavior
 					"you should at least use ExifTool version 8.40")
 			actual["SourceFile"] = Path(actual["SourceFile"]).resolve()
 			for k, v in expected.items():

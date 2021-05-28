@@ -43,7 +43,7 @@ DEFAULT_EXECUTABLE: str
 
 if PLATFORM_WINDOWS:
 	DEFAULT_EXECUTABLE = "exiftool.exe"
-else: # pytest-cov:windows: no cover
+else:  # pytest-cov:windows: no cover
 	DEFAULT_EXECUTABLE = "exiftool"
 """The name of the executable to run.
 
@@ -58,10 +58,10 @@ If the executable is not located in one of the paths listed in the
 ##################################
 
 # for Windows STARTUPINFO
-SW_FORCEMINIMIZE: int = 11 # from win32con
+SW_FORCEMINIMIZE: int = 11  # from win32con
 
 # for Linux preexec_fn
-PR_SET_PDEATHSIG: int = 1 # taken from linux/prctl.h
+PR_SET_PDEATHSIG: int = 1  # taken from linux/prctl.h
 
 
 

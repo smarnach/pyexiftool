@@ -6,7 +6,7 @@ import unittest
 import exiftool
 import warnings
 
-import logging # to test logger
+import logging  # to test logger
 #import os
 #import shutil
 import sys
