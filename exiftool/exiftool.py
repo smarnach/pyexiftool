@@ -395,7 +395,9 @@ class ExifTool(object):
 
 		# it can be none, the code accomodates for that now
 
-		if new_args is None or isinstance(new_args, list):
+		if new_args is None:
+			self._common_args = []
+		elif isinstance(new_args, list):
 			# default parameters to exiftool
 			# -n = disable print conversion (speedup)
 			self._common_args = new_args
