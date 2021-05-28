@@ -79,7 +79,7 @@ def _is_iterable(in_param: Any) -> bool:
 
 
 #string helper
-def strip_nl (s):
+def strip_nl(s):
 	return ' '.join(s.splitlines())
 
 # ======================================================================================================================
@@ -87,7 +87,7 @@ def strip_nl (s):
 # Error checking function
 # very rudimentary checking
 # Note: They are quite fragile, because this just parse the output text from exiftool
-def check_ok (result):
+def check_ok(result):
 	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
 
 	The argument is the result from the execute method.
@@ -98,14 +98,14 @@ def check_ok (result):
 
 # ======================================================================================================================
 
-def format_error (result):
+def format_error(result):
 	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
 
 	The argument is the result from the execute method.
 
 	The result is a human readable one-line string.
 	"""
-	if check_ok (result):
+	if check_ok(result):
 		return 'exiftool finished probably properly. ("%s")' % strip_nl(result)
 	else:
 		if result is None:
@@ -247,7 +247,7 @@ class ExifToolHelper(ExifTool):
 			exec_params.extend(params)
 
 		# tags is always a list by this point.  It will always be iterable... don't have to check for None
-		exec_params.extend( ["-" + t for t in tags] )
+		exec_params.extend(["-" + t for t in tags])
 
 		exec_params.extend(files)
 
@@ -311,9 +311,9 @@ class ExifToolHelper(ExifTool):
 		return self.get_tag_batch(tag, [filename])[0]
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def copy_tags(self, fromFilename, toFilename):
+	def copy_tags(self, from_filename, to_filename):
 		"""Copy all tags from one file to another."""
-		params = ["-overwrite_original", "-TagsFromFile", fromFilename, toFilename]
+		params = ["-overwrite_original", "-TagsFromFile", from_filename, to_filename]
 		params_utf8 = [x.encode('utf-8') for x in params]
 		self.execute(*params_utf8)
 
@@ -405,15 +405,15 @@ class ExifToolHelper(ExifTool):
 		params = []
 		params_utf8 = []
 
-		kw_operation = {KW_REPLACE:"-%s=%s",
-						KW_ADD:"-%s+=%s",
-						KW_REMOVE:"-%s-=%s"}[mode]
+		kw_operation = {KW_REPLACE: "-%s=%s",
+						KW_ADD: "-%s+=%s",
+						KW_REMOVE: "-%s-=%s"}[mode]
 
-		kw_params = [ kw_operation % (KW_TAGNAME, w)  for w in keywords ]
+		kw_params = [kw_operation % (KW_TAGNAME, w)  for w in keywords]
 
 		params.extend(kw_params)
 		params.extend(filenames)
-		logging.debug (params)
+		logging.debug(params)
 
 		params_utf8 = [x.encode('utf-8') for x in params]
 		return self.execute(*params_utf8)

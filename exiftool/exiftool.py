@@ -336,7 +336,7 @@ class ExifTool(object):
 		"""
 		# cannot set executable when process is running
 		if self.running:
-			raise RuntimeError( 'Cannot set new executable while Exiftool is running' )
+			raise RuntimeError("Cannot set new executable while Exiftool is running")
 
 		abs_path: Optional[str] = None
 
@@ -347,7 +347,7 @@ class ExifTool(object):
 			abs_path = shutil.which(new_executable)
 
 			if abs_path is None:
-				raise FileNotFoundError( f'"{new_executable}" is not found, on path or as absolute path' )
+				raise FileNotFoundError(f'"{new_executable}" is not found, on path or as absolute path')
 
 		# absolute path is returned
 		self._executable = abs_path
@@ -680,7 +680,8 @@ class ExifTool(object):
 
 		self._flag_running_false()
 
-		if self._logger: self._logger.info(f"Method 'terminate': Exiftool terminated successfully.")
+		# TODO log / return exit status from exiftool?
+		if self._logger: self._logger.info("Method 'terminate': Exiftool terminated successfully.")
 
 
 
@@ -759,7 +760,7 @@ class ExifTool(object):
 		# the other simplification that can be done is that, Exiftool is expected to only return 0, 1, or 2 as per documentation
 		# you could just lop the last 3 characters off... but if the return status changes in the future, then this code would break
 		err_delim_1 = out_stderr.rfind(SEQ_ERR_STATUS_DELIM, 0, -delim_len)
-		out_status = out_stderr[err_delim_1 + delim_len : -delim_len ]
+		out_status = out_stderr[err_delim_1 + delim_len : -delim_len]
 
 		# can check .isnumeric() here, but best just to duck-type cast it
 		self._last_status = int(out_status)
@@ -769,9 +770,9 @@ class ExifTool(object):
 
 
 		if self._logger:
-			self._logger.debug( "Method 'execute': Reply stdout = {}".format(self._last_stdout) )
-			self._logger.debug( "Method 'execute': Reply stderr = {}".format(self._last_stderr) )
-			self._logger.debug( "Method 'execute': Reply status = {}".format(self._last_status) )
+			self._logger.debug("Method 'execute': Reply stdout = {}".format(self._last_stdout))
+			self._logger.debug("Method 'execute': Reply stderr = {}".format(self._last_stderr))
+			self._logger.debug("Method 'execute': Reply status = {}".format(self._last_status))
 
 
 		if self._return_tuple:

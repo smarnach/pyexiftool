@@ -4,10 +4,10 @@ from __future__ import unicode_literals
 
 import unittest
 import exiftool
-import warnings
+#import warnings
 #import os
 import shutil
-import sys
+#import sys
 #import tempfile
 from pathlib import Path
 
@@ -133,7 +133,7 @@ class TestExifToolHelper(unittest.TestCase):
 			shutil.copyfile(f, f_mod)
 			source_files.append(f_mod)
 			with self.et:
-				self.et.set_tags({"Caption-Abstract":d["Caption-Abstract"]}, f_mod_str)
+				self.et.set_tags({"Caption-Abstract": d["Caption-Abstract"]}, f_mod_str)
 				tag0 = self.et.get_tag("IPTC:Caption-Abstract", f_mod_str)
 			f_mod.unlink()
 			self.assertEqual(tag0, d["Caption-Abstract"])
@@ -203,6 +203,7 @@ class TestExifToolHelper(unittest.TestCase):
 			self.assertEqual(kwtag1, d["Keywords"][0])
 			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
 	"""
+
 
 # ---------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
