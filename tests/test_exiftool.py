@@ -95,7 +95,7 @@ class TestExifTool(unittest.TestCase):
 			self.assertTrue(self.et.running)
 			with warnings.catch_warnings(record=True) as w:
 				self.et.run()
-				self.assertEquals(len(w), 1)
+				self.assertEqual(len(w), 1)
 				self.assertTrue(issubclass(w[0].category, UserWarning))
 			self.process = self.et._process
 			self.assertEqual(self.process.poll(), None)
@@ -114,7 +114,7 @@ class TestExifTool(unittest.TestCase):
 		# terminate when not running
 		with warnings.catch_warnings(record=True) as w:
 			self.et.terminate()
-			self.assertEquals(len(w), 1)
+			self.assertEqual(len(w), 1)
 			self.assertTrue(issubclass(w[0].category, UserWarning))
 
 	#---------------------------------------------------------------------------------------------------------
@@ -156,7 +156,7 @@ class TestExifTool(unittest.TestCase):
 
 		with warnings.catch_warnings(record=True) as w:
 			self.assertFalse(self.et.running)
-			self.assertEquals(len(w), 1)
+			self.assertEqual(len(w), 1)
 			self.assertTrue(issubclass(w[0].category, UserWarning))
 
 		# after removing that function, delete the object so it gets recreated cleanly
@@ -166,6 +166,14 @@ class TestExifTool(unittest.TestCase):
 		# test to make sure passing in an invalid args list will cause it to error out
 		with self.assertRaises(TypeError):
 			exiftool.ExifTool(common_args="not a list")
+	#---------------------------------------------------------------------------------------------------------
+	def test_common_args(self):
+		# test to make sure passing in an invalid args list will cause it to error out
+		with self.assertRaises(TypeError):
+			exiftool.ExifTool(common_args={})
+
+		# set to common_args=None == []
+		self.assertEqual(exiftool.ExifTool(common_args=None).common_args, [])
 	#---------------------------------------------------------------------------------------------------------
 	"""
 	def test_logger(self):
