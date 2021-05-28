@@ -75,6 +75,10 @@ class TestExifTool(unittest.TestCase):
 
 		# TODO create a config file, and set it and test that it works
 
+
+		# then restore current config_file
+		self.et.config_file = current
+
 		self.assertFalse(self.et.running)
 		self.et.run()
 		self.assertTrue(self.et.running)
