@@ -1,0 +1,4 @@
+# pytest can run unittest scripts
+pytest
+# coverage addon
+pytest-cov
