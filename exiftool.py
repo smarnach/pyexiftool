@@ -115,6 +115,11 @@ del _fscodec
 class ExifTool(object):
     """Run the `exiftool` command-line tool and communicate to it.
 
+    The argument ``print_conversion`` determines whether exiftool should
+    perform print conversion, which prints values in a human-readable way but
+    may be slower. If print conversion is enabled, appending ``#`` to a tag
+    name disables the print conversion for this particular tag.
+
     You can pass the file name of the ``exiftool`` executable as an
     argument to the constructor.  The default value ``exiftool`` will
     only work if the executable is in your ``PATH``.
@@ -148,7 +153,8 @@ class ExifTool(object):
        associated with a running subprocess.
     """
 
-    def __init__(self, executable_=None):
+    def __init__(self, executable_=None, print_conversion=False):
+        self.print_conversion = print_conversion
         if executable_ is None:
             self.executable = executable
         else:
@@ -158,18 +164,20 @@ class ExifTool(object):
     def start(self):
         """Start an ``exiftool`` process in batch mode for this instance.
 
-        This method will issue a ``UserWarning`` if the subprocess is
-        already running.  The process is started with the ``-G`` and
-        ``-n`` as common arguments, which are automatically included
-        in every command you run with :py:meth:`execute()`.
+        This method will issue a ``UserWarning`` if the subprocess is already
+        running.  The process is started with ``-G`` (and, if print conversion
+        was disabled, ``-n``) as common arguments, which are automatically
+        included in every command you run with :py:meth:`execute()`.
         """
         if self.running:
             warnings.warn("ExifTool already running; doing nothing.")
             return
+        command = [self.executable, "-stay_open", "True",  "-@", "-", "-common_args", "-G"]
+        if not self.print_conversion:
+            command.append("-n")
         with open(os.devnull, "w") as devnull:
             self._process = subprocess.Popen(
-                [self.executable, "-stay_open", "True",  "-@", "-",
-                 "-common_args", "-G", "-n"],
+                command,
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=devnull)
         self.running = True
