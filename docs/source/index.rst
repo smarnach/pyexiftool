@@ -4,17 +4,27 @@
 PyExifTool -- A Python wrapper for Phil Harvey's  ExifTool
 ==========================================================
 
-.. automodule:: exiftool.exiftool
+.. automodule:: exiftool
    :members:
    :undoc-members:
    :private-members:
    :special-members:
    :show-inheritance:
 
+   .. automethod:: __init__
+
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   exiftool
+
 ..
    look up info using this https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
 
-.. automodule:: exiftool.helper
+..
+   automodule:: exiftool.helper
    :members:
    :undoc-members:
 

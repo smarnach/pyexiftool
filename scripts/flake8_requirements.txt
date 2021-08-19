@@ -1,3 +1,6 @@
 flake8
 # check for PEP8 Naming Conventions
 pep8-naming
+# warnings, not necessarily PEP8, but warn certain things
+# https://github.com/PyCQA/flake8-bugbear
+#flake8-bugbear

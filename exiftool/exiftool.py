@@ -242,6 +242,7 @@ class ExifTool(object):
 	  return_tuple: bool = False,
 	  config_file: Optional[str] = None,
 	  logger = None) -> None:
+		""" docstring stub """
 
 		# --- default settings / declare member variables ---
 		self._running: bool = False  # is it running?
@@ -253,7 +254,7 @@ class ExifTool(object):
 		self._return_tuple: bool = return_tuple  # are we returning a tuple in the execute?
 		self._last_stdout: Optional[str] = None  # previous output
 		self._last_stderr: Optional[str] = None  # previous stderr
-		self._last_status: Optional[int] = None  # previous exit status from exiftool (look up EXIT STATUS in exiftool documentation)
+		self._last_status: Optional[int] = None  # previous exit status from exiftool (look up EXIT STATUS in exiftool documentation for more information)
 
 		self._block_size: int = constants.DEFAULT_BLOCK_SIZE  # set to default block size
 
@@ -332,7 +333,6 @@ class ExifTool(object):
 		"""
 		Set the executable.  Does error checking.
 
-		in testing, shutil.which() will work if a complete path is given, but this isn't clear, so we explicitly check and don't search if path exists
 		"""
 		# cannot set executable when process is running
 		if self.running:
@@ -340,6 +340,9 @@ class ExifTool(object):
 
 		abs_path: Optional[str] = None
 
+		# in testing, shutil.which() will work if a complete path is given,
+		# but this isn't clear from documentation, so we explicitly check and
+		# don't search if path exists
 		if Path(new_executable).exists():
 			abs_path = new_executable
 		else:
@@ -572,7 +575,7 @@ class ExifTool(object):
 			return
 
 		# first the executable ...
-		proc_args = [self.executable, ]
+		proc_args = [self._executable, ]
 
 		# If working with a config file, it must be the first argument after the executable per: https://exiftool.org/config.html
 		if self._config_file:
@@ -616,11 +619,11 @@ class ExifTool(object):
 		except FileNotFoundError as fnfe:
 			raise fnfe
 		except OSError as oe:
-			raise oe
+			raise
 		except ValueError as ve:
-			raise ve
+			raise
 		except subprocess.CalledProcessError as cpe:
-			raise cpe
+			raise
 		# TODO print out more useful error messages to these different errors above
 
 		# check error above before saying it's running
