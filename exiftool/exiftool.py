@@ -242,9 +242,6 @@ def find_executable(executable, path=None):
 
 
 
-
-
-
 #------------------------------------------------------------------------------------------------
 class ExifTool(object):
 	"""Run the `exiftool` command-line tool and communicate to it.
@@ -326,6 +323,9 @@ class ExifTool(object):
 
 		self.no_output = '-w' in self.common_args
 
+		# sets logger with name rather than using the root logger
+		self.logger = logging.getLogger(__name__)
+
 
 	def start(self):
 		"""Start an ``exiftool`` process in batch mode for this instance.
@@ -350,7 +350,7 @@ class ExifTool(object):
 		proc_args.extend(["-stay_open", "True", "-@", "-", "-common_args"])
 		proc_args.extend(self.common_args)  # add the common arguments
 
-		logging.debug(proc_args)
+		self.logger.debug(proc_args)
 		
 		with open(os.devnull, "w") as devnull:
 			try:
@@ -743,7 +743,7 @@ class ExifTool(object):
 
 		params.extend(kw_params)
 		params.extend(filenames)
-		logging.debug (params)
+		self.logger.debug(params)
 
 		params_utf8 = [x.encode('utf-8') for x in params]
 		return self.execute(*params_utf8)
