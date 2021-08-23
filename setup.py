@@ -46,7 +46,7 @@ setup(
 	keywords="exiftool image exif metadata photo video photography",
 	
 	project_urls={
-		"Documentation": "http://smarnach.github.io/pyexiftool/",
+		"Documentation": "https://sylikc.github.io/pyexiftool/",
 		"Tracker": "https://github.com/sylikc/pyexiftool/issues",
 		"Source": "https://github.com/sylikc/pyexiftool",
 	},
