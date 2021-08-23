@@ -125,7 +125,10 @@ class ExifToolHelper(ExifTool):
 	"""
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False):
+	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False, auto_start=True):
+		"""
+		auto_start = BOOLEAN.  will autostart the exiftool process on first command run
+		"""
 		# call parent's constructor
 		kwargs = {"executable": executable, "win_shell": win_shell, "return_tuple": return_tuple}  # TODO, need a better way of doing this, and not putting in common_args if not specified
 		if common_args:
@@ -133,6 +136,9 @@ class ExifToolHelper(ExifTool):
 
 		super().__init__(**kwargs)
 		#super().__init__(executable=executable, common_args=common_args, win_shell=win_shell, return_tuple=return_tuple)
+
+
+		self._auto_start: bool = auto_start
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -241,9 +247,8 @@ class ExifToolHelper(ExifTool):
 
 		exec_params = []
 
-		if not params:
-			pass
-		else:
+		if params:
+			# this is done to avoid accidentally modifying the reference object params
 			exec_params.extend(params)
 
 		# tags is always a list by this point.  It will always be iterable... don't have to check for None
@@ -428,6 +433,15 @@ class ExifToolHelper(ExifTool):
 		"""
 		return self.set_keywords_batch(mode, keywords, [filename])
 
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def execute(self, *params):
+		""" overload the execute() method so that it checks if it's running first, and if not, start it """
+		if self._auto_start and not self.running:
+			self.run()
+
+		return super().execute(*params)
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
