@@ -33,6 +33,7 @@ Date (Timezone)              | Version | Comment
 05/19/2021 09:37:52 PM (PDT) | 0.4.9   | test_tags() parameter encoding bugfix and a new test case TestTagCopying -- Merged pull request #19 from @jangop<br>I also added further updates to README.rst to point to my repo and GH pages<br>I fixed the "previous versions" naming to match the v0.2.0 start.  None of them were published, so I changed the version information here just to make it less confusing to a casual observer who might ask "why did you have 0.1 when you forked off on 0.2.0?"  Sven Marnach's releases were all 0.1, but he tagged his last release v0.2.0, which is my starting point
 08/22/2021 08:32:30 PM (PDT) | 0.4.10  | logger changed to use logging.getLogger(__name__) instead of the root logger -- Merged pull request #24 from @nyoungstudios
 08/22/2021 08:34:45 PM (PDT) | 0.4.11  | no functional code changes.  Changed setup.py with updated version and Documentation link pointed to sylikc.github.io -- as per issue #27 by @derMart
+08/22/2021 09:02:33 PM (PDT) | 0.4.12  | fixed a bug ExifTool.terminate() where there was a typo.  Kept the unused outs, errs though. -- from suggestion in pull request #26 by @aaronkollasch
 
 
 On version changes, update setup.py to reflect version

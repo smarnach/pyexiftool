@@ -400,7 +400,7 @@ class ExifTool(object):
 			self._process.communicate(timeout=wait_timeout)
 		except subprocess.TimeoutExpired: # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
 			self._process.kill()
-			outs, errs = proc.communicate()
+			outs, errs = self._process.communicate()
 			# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
 			
 		del self._process
