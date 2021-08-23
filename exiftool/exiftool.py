@@ -531,8 +531,28 @@ class ExifTool(object):
 		"""
 		if new_logger is None:
 			self._logger = None
-		elif not isinstance(new_logger, logging.Logger):
-			raise TypeError("logger needs to be of type logging.Logger")
+			return
+
+		# can't check this in case someone passes a drop-in replacement, like loguru, which isn't type logging.Logger
+		#elif not isinstance(new_logger, logging.Logger):
+		#	raise TypeError("logger needs to be of type logging.Logger")
+
+
+		# do some basic checks on methods available in the "logger" provided
+		check = True
+		try:
+			# ExifTool will probably use all of these logging method calls at some point
+			# check all these are callable methods
+			check = check and callable(new_logger.info)
+			check = check and callable(new_logger.warning)
+			check = check and callable(new_logger.error)
+			check = check and callable(new_logger.critical)
+			check = check and callable(new_logger.exception)
+		except AttributeError as e:
+			check = False
+
+		if not check:
+			raise TypeError("logger needs to implement methods (info,warning,error,critical,exception)")
 
 		self._logger = new_logger
 
@@ -819,10 +839,12 @@ class ExifTool(object):
 		if self._return_tuple:
 			# get stdout only
 			res = std[0]
+			# TODO these aren't used, if not important, comment them out
 			res_err = std[1]
 			res_status = std[2]
 		else:
 			res = std
+			# TODO these aren't used, if not important, comment them out
 			res_err = self._last_stderr
 			res_status = self._last_status
 
