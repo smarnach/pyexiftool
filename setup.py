@@ -30,7 +30,7 @@ setup(
 	
 	# overview
 	name="PyExifTool",
-	version="0.4.9",
+	version="0.4.11",
 	license="GPLv3+/BSD",
 	url="http://github.com/sylikc/pyexiftool",
 	python_requires=">=2.6",
@@ -46,7 +46,7 @@ setup(
 	keywords="exiftool image exif metadata photo video photography",
 	
 	project_urls={
-		"Documentation": "http://smarnach.github.io/pyexiftool/",
+		"Documentation": "https://sylikc.github.io/pyexiftool/",
 		"Tracker": "https://github.com/sylikc/pyexiftool/issues",
 		"Source": "https://github.com/sylikc/pyexiftool",
 	},
