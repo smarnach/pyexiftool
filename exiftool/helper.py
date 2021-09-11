@@ -33,6 +33,8 @@ except NameError:
 	basestring = (bytes, str)
 
 
+from pathlib import PurePath  # Python 3.4 required
+
 from typing import Any
 
 
@@ -236,6 +238,9 @@ class ExifToolHelper(ExifTool):
 
 		if isinstance(in_files, basestring):
 			files = [in_files]
+		elif isinstance(in_files, PurePath):
+			# support for Path-like objects
+			files = [str(in_files)]
 		elif _is_iterable(in_files):
 			files = in_files
 		else:
