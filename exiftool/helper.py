@@ -125,18 +125,14 @@ class ExifToolHelper(ExifTool):
 	"""
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __init__(self, executable=None, common_args=None, win_shell=True, return_tuple=False, auto_start=True):
+	def __init__(self, auto_start=True, **kwargs):
 		"""
 		auto_start = BOOLEAN.  will autostart the exiftool process on first command run
+
+		all other parameters are passed directly to super-class' constructor: ExifTool(**)
 		"""
 		# call parent's constructor
-		kwargs = {"executable": executable, "win_shell": win_shell, "return_tuple": return_tuple}  # TODO, need a better way of doing this, and not putting in common_args if not specified
-		# have to check None, because passing in an empty list is valid to pass on to kwargs
-		if common_args is not None:
-			kwargs["common_args"] = common_args
-
 		super().__init__(**kwargs)
-		#super().__init__(executable=executable, common_args=common_args, win_shell=win_shell, return_tuple=return_tuple)
 
 
 		self._auto_start: bool = auto_start
