@@ -9,5 +9,5 @@ MANIFEST
 # pytest-cov db
 .coverage
 
-# tests will be made to write to a tmp directory for modifications instead of putting into the tests directory
-tests/tmp/
+# tests will be made to write to temp directories with this prefix
+tests/exiftool-tmp-*

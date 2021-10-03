@@ -180,7 +180,13 @@ class ExifToolHelper(ExifTool):
 		elif not _is_iterable(files):
 			final_files = [str(files)]
 		else:
+			# duck-type any iterable given, and str() it
+			# this was originally to support Path() but it's now generic to support any object that str() to something useful
+
+			# Thanks @jangop for the single line contribution!
 			final_files = [x if isinstance(x, basestring) else str(x) for x in files]
+
+			# TODO: this list copy could be expensive if the input is a very huge list.  Perhaps in the future have a flag that takes the lists in verbatim without any processing?
 
 		exec_params = []
 

@@ -41,6 +41,11 @@ or at your discretion, use one of the more stable classes above.
 from .helper import ExifToolHelper
 
 
+try:        # Py3k compatibility
+	basestring
+except NameError:
+	basestring = (bytes, str)
+
 # ======================================================================================================================
 
 #def atexit_handler
@@ -184,7 +189,7 @@ class ExifToolAlpha(ExifToolHelper):
 	# this was a method with good intentions by the original author, but returns some inconsistent results in some cases
 	# for example, if you passed in a single tag, or a group name, it would return the first tag back instead of the whole group
 	# try calling get_tag_batch("*.mp4", "QuickTime") or "QuickTime:all" ... the expected results is a dictionary but a single tag is returned
-	def get_tag_batch(self, tag, filenames):
+	def get_tag_batch(self, filenames, tag):
 		"""Extract a single tag from the given files.
 
 		The first argument is a single tag name, as usual in the
@@ -208,24 +213,23 @@ class ExifToolAlpha(ExifToolHelper):
 		return self.get_tag_batch_wrapper(tag, [filename], params=params)[0]
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_tag(self, tag, filename):
+	def get_tag(self, filename, tag):
 		"""Extract a single tag from a single file.
 
 		The return value is the value of the specified tag, or
 		``None`` if this tag was not found in the file.
 		"""
-		return self.get_tag_batch(tag, [filename])[0]
+		return self.get_tag_batch([filename], tag)[0]
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def copy_tags(self, from_filename, to_filename):
 		"""Copy all tags from one file to another."""
-		params = ["-overwrite_original", "-TagsFromFile", from_filename, to_filename]
-		params_utf8 = [x.encode('utf-8') for x in params]
-		self.execute(*params_utf8)
+		params = ["-overwrite_original", "-TagsFromFile", str(from_filename), str(to_filename)]
+		self.execute(*params)
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def set_tags_batch(self, tags, filenames):
+	def set_tags_batch(self, filenames, tags):
 		"""Writes the values of the specified tags for the given files.
 
 		The first argument is a dictionary of tags and values.  The tag names may
@@ -251,7 +255,6 @@ class ExifToolAlpha(ExifToolHelper):
 							"an iterable of strings")
 
 		params = []
-		params_utf8 = []
 		for tag, value in tags.items():
 			# contributed by @daviddorme in https://github.com/sylikc/pyexiftool/issues/12#issuecomment-821879234
 			# allows setting things like Keywords which require separate directives
@@ -259,28 +262,27 @@ class ExifToolAlpha(ExifToolHelper):
 			# which are not supported as duplicate keys in a dictionary
 			if isinstance(value, list):
 				for item in value:
-					params.append(u'-%s=%s' % (tag, item))
+					params.append(f"-{tag}={item}")
 			else:
-				params.append(u'-%s=%s' % (tag, value))
+				params.append(f"-{tag}={value}")
 
 		params.extend(filenames)
-		params_utf8 = [x.encode('utf-8') for x in params]
-		return self.execute(*params_utf8)
+		return self.execute(*params)
 
 		#TODO if execute returns data, then error?
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def set_tags(self, tags, filename):
+	def set_tags(self, filename, tags):
 		"""Writes the values of the specified tags for the given file.
 
 		This is a convenience function derived from `set_tags_batch()`.
 		Only difference is that it takes as last arugemnt only one file name
 		as a string.
 		"""
-		return self.set_tags_batch(tags, [filename])
+		return self.set_tags_batch([filename], tags)
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def set_keywords_batch(self, mode, keywords, filenames):
+	def set_keywords_batch(self, filenames, mode, keywords):
 		"""Modifies the keywords tag for the given files.
 
 		The first argument is the operation mode:
@@ -309,7 +311,6 @@ class ExifToolAlpha(ExifToolHelper):
 							"an iterable of strings")
 
 		params = []
-		params_utf8 = []
 
 		kw_operation = {KW_REPLACE: "-%s=%s",
 						KW_ADD: "-%s+=%s",
@@ -319,20 +320,19 @@ class ExifToolAlpha(ExifToolHelper):
 
 		params.extend(kw_params)
 		params.extend(filenames)
-		logging.debug(params)
+		if self._logger: self._logger.debug(params)
 
-		params_utf8 = [x.encode('utf-8') for x in params]
-		return self.execute(*params_utf8)
+		return self.execute(*params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def set_keywords(self, mode, keywords, filename):
+	def set_keywords(self, filename, mode, keywords):
 		"""Modifies the keywords tag for the given file.
 
 		This is a convenience function derived from `set_keywords_batch()`.
 		Only difference is that it takes as last argument only one file name
 		as a string.
 		"""
-		return self.set_keywords_batch(mode, keywords, [filename])
+		return self.set_keywords_batch([filename], mode, keywords)
 
 
 	# ----------------------------------------------------------------------------------------------------------------------

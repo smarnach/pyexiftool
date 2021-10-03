@@ -98,7 +98,7 @@ from . import constants
 
 # constants to make typos obsolete!
 ENCODING_UTF8: str = "utf-8"
-ENCODING_LATIN1: str = "latin-1"
+#ENCODING_LATIN1: str = "latin-1"
 
 
 # ======================================================================================================================
