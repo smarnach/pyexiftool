@@ -509,11 +509,11 @@ class ExifTool(object):
 		try:
 			# ExifTool will probably use all of these logging method calls at some point
 			# check all these are callable methods
-			check = callable(new_logger.info)
-				and callable(new_logger.warning)
-				and callable(new_logger.error)
-				and callable(new_logger.critical)
-				and callable(new_logger.exception)
+			check = callable(new_logger.info) and \
+				callable(new_logger.warning) and \
+				callable(new_logger.error) and \
+				callable(new_logger.critical) and \
+				callable(new_logger.exception)
 		except AttributeError as e:
 			check = False
 
@@ -731,7 +731,7 @@ class ExifTool(object):
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
 
-		if self._logger: self._logger.info(f"Method 'execute': Command sent = {cmd_text.split(b'\n')[:-1]}")
+		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_text.split(b'\n')[:-1]))
 
 
 		# ---------- read output from exiftool process until special sequences reached ----------
@@ -871,6 +871,8 @@ class ExifTool(object):
 		self._process = None  # don't delete, just leave as None
 		self._ver = None  # unset the version
 		self._running = False
+
+		# as an FYI, as per the last_* properties, they are intentionally not cleared when process closes
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
