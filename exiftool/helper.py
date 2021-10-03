@@ -172,8 +172,6 @@ class ExifToolHelper(ExifTool):
 		else:
 			raise TypeError("The argument 'tags' must be a str/bytes or a list")
 
-
-
 		if not files:
 			# Exiftool process would return None anyways
 			raise TypeError("The argument 'files' cannot be empty")
@@ -182,23 +180,7 @@ class ExifToolHelper(ExifTool):
 		elif not _is_iterable(files):
 			final_files = [str(files)]
 		else:
-			# I'm sure there's a more pythonic way to do this, with a single line and expansion and stuff... but I can't figure it out . . .
-
-			final_files = []
-
-			# TODO: this list copy could be expensive if the input is a very huge list.  Perhaps in the future have a flag that takes the lists in verbatim?
-
-			# duck-type whatever given that's an iterable
-			for x in files:
-				if isinstance(x, basestring):
-					final_files.append(x)
-				else:
-					# to support PurePath objects, for example, the output of Path.glob(),
-					# need to convert the whole list of anything not basestring to str()
-					#
-					# make it generic so that we can support anything that allows you to str() the object to something useful
-					final_files.append(str(x))
-
+			final_files = [x if isinstance(x, basestring) else str(x) for x in files]
 
 		exec_params = []
 
