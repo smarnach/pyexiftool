@@ -56,12 +56,20 @@ Example usage::
 										 d["EXIF:DateTimeOriginal"]))
 """
 
-from __future__ import unicode_literals
-
+# ---------- standard Python imports ----------
 import select
 import subprocess
 import os
 import shutil
+from pathlib import Path  # requires Python 3.4+
+import random
+
+# for the pdeathsig
+import signal
+import ctypes
+
+
+# ---------- UltraJSON overloaded import ----------
 
 try:
 	# Optional UltraJSON library - ultra-fast JSON encoder/decoder, drop-in replacement
@@ -69,69 +77,32 @@ try:
 except ImportError:
 	import json  # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
 import warnings
-import logging
 
-# for the pdeathsig
-import signal
-import ctypes
 
-from pathlib import Path  # requires Python 3.4+
 
-import random
-
+# ---------- Linting Imports ----------
 # for static analysis / type checking - Python 3.5+
 from collections.abc import Callable
 from typing import Optional, List
 
 
+
+# ---------- Library Package Imports ----------
+
 from . import constants
+
+
+# ======================================================================================================================
 
 
 # constants to make typos obsolete!
 ENCODING_UTF8: str = "utf-8"
 ENCODING_LATIN1: str = "latin-1"
 
-# ======================================================================================================================
-
-"""
-..
-
-import sys, codecs
-
-# This code has been adapted from Lib/os.py in the Python source tree
-# (sha1 265e36e277f3)
-def _fscodec():
-	encoding = sys.getfilesystemencoding()
-	errors = "strict"
-	if encoding != "mbcs":
-		try:
-			codecs.lookup_error("surrogateescape")
-		except LookupError:
-			pass
-		else:
-			errors = "surrogateescape"
-
-	def fsencode(filename):
-		"" "
-		Encode filename to the filesystem encoding with 'surrogateescape' error
-		handler, return bytes unchanged. On Windows, use 'strict' error handler if
-		the file system encoding is 'mbcs' (which is the default encoding).
-		"" "
-		if isinstance(filename, bytes):
-			return filename
-		else:
-			# cannot assume that filename will be a str.  In the off-chance we're using a filename which is a number, this will throw an error
-			return str(filename).encode(encoding, errors)
-
-	return fsencode
-
-fsencode = _fscodec()
-del _fscodec
-"""
 
 # ======================================================================================================================
 
-def set_pdeathsig(sig) -> Optional[Callable]:
+def _set_pdeathsig(sig) -> Optional[Callable]:
 	"""
 	Use this method in subprocess.Popen(preexec_fn=set_pdeathsig()) to make sure,
 	the exiftool childprocess is stopped if this process dies.
@@ -242,7 +213,10 @@ class ExifTool(object):
 	  return_tuple: bool = False,
 	  config_file: Optional[str] = None,
 	  logger = None) -> None:
-		""" docstring stub """
+		""" common_args defaults to -G -n as this is the most common use case.
+		-n improves the speed, and consistency of output is more machine-parsable
+		-G separates the grouping
+		"""
 
 		# --- default settings / declare member variables ---
 		self._running: bool = False  # is it running?
@@ -268,6 +242,11 @@ class ExifTool(object):
 
 
 
+		# --- run external library initialization code ---
+		random.seed(None)  # initialize random number generator
+
+
+
 
 		# --- set variables via properties (which do the error checking) --
 
@@ -276,20 +255,11 @@ class ExifTool(object):
 
 		# use the passed in parameter, or the default if not set
 		# error checking is done in the property.setter
-		self.executable = executable if executable is not None else constants.DEFAULT_EXECUTABLE
+		self.executable = executable or constants.DEFAULT_EXECUTABLE
 		self.common_args = common_args
 
 		# set the property, error checking happens in the property.setter
 		self.config_file = config_file
-
-
-
-
-
-
-		# --- run any remaining initialization code ---
-
-		random.seed(None)  # initialize random number generator
 
 
 
@@ -386,17 +356,15 @@ class ExifTool(object):
 		""" set the common_args parameter
 
 			this is the common_args that is passed when the Exiftool process is STARTED
+			see "-common_args" parameter in Exiftool documentation https://exiftool.org/exiftool_pod.html
 
 			so, if running==True, it will throw an error.  Can only set common_args when exiftool is not running
+
+			If new_args is None, will set to []
 		"""
 
 		if self.running:
 			raise RuntimeError("Cannot set new common_args while exiftool is running!")
-
-
-		# TODO may not use constructor defaults if they cause errors (I recall seeing an issue filed)
-
-		# it can be none, the code accomodates for that now
 
 		if new_args is None:
 			self._common_args = []
@@ -543,11 +511,11 @@ class ExifTool(object):
 		try:
 			# ExifTool will probably use all of these logging method calls at some point
 			# check all these are callable methods
-			check = check and callable(new_logger.info)
-			check = check and callable(new_logger.warning)
-			check = check and callable(new_logger.error)
-			check = check and callable(new_logger.critical)
-			check = check and callable(new_logger.exception)
+			check = callable(new_logger.info)
+				and callable(new_logger.warning)
+				and callable(new_logger.error)
+				and callable(new_logger.critical)
+				and callable(new_logger.exception)
 		except AttributeError as e:
 			check = False
 
@@ -623,7 +591,7 @@ class ExifTool(object):
 			kwargs['startupinfo'] = startup_info
 		else:  # pytest-cov:windows: no cover
 			# assume it's linux
-			kwargs['preexec_fn'] = set_pdeathsig(signal.SIGTERM)
+			kwargs['preexec_fn'] = _set_pdeathsig(signal.SIGTERM)
 			# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application.
 			# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
 
@@ -637,7 +605,7 @@ class ExifTool(object):
 				stderr=subprocess.PIPE,
 				**kwargs)
 		except FileNotFoundError as fnfe:
-			raise fnfe
+			raise
 		except OSError as oe:
 			raise
 		except ValueError as ve:
@@ -668,7 +636,7 @@ class ExifTool(object):
 	def terminate(self, timeout: int = 30, _del: bool = False) -> None:
 		"""Terminate the ``exiftool`` process of this instance.
 
-		If the subprocess isn't running, this method will do nothing.
+		If the subprocess isn't running, this method will throw a warning, and do nothing.
 		"""
 		if not self.running:
 			warnings.warn("ExifTool not running; doing nothing.", UserWarning)
@@ -750,7 +718,7 @@ class ExifTool(object):
 		#SEQ_STDERR_PRE_FMT = "pre{}" # can have a PRE sequence too but we don't need it for syncing
 		seq_err_post = f"post{signal_num}".encode(ENCODING_UTF8)  # default there isn't any string
 		SEQ_ERR_STATUS_DELIM = b"="  # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
-		seq_err_status = "${status}".encode(ENCODING_UTF8)  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
+		seq_err_status = b"${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
 
 		cmd_text = b"\n".join(params + (b"-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute, ))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
@@ -862,6 +830,8 @@ class ExifTool(object):
 			return None
 
 
+		# TODO use fsdecode?
+		# os.fsdecode() instead of res.decode()
 		try:
 			res_decoded = res.decode(ENCODING_UTF8)
 		except UnicodeDecodeError:
@@ -870,11 +840,14 @@ class ExifTool(object):
 		# which will return something like
 		# image files read
 		# output files created
+
+		# res_decoded is also not valid if you do metadata manipulation without returning anything
 		if self._no_output:
 			print(res_decoded)
 			# TODO: test why is this not returning anything from this function?? what if we are SETTING something and not GETTING?
 		else:
 			# TODO: if len(res_decoded) == 0, then there's obviously an error here
+			#print(res_decoded)
 			return json.loads(res_decoded)
 
 		# TODO , return_tuple will also beautify stderr and output status as well
@@ -913,3 +886,5 @@ class ExifTool(object):
 			ret = ret[0]  # only take stdout if a tuple is returned
 
 		return ret.decode(ENCODING_UTF8).strip()
+
+	# ----------------------------------------------------------------------------------------------------------------------
