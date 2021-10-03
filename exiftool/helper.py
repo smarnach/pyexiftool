@@ -69,9 +69,9 @@ class ExifToolHelper(ExifTool):
 	It keeps low-level functionality with the base class but adds helper functions on top of it
 	"""
 
-	############################################################################################
-	#################################### OVERLOADED METHODS ####################################
-	############################################################################################
+	##########################################################################################
+	#################################### OVERRIDE METHODS ####################################
+	##########################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def __init__(self, auto_start=True, **kwargs):
@@ -88,7 +88,7 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def execute(self, *params):
-		""" overload the execute() method so that it checks if it's running first, and if not, start it """
+		""" override the execute() method so that it checks if it's running first, and if not, start it """
 		if self._auto_start and not self.running:
 			self.run()
 
@@ -97,7 +97,7 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def terminate(self, **opts) -> None:
-		""" overload the terminate() method so that if it's not running, won't execute (no warning will be output)
+		""" override the terminate() method so that if it's not running, won't execute (no warning will be output)
 
 		options are passed directly to the parent verbatim
 		"""
