@@ -63,6 +63,7 @@ import os
 import shutil
 from pathlib import Path  # requires Python 3.4+
 import random
+import locale
 
 # for the pdeathsig
 import signal
@@ -211,6 +212,7 @@ class ExifTool(object):
 	  common_args: Optional[List[str]] = ["-G", "-n"],
 	  win_shell: bool = True,
 	  config_file: Optional[str] = None,
+	  encoding = None,
 	  logger = None) -> None:
 		""" common_args defaults to -G -n as this is the most common use case.
 		-n improves the speed, and consistency of output is more machine-parsable
@@ -237,6 +239,7 @@ class ExifTool(object):
 		self._common_args: Optional[List[str]] = None
 		self._no_output = None  # TODO examine whether this is needed
 		self._logger = None
+		self._encoding = None
 
 
 
@@ -254,6 +257,7 @@ class ExifTool(object):
 		# use the passed in parameter, or the default if not set
 		# error checking is done in the property.setter
 		self.executable = executable or constants.DEFAULT_EXECUTABLE
+		self.encoding = encoding
 		self.common_args = common_args
 
 		# set the property, error checking happens in the property.setter
@@ -291,7 +295,6 @@ class ExifTool(object):
 	########################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
-
 	@property
 	def executable(self):
 		return self._executable
@@ -324,6 +327,30 @@ class ExifTool(object):
 		self._executable = abs_path
 
 		if self._logger: self._logger.info(f"Property 'executable': set to \"{abs_path}\"")
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def encoding(self):
+		return self._encoding
+
+	@encoding.setter
+	def encoding(self, new_encoding) -> None:
+		"""
+		Set the encoding of Popen() communication with exiftool process.  Does error checking.
+
+		if new_encoding is None, will detect it from locale.getpreferredencoding(do_setlocale=False)
+		do_setlocale is set to False as not to affect a caller.  will default to UTF-8 if nothing comes back
+
+		this does NOT validate the encoding for validity.  It is passed verbatim into subprocess.Popen()
+		"""
+
+		# cannot set executable when process is running
+		if self.running:
+			raise RuntimeError("Cannot set new executable while Exiftool is running")
+
+		# auto-detect system specific
+		self._encoding = new_encoding or (locale.getpreferredencoding(do_setlocale=False) or ENCODING_UTF8)
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -601,6 +628,7 @@ class ExifTool(object):
 				stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE,
 				stderr=subprocess.PIPE,
+				encoding=self._encoding,
 				**kwargs)
 		except FileNotFoundError as fnfe:
 			raise
@@ -650,6 +678,7 @@ class ExifTool(object):
 			outs, errs = self._process.communicate()  # have to cleanup the process or else .poll() will return None
 			#print("after comm")
 			# TODO a bug filed with Python, or user error... this doesn't seem to work at all ... .communicate() still hangs
+			# https://bugs.python.org/issue43784 ... Windows-specific issue affecting Python 3.8-3.10 (as of this time)
 		else:
 			try:
 				"""
@@ -660,7 +689,7 @@ class ExifTool(object):
 
 					On Linux, this runs as is, and the process terminates properly
 				"""
-				self._process.communicate(input=b"-stay_open\nFalse\n", timeout=timeout)  # TODO these are constants which should be elsewhere defined
+				self._process.communicate(input="-stay_open\nFalse\n", timeout=timeout)  # TODO these are constants which should be elsewhere defined
 				self._process.kill()
 			except subprocess.TimeoutExpired:  # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
 				self._process.kill()
@@ -693,7 +722,7 @@ class ExifTool(object):
 		end-of-output sentinel and returned as a raw ``bytes`` object,
 		excluding the sentinel.
 
-		The parameters must also be raw ``bytes``, in whatever
+		The parameters must be in ``str``, use the `encoding` property to change to
 		encoding exiftool accepts.  For filenames, this should be the
 		system's filesystem encoding.
 
@@ -711,17 +740,17 @@ class ExifTool(object):
 		signal_num = random.randint(100000, 999999)  # arbitrary create a 6 digit number (keep it down to save memory maybe)
 
 		# constant special sequences when running -stay_open mode
-		seq_execute = f"-execute{signal_num}\n".encode(ENCODING_UTF8)  # the default string is b"-execute\n"
-		seq_ready = f"{{ready{signal_num}}}".encode(ENCODING_UTF8)  # the default string is b"{ready}"
+		seq_execute = f"-execute{signal_num}\n"  # the default string is b"-execute\n"
+		seq_ready = f"{{ready{signal_num}}}"  # the default string is b"{ready}"
 
 		# these are special sequences to help with synchronization.  It will print specific text to STDERR before and after processing
 		#SEQ_STDERR_PRE_FMT = "pre{}" # can have a PRE sequence too but we don't need it for syncing
-		seq_err_post = f"post{signal_num}".encode(ENCODING_UTF8)  # default there isn't any string
+		seq_err_post = f"post{signal_num}"  # default there isn't any string
 
-		SEQ_ERR_STATUS_DELIM = b"="  # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
-		seq_err_status = b"${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
+		SEQ_ERR_STATUS_DELIM = "="  # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
+		seq_err_status = "${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
 
-		cmd_text = b"\n".join(params + (b"-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute))
+		cmd_text = "\n".join(params + ("-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 
@@ -731,24 +760,24 @@ class ExifTool(object):
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
 
-		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_text.split(b'\n')[:-1]))
+		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_text.split('\n')[:-1]))
 
 
 		# ---------- read output from exiftool process until special sequences reached ----------
 
 		fdout = self._process.stdout.fileno()
-		output = _read_fd_endswith(fdout, seq_ready, self._block_size)
+		raw_stdout = _read_fd_endswith(fdout, seq_ready.encode(self._encoding), self._block_size).decode(self._encoding)
 
 		# when it's ready, we can safely read all of stderr out, as the command is already done
 		fderr = self._process.stderr.fileno()
-		outerr = _read_fd_endswith(fderr, seq_err_post, self._block_size)
+		raw_stderr = _read_fd_endswith(fderr, seq_err_post.encode(self._encoding), self._block_size).decode(self._encoding)
 
 
 		# ---------- parse output ----------
 
 		# save the outputs to some variables first
-		cmd_stdout = output.strip()[:-len(seq_ready)]
-		cmd_stderr = outerr.strip()[:-len(seq_err_post)]  # save it in case the RuntimeError happens and output can be checked easily
+		cmd_stdout = raw_stdout.strip()[:-len(seq_ready)]
+		cmd_stderr = raw_stderr.strip()[:-len(seq_err_post)]  # save it in case the RuntimeError happens and output can be checked easily
 
 		# sanity check the status code from the stderr output
 		delim_len = len(SEQ_ERR_STATUS_DELIM)
@@ -774,8 +803,8 @@ class ExifTool(object):
 
 
 		if self._logger:
-			self._logger.debug(f"Method 'execute': Reply stdout = {self._last_stdout}")
-			self._logger.debug(f"Method 'execute': Reply stderr = {self._last_stderr}")
+			self._logger.debug(f"Method 'execute': Reply stdout = \"{self._last_stdout}\"")
+			self._logger.debug(f"Method 'execute': Reply stderr = \"{self._last_stderr}\"")
 			self._logger.debug(f"Method 'execute': Reply status = {self._last_status}")
 
 
@@ -808,13 +837,17 @@ class ExifTool(object):
 		respective Python version – as raw strings in Python 2.x and
 		as Unicode strings in Python 3.x.
 		"""
-		params = map(os.fsencode, params)
+
+
+		"""
+		params = map(os.fsencode, params)  # don't fsencode all params, leave them alone for exiftool process to manage
 		# Some latin bytes won't decode to utf-8.
 		# Try utf-8 and fallback to latin.
 		# http://stackoverflow.com/a/5552623/1318758
 		# https://github.com/jmathai/elodie/issues/127
+		"""
 
-		res_stdout = self.execute(b"-j", *params)
+		res_stdout = self.execute("-j", *params)
 		# TODO these aren't used, if not important, comment them out
 		res_err = self._last_stderr
 		res_status = self._last_status
@@ -834,12 +867,15 @@ class ExifTool(object):
 			return None
 
 
+		res_decoded = res_stdout
+		"""
 		# TODO use fsdecode?
 		# os.fsdecode() instead of res_stdout.decode()
 		try:
-			res_decoded = res_stdout.decode(ENCODING_UTF8)
+			res_decoded = res_stdout
 		except UnicodeDecodeError:
 			res_decoded = res_stdout.decode(ENCODING_LATIN1)
+		"""
 		# TODO res_decoded can be invalid json (test this) if `-w` flag is specified in common_args
 		# which will return something like
 		# image files read
@@ -887,8 +923,6 @@ class ExifTool(object):
 		# -ver is just the version
 		# -v gives you more info (perl version, platform, libraries) but isn't helpful for this library
 		# -v2 gives you even more, but it's less useful at that point
-		ret = self.execute(b"-ver")
-
-		return ret.decode(ENCODING_UTF8).strip()
+		return self.execute("-ver").strip()
 
 	# ----------------------------------------------------------------------------------------------------------------------
