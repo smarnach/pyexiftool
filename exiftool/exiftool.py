@@ -210,7 +210,6 @@ class ExifTool(object):
 	  executable: Optional[str] = None,
 	  common_args: Optional[List[str]] = ["-G", "-n"],
 	  win_shell: bool = True,
-	  return_tuple: bool = False,
 	  config_file: Optional[str] = None,
 	  logger = None) -> None:
 		""" common_args defaults to -G -n as this is the most common use case.
@@ -225,7 +224,6 @@ class ExifTool(object):
 		self._process = None  # this is set to the process to interact with when _running=True
 		self._ver = None  # this is set to be the exiftool -v -ver when running
 
-		self._return_tuple: bool = return_tuple  # are we returning a tuple in the execute?
 		self._last_stdout: Optional[str] = None  # previous output
 		self._last_stderr: Optional[str] = None  # previous stderr
 		self._last_status: Optional[int] = None  # previous exit status from exiftool (look up EXIT STATUS in exiftool documentation for more information)
@@ -706,6 +704,8 @@ class ExifTool(object):
 			raise RuntimeError("ExifTool instance not running.")
 
 
+		# ---------- build the special params to execute ----------
+
 		# there's a special usage of execute/ready specified in the manual which make almost ensure we are receiving the right signal back
 		# from exiftool man pages:  When this number is added, -q no longer suppresses the "{ready}"
 		signal_num = random.randint(100000, 999999)  # arbitrary create a 6 digit number (keep it down to save memory maybe)
@@ -717,16 +717,24 @@ class ExifTool(object):
 		# these are special sequences to help with synchronization.  It will print specific text to STDERR before and after processing
 		#SEQ_STDERR_PRE_FMT = "pre{}" # can have a PRE sequence too but we don't need it for syncing
 		seq_err_post = f"post{signal_num}".encode(ENCODING_UTF8)  # default there isn't any string
+
 		SEQ_ERR_STATUS_DELIM = b"="  # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
 		seq_err_status = b"${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
 
-		cmd_text = b"\n".join(params + (b"-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute, ))
+		cmd_text = b"\n".join(params + (b"-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute))
 		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
 		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
+
+
+		# ---------- write to the pipe connected with exiftool process ----------
+
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
 
-		if self._logger: self._logger.info( "Method 'execute': Command sent = {}".format(cmd_text.split(b'\n')[:-1]) )
+		if self._logger: self._logger.info(f"Method 'execute': Command sent = {cmd_text.split(b'\n')[:-1]}")
+
+
+		# ---------- read output from exiftool process until special sequences reached ----------
 
 		fdout = self._process.stdout.fileno()
 		output = _read_fd_endswith(fdout, seq_ready, self._block_size)
@@ -735,42 +743,45 @@ class ExifTool(object):
 		fderr = self._process.stderr.fileno()
 		outerr = _read_fd_endswith(fderr, seq_err_post, self._block_size)
 
-		# save the output to class vars for retrieval
-		self._last_stdout = output.strip()[:-len(seq_ready)]
-		self._last_stderr = outerr.strip()[:-len(seq_err_post)]  # save it in case the RuntimeError happens and output can be checked easily
 
-		out_stderr = self._last_stderr
+		# ---------- parse output ----------
+
+		# save the outputs to some variables first
+		cmd_stdout = output.strip()[:-len(seq_ready)]
+		cmd_stderr = outerr.strip()[:-len(seq_err_post)]  # save it in case the RuntimeError happens and output can be checked easily
 
 		# sanity check the status code from the stderr output
 		delim_len = len(SEQ_ERR_STATUS_DELIM)
-		if out_stderr[-delim_len:] != SEQ_ERR_STATUS_DELIM:
+		if cmd_stderr[-delim_len:] != SEQ_ERR_STATUS_DELIM:
 			# exiftool is expected to dump out the status code within the delims... if it doesn't, the class is broken
-			raise RuntimeError("Exiftool expected to return status on stderr, but got unexpected charcter")
+			raise RuntimeError(f"Exiftool expected to return status on stderr, but got unexpected character: {cmd_stderr[-delim_len:]} != {SEQ_ERR_STATUS_DELIM}")
 
 		# look for the previous delim (we could use regex here to do all this in one step, but it's probably overkill, and could slow down the code significantly)
 		# the other simplification that can be done is that, Exiftool is expected to only return 0, 1, or 2 as per documentation
 		# you could just lop the last 3 characters off... but if the return status changes in the future, then this code would break
-		err_delim_1 = out_stderr.rfind(SEQ_ERR_STATUS_DELIM, 0, -delim_len)
-		out_status = out_stderr[err_delim_1 + delim_len : -delim_len]
+		err_delim_1 = cmd_stderr.rfind(SEQ_ERR_STATUS_DELIM, 0, -delim_len)
+		cmd_status = cmd_stderr[err_delim_1 + delim_len : -delim_len]
 
-		# can check .isnumeric() here, but best just to duck-type cast it
-		self._last_status = int(out_status)
+
+		# ---------- save the output to class vars for later retrieval ----------
+
 		# lop off the actual status code from stderr
-		self._last_stderr = out_stderr[:err_delim_1]
+		self._last_stderr = cmd_stderr[:err_delim_1]
+		self._last_stdout = cmd_stdout
+		# can check .isnumeric() here, but best just to duck-type cast it
+		self._last_status = int(cmd_status)
 
 
 
 		if self._logger:
-			self._logger.debug("Method 'execute': Reply stdout = {}".format(self._last_stdout))
-			self._logger.debug("Method 'execute': Reply stderr = {}".format(self._last_stderr))
-			self._logger.debug("Method 'execute': Reply status = {}".format(self._last_status))
+			self._logger.debug(f"Method 'execute': Reply stdout = {self._last_stdout}")
+			self._logger.debug(f"Method 'execute': Reply stderr = {self._last_stderr}")
+			self._logger.debug(f"Method 'execute': Reply status = {self._last_status}")
 
 
-		if self._return_tuple:
-			return (self._last_stdout, self._last_stderr, self._last_status, )
-		else:
-			# this was the standard return before, just stdout
-			return self._last_stdout
+		# the standard return: just stdout
+		# if you need other output, retrieve from properties
+		return self._last_stdout
 
 
 
@@ -802,21 +813,14 @@ class ExifTool(object):
 		# Try utf-8 and fallback to latin.
 		# http://stackoverflow.com/a/5552623/1318758
 		# https://github.com/jmathai/elodie/issues/127
-		std = self.execute(b"-j", *params)
 
-		if self._return_tuple:
-			# get stdout only
-			res = std[0]
-			# TODO these aren't used, if not important, comment them out
-			res_err = std[1]
-			res_status = std[2]
-		else:
-			res = std
-			# TODO these aren't used, if not important, comment them out
-			res_err = self._last_stderr
-			res_status = self._last_status
+		res_stdout = self.execute(b"-j", *params)
+		# TODO these aren't used, if not important, comment them out
+		res_err = self._last_stderr
+		res_status = self._last_status
 
-		if len(res) == 0:
+
+		if len(res_stdout) == 0:
 			# the output from execute() can be empty under many relatively ambiguous situations
 			# * command has no files it worked on
 			# * a file specified or files does not exist
@@ -831,11 +835,11 @@ class ExifTool(object):
 
 
 		# TODO use fsdecode?
-		# os.fsdecode() instead of res.decode()
+		# os.fsdecode() instead of res_stdout.decode()
 		try:
-			res_decoded = res.decode(ENCODING_UTF8)
+			res_decoded = res_stdout.decode(ENCODING_UTF8)
 		except UnicodeDecodeError:
-			res_decoded = res.decode(ENCODING_LATIN1)
+			res_decoded = res_stdout.decode(ENCODING_LATIN1)
 		# TODO res_decoded can be invalid json (test this) if `-w` flag is specified in common_args
 		# which will return something like
 		# image files read
@@ -862,7 +866,7 @@ class ExifTool(object):
 		""" private method that resets the "running" state
 			It used to be that there was only self._running to unset, but now it's a trio of variables
 
-			This method makes it less likely someone will leave off a variable if one comes up in the future
+			This method makes it less likely a maintainer will leave off a variable if other ones are added in the future
 		"""
 		self._process = None  # don't delete, just leave as None
 		self._ver = None  # unset the version
@@ -882,8 +886,6 @@ class ExifTool(object):
 		# -v gives you more info (perl version, platform, libraries) but isn't helpful for this library
 		# -v2 gives you even more, but it's less useful at that point
 		ret = self.execute(b"-ver")
-		if self._return_tuple:
-			ret = ret[0]  # only take stdout if a tuple is returned
 
 		return ret.decode(ENCODING_UTF8).strip()
 
