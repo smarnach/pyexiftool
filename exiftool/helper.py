@@ -33,7 +33,7 @@ except NameError:
 	basestring = (bytes, str)
 
 
-from pathlib import PurePath  # Python 3.4 required
+#from pathlib import PurePath  # Python 3.4 required
 
 from typing import Any
 
@@ -97,7 +97,7 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def terminate(self, **opts) -> None:
-		""" override the terminate() method so that if it's not running, won't execute (no warning will be output)
+		""" override the terminate() method so that if it's not running, won't call super() method (so no warning about 'ExifTool not running' will trigger)
 
 		options are passed directly to the parent verbatim
 		"""
@@ -114,61 +114,90 @@ class ExifToolHelper(ExifTool):
 	#################################### NEW METHODS ####################################
 	#####################################################################################
 
+
+	# all generic helper functions will follow a convention of
+	# function(files to be worked on, ... , params=)
+
+
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_metadata(self, in_files, params=None):
+	def get_metadata(self, files, params=None):
 		"""Return all meta-data for the given files.
 
-			This will ALWAYS return a list
+			This will returns a list, or None
 
-			in_files can be an iterable(strings) or a string.
+			files parameter matches :py:meth:`get_tags()`
 
 			wildcard strings are accepted as it's passed straight to exiftool
 
 		The return value will have the format described in the
 		documentation of :py:meth:`get_tags()`.
 		"""
-		return self.get_tags(None, in_files, params=params)
+		return self.get_tags(files, None, params=params)
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_tags(self, in_tags, in_files, params=None):
+	def get_tags(self, files, tags, params=None):
 		"""Return only specified tags for the given files.
 
-		The first argument is an iterable of tags.  The tag names may
+		The first argument is the files to be worked on.  It can be:
+		* an iterable of strings/bytes
+		* string/bytes
+
+		The list is copied and any non-basestring elements are converted to str (to support PurePath and other similar objects)
+
+		Filenames are NOT checked for existence, that is left up to the caller.
+		It is passed directly to exiftool, which supports wildcards, etc.  Please refer to the exiftool documentation
+
+
+		The second argument is an iterable of tags.  The tag names may
 		include group names, as usual in the format <group>:<tag>.
 
-		If in_tags is None, or [], then returns all tags
+		If tags is None, or [], then returns all tags
 
-		The second argument is an iterable of file names.  or a single file name
 
 		The format of the return value is the same as for
 		:py:meth:`execute_json()`.
 		"""
 
-		tags = None
-		files = None
+		final_tags = None
+		final_files = None
 
-		if in_tags is None:
+		if tags is None:
 			# all tags
-			tags = []
-		elif isinstance(in_tags, basestring):
-			tags = [in_tags]
-		elif _is_iterable(in_tags):
-			tags = in_tags
+			final_tags = []
+		elif isinstance(tags, basestring):
+			final_tags = [tags]
+		elif _is_iterable(tags):
+			final_tags = tags
 		else:
-			raise TypeError("The argument 'in_tags' must be a str/bytes or a list")
+			raise TypeError("The argument 'tags' must be a str/bytes or a list")
 
 
-		# TODO take Path-like objects in a list and single line convert with str()
-		if isinstance(in_files, basestring):
-			files = [in_files]
-		elif isinstance(in_files, PurePath):
-			# support for Path-like objects
-			files = [str(in_files)]
-		elif _is_iterable(in_files):
-			files = in_files
+
+		if not files:
+			# Exiftool process would return None anyways
+			raise TypeError("The argument 'files' cannot be empty")
+		elif isinstance(files, basestring):
+			final_files = [files]
+		elif not _is_iterable(files):
+			final_files = [str(files)]
 		else:
-			raise TypeError("The argument 'in_files' must be a str/bytes or a list")
+			# I'm sure there's a more pythonic way to do this, with a single line and expansion and stuff... but I can't figure it out . . .
+
+			final_files = []
+
+			# TODO: this list copy could be expensive if the input is a very huge list.  Perhaps in the future have a flag that takes the lists in verbatim?
+
+			# duck-type whatever given that's an iterable
+			for x in files:
+				if isinstance(x, basestring):
+					final_files.append(x)
+				else:
+					# to support PurePath objects, for example, the output of Path.glob(),
+					# need to convert the whole list of anything not basestring to str()
+					#
+					# make it generic so that we can support anything that allows you to str() the object to something useful
+					final_files.append(str(x))
 
 
 		exec_params = []
@@ -178,9 +207,9 @@ class ExifToolHelper(ExifTool):
 			exec_params.extend(params)
 
 		# tags is always a list by this point.  It will always be iterable... don't have to check for None
-		exec_params.extend(["-" + t for t in tags])
+		exec_params.extend([f"-{t}" for t in final_tags])
 
-		exec_params.extend(files)
+		exec_params.extend(final_files)
 
 		ret = self.execute_json(*exec_params)
 

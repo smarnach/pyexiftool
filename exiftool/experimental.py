@@ -100,6 +100,17 @@ class ExifToolAlpha(ExifToolHelper):
 	""" this class extends the ExifToolHelper class with alpha-quality code, which,
 	may add functionality, but may introduce bugs or add in unneeded bloat which may
 	be specific to niche use cases
+
+	lots of these methods are from the original incarnation of pyexiftool
+	with miscellaneous added pull requests.
+
+	There's a lot of extra functionality, but the code quality leaves a lot to be desired
+
+	And in some cases, there are edge cases which return unexpected results... so
+	they will be placed into this class until the functionality can be standardized in a "stable" way
+
+
+	Please issue PR to this class to add functionality, even if not tested well.  This class is for experimental code after all!
 	"""
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -170,6 +181,9 @@ class ExifToolAlpha(ExifToolHelper):
 		return result
 
 	# ----------------------------------------------------------------------------------------------------------------------
+	# this was a method with good intentions by the original author, but returns some inconsistent results in some cases
+	# for example, if you passed in a single tag, or a group name, it would return the first tag back instead of the whole group
+	# try calling get_tag_batch("*.mp4", "QuickTime") or "QuickTime:all" ... the expected results is a dictionary but a single tag is returned
 	def get_tag_batch(self, tag, filenames):
 		"""Extract a single tag from the given files.
 
@@ -181,7 +195,7 @@ class ExifToolAlpha(ExifToolHelper):
 		The return value is a list of tag values or ``None`` for
 		non-existent tags, in the same order as ``filenames``.
 		"""
-		data = self.get_tags([tag], filenames)
+		data = self.get_tags(filenames, [tag])
 		result = []
 		for d in data:
 			d.pop("SourceFile")
