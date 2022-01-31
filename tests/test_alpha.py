@@ -27,6 +27,8 @@ class TestTagCopying(unittest.TestCase):
 			self.temp_obj = None
 			self.tmp_dir = Path(tempfile.mkdtemp(**kwargs))
 		else:
+			# have to save the object or else garbage collection cleans it up and dir gets deleted
+			# https://simpleit.rocks/python/test-files-creating-a-temporal-directory-in-python-unittests/
 			self.temp_obj = tempfile.TemporaryDirectory(**kwargs)
 			self.tmp_dir = Path(self.temp_obj.name)
 

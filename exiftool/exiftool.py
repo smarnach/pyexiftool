@@ -160,17 +160,33 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 class ExifTool(object):
 	"""Run the `exiftool` command-line tool and communicate with it.
 
-	The argument ``print_conversion`` determines whether exiftool should
-	perform print conversion, which prints values in a human-readable way but
+	There argument ``print_conversion`` no longer exists.  Use ``common_args``
+	to enable/disable print conversion by specifying or not ``-n``.
+	This determines whether exiftool should perform print conversion,
+	which prints values in a human-readable way but
 	may be slower. If print conversion is enabled, appending ``#`` to a tag
 	name disables the print conversion for this particular tag.
+	See Exiftool documentation for more details:  https://exiftool.org/faq.html#Q6
 
-	You can pass two arguments to the constructor:
-	- ``common_args`` (list of strings): contains additional paramaters for
-	  the stay-open instance of exiftool
+	You can pass optional arguments to the constructor:
 	- ``executable`` (string): file name of the ``exiftool`` executable.
 	  The default value ``exiftool`` will only work if the executable
 	  is in your ``PATH``
+	  You can also specify the full path to the ``exiftool`` executable.
+	  See :py:attr:`executable` property for more details.
+	- ``common_args`` (list of strings): contains additional paramaters for
+	  the stay-open instance of exiftool.  The default is ``-G`` and ``-n``.
+	  Read the exiftool documenation to get further information on what the
+	  args do:  https://exiftool.org/exiftool_pod.html
+	- ``win_shell``
+	- ``config_file`` (string): file path to ``-config`` parameter when
+	  starting process.
+	  See :py:attr:`config_file` property for more details.
+	- ``encoding`` (string): encoding to be used when communicating with
+	  exiftool process.  By default, will use ``locale.getpreferredencoding()``
+	  See :py:attr:`encoding` property for more details
+	- ``logger`` (object):  Set a custom logger to log status and debug messages to.
+	  See :py:meth:``_set_logger()` for more details.
 
 	Most methods of this class are only available after calling
 	:py:meth:`start()`, which will actually launch the subprocess.  To
@@ -193,7 +209,7 @@ class ExifTool(object):
 	   options will be silently ignored by exiftool, so there's not
 	   much that can be done in that regard.  You should avoid passing
 	   non-existent files to any of the methods, since this will lead
-	   to undefied behaviour.
+	   to undefined behaviour.
 
 	.. py:attribute:: _running
 
@@ -303,7 +319,7 @@ class ExifTool(object):
 	def executable(self, new_executable) -> None:
 		"""
 		Set the executable.  Does error checking.
-
+		You can specify just the executable name, or a full path
 		"""
 		# cannot set executable when process is running
 		if self.running:
@@ -751,8 +767,6 @@ class ExifTool(object):
 		seq_err_status = "${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
 
 		cmd_text = "\n".join(params + ("-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute))
-		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
-		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
 
 
 		# ---------- write to the pipe connected with exiftool process ----------
