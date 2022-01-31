@@ -623,6 +623,9 @@ class ExifTool(object):
 		kwargs: dict = {}
 
 		if constants.PLATFORM_WINDOWS:
+			# TODO: I don't think this code actually does anything ... I've never seen a console pop up on Windows
+			# Perhaps need to specify subprocess.STARTF_USESHOWWINDOW to actually have any console pop up?
+			# https://docs.python.org/3/library/subprocess.html#windows-popen-helpers
 			startup_info = subprocess.STARTUPINFO()
 			if not self._win_shell:
 				# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
@@ -764,9 +767,10 @@ class ExifTool(object):
 		seq_err_post = f"post{signal_num}"  # default there isn't any string
 
 		SEQ_ERR_STATUS_DELIM = "="  # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
-		seq_err_status = "${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation
+		seq_err_status = "${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation - only supported on exiftool v12.10+
 
-		cmd_text = "\n".join(params + ("-echo4", SEQ_ERR_STATUS_DELIM + seq_err_status + SEQ_ERR_STATUS_DELIM + seq_err_post, seq_execute))
+		# f-strings are faster than concatentation of multiple strings -- https://stackoverflow.com/questions/59180574/string-concatenation-with-vs-f-string
+		cmd_text = "\n".join(params + ("-echo4", f"{SEQ_ERR_STATUS_DELIM}{seq_err_status}{SEQ_ERR_STATUS_DELIM}{seq_err_post}", seq_execute))
 
 
 		# ---------- write to the pipe connected with exiftool process ----------
