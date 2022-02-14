@@ -77,6 +77,10 @@ setup(
 		where=".",
 		exclude = ['test*',]
 	),
+
+	extras_require={
+			"test": ["packaging"],
+		},
 	
 	#package_dir={'exiftool': 'exiftool'},
 	
