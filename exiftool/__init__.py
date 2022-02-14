@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# import as directory
+# version number using Semantic Versioning 2.0.0 https://semver.org/
+# may not be PEP-440 compliant https://www.python.org/dev/peps/pep-0440/#semantic-versioning
+__version__ = "0.5.0-alpha.0"
 
 # make all of the original exiftool stuff available in this namespace
 from .exiftool import ExifTool
