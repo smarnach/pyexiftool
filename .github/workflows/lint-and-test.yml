@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -22,7 +22,24 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+        # latest version not yet available on Ubuntu Focal 20.04 LTS, but it's better to install it with all dependencies first
         sudo apt-get install -qq libimage-exiftool-perl
+        exiftool -ver
+
+        # get just the minimum version to build and compile, later we can go with latest version to test
+        export EXIFTOOL_VER=12.15
+        wget http://backpan.perl.org/authors/id/E/EX/EXIFTOOL/Image-ExifTool-$EXIFTOOL_VER.tar.gz
+        tar xf Image-ExifTool-$EXIFTOOL_VER.tar.gz
+        cd Image-ExifTool-$EXIFTOOL_VER/
+
+        # https://exiftool.org/install.html#Unix
+        perl Makefile.PL
+        make test
+
+        export PATH=`pwd`:$PATH
+        cd ..
+        exiftool -ver
     - name: Install pyexiftool
       run: |
         python -m pip install .
