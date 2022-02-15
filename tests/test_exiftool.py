@@ -42,12 +42,24 @@ class TestExifTool(unittest.TestCase):
 		self.assertFalse(self.et.running)
 		self.et.run()
 		self.assertTrue(self.et.running)
+
+		# if it's running, the executable has to exist (test coverage on reading the property)
+		e = self.et.executable
+		self.assertTrue(Path(e).exists())
+
 		with self.assertRaises(RuntimeError):
 			self.et.executable = "x"
 		self.et.terminate()
+
 		with self.assertRaises(FileNotFoundError):
 			self.et.executable = "lkajsdfoleiawjfasv"
+
+		# specify the executable explicitly with the one known to exist (test coverage)
+		self.et.executable = e
+		self.assertEqual(self.et.executable, e)  # absolute path set should not change
+
 		self.assertFalse(self.et.running)
+
 	# ---------------------------------------------------------------------------------------------------------
 	def test_blocksize_attribute(self):
 		current = self.et.block_size
@@ -59,8 +71,52 @@ class TestExifTool(unittest.TestCase):
 		with self.assertRaises(ValueError):
 			self.et.block_size = -1
 
+		with self.assertRaises(ValueError):
+			self.et.block_size = 0
+
 		# restore
 		self.et.block_size = current
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_encoding_attribute(self):
+		current = self.et.encoding
+
+		self.et.run()
+
+		# cannot set when running
+		with self.assertRaises(RuntimeError):
+			self.et.encoding = "x"
+		self.et.terminate()
+
+		self.et.encoding = "x"
+		self.assertEqual(self.et.encoding, "x")
+
+		# restore
+		self.et.encoding = current
+
+
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_common_args_attribute(self):
+
+		self.et.run()
+		with self.assertRaises(RuntimeError):
+			self.et.common_args = []
+
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_version_attirubte(self):
+		self.et.run()
+		# no error
+		a = self.et.version
+
+		self.et.terminate()
+
+		# version is invalid when not running
+		with self.assertRaises(RuntimeError):
+			a = self.et.version
+
+
 
 	# ---------------------------------------------------------------------------------------------------------
 
@@ -179,19 +235,27 @@ class TestExifTool(unittest.TestCase):
 		# set to common_args=None == []
 		self.assertEqual(exiftool.ExifTool(common_args=None).common_args, [])
 	# ---------------------------------------------------------------------------------------------------------
-	"""
 	def test_logger(self):
+		""" TODO improve this test, currently very rudimentary """
 		log = logging.getLogger("log_test")
-		log.level = logging.WARNING
+		#log.level = logging.WARNING
 
-		logpath = TMP_DIR / 'exiftool_test.log'
-		fh = logging.FileHandler(logpath)
+		#logpath = TMP_DIR / 'exiftool_test.log'
+		#fh = logging.FileHandler(logpath)
 
-		log.addHandler(fh)
+		#log.addHandler(fh)
 
-		self.et.run()
+		self.et.logger = log
+		# no errors
 
-	"""
+		log = "bad log" # not a logger object
+		with self.assertRaises(TypeError):
+			self.et.logger = log
+
+		self.et.run()  # get some coverage by doing stuff
+
+	# ---------------------------------------------------------------------------------------------------------
+
 
 	# ---------------------------------------------------------------------------------------------------------
 
