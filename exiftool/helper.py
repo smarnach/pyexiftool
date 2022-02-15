@@ -170,11 +170,11 @@ class ExifToolHelper(ExifTool):
 		elif _is_iterable(tags):
 			final_tags = tags
 		else:
-			raise TypeError("The argument 'tags' must be a str/bytes or a list")
+			raise TypeError("ExifToolHelper.get_tags(): argument 'tags' must be a str/bytes or a list")
 
 		if not files:
 			# Exiftool process would return None anyways
-			raise TypeError("The argument 'files' cannot be empty")
+			raise ValueError("ExifToolHelper.get_tags(): argument 'files' cannot be empty")
 		elif isinstance(files, basestring):
 			final_files = [files]
 		elif not _is_iterable(files):
@@ -191,8 +191,14 @@ class ExifToolHelper(ExifTool):
 		exec_params = []
 
 		if params:
-			# this is done to avoid accidentally modifying the reference object params
-			exec_params.extend(params)
+			if isinstance(params, basestring):
+				# if params is a string, append it as is
+				exec_params.append(params)
+			elif _is_iterable(params):
+				# this is done to avoid accidentally modifying the reference object params
+				exec_params.extend(params)
+			else:
+				raise TypeError("ExifToolHelper.get_tags(): argument 'params' must be a str or a list")
 
 		# tags is always a list by this point.  It will always be iterable... don't have to check for None
 		exec_params.extend([f"-{t}" for t in final_tags])
@@ -202,7 +208,7 @@ class ExifToolHelper(ExifTool):
 		ret = self.execute_json(*exec_params)
 
 		if ret is None:
-			raise RuntimeError("get_tags: exiftool returned no data")
+			raise RuntimeError("ExifToolHelper.get_tags(): exiftool returned no data")
 
 		# TODO if last_status is <> 0, raise a warning that one or more files failed?
 
