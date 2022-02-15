@@ -1,5 +1,6 @@
+**********
 PyExifTool
-==========
+**********
 
 PyExifTool is a Python library to communicate with an instance of Phil
 Harvey's excellent ExifTool_ command-line application.  The library
@@ -14,7 +15,7 @@ process for every single query.
 .. _ExifTool: https://exiftool.org/
 
 Getting PyExifTool
-------------------
+==================
 
 The source code can be checked out from the github repository with
 
@@ -29,20 +30,22 @@ Official releases are on the `PyExifTool PyPI`_
 .. _tarball: https://github.com/sylikc/pyexiftool/tarball/master
 .. _PyExifTool PyPI: https://pypi.org/project/PyExifTool/
 
-Installation
-------------
 
-PyExifTool runs on Python 3.6 and above.  (If you need Python 2.6 support,
+Installation
+============
+
+Prerequisites
+-------------
+
+Python
+^^^^^^
+
+PyExifTool runs on **Python 3.6+**.  (If you need Python 2.6 support,
 please use version v0.4.x).  PyExifTool has been tested on Windows and
 Linux, and probably also runs on other Unix-like platforms.
 
-Run
-::
-
-    python setup.py install [--user|--prefix=<installation-prefix]
-
-to automatically install this module from source.
-
+Phil Harvey's exiftool
+^^^^^^^^^^^^^^^^^^^^^^
 
 For PyExifTool to function, you need an installation of the ``exiftool``
 command-line tool.  The code requires a **minimum version of 12.15**
@@ -61,20 +64,31 @@ Unfortunately, some do not have the minimum required version, in which case you
 will have to `build from source`_.
 
 * Ubuntu
-::
+  ::
 
     sudo apt install libimage-exiftool-perl
 
 * CentOS/RHEL
-::
+  ::
 
     yum install perl-Image-ExifTool
 
 .. _build from source: https://exiftool.org/install.html#Unix
 
 
+Install PyExifTool
+^^^^^^^^^^^^^^^^^^
+
+Run
+::
+
+    python setup.py install [--user|--prefix=<installation-prefix]
+
+to automatically install this module from source.
+
+
 Package Structure
------------------
+=================
 
 PyExifTool consists of a few modules, each with increasingly more features.
 
@@ -82,23 +96,23 @@ The base ``ExifTool`` class is the most rudimentary, and each successive class
 inherits and adds functionality.
 
 * ``ExifTool`` is the base class with functionality which will not likely change.
-It contains the core features with no extra fluff.  The API is considered stable
-and should not change much with new versions.
+  It contains the core features with no extra fluff.  The API is considered stable
+  and should not change much with new versions.
 
 * ``ExifToolHelper`` adds the most commonly used functionality.  It overloads
-some functions to turn common errors into warnings or makes checks to make
-``ExifTool`` easier to use.  More methods may be added or slight tweaks may
-come with new versions.
+  some functions to turn common errors into warnings or makes checks to make
+  ``ExifTool`` easier to use.  More methods may be added or slight tweaks may
+  come with new versions.
 
 * ``ExifToolAlpha`` includes some of the community functionality that contributors
-added for edge use cases.  It is *not* up to the rigorous testing standard of both
-``ExifTool`` or ``ExifToolHelper``.  There may be old or defunct code at any time.
-This is the least polished of the classes and functionality/API may be
-changed/added/removed at any time.
+  added for edge use cases.  It is *not* up to the rigorous testing standard of both
+  ``ExifTool`` or ``ExifToolHelper``.  There may be old or defunct code at any time.
+  This is the least polished of the classes and functionality/API may be
+  changed/added/removed at any time.
 
 
 Testing
--------------
+=============
 
 Run tests to make sure it's functional
 
@@ -107,16 +121,19 @@ Run tests to make sure it's functional
     python -m unittest discover -v
 
 Documentation
--------------
+=============
 
-The documentation is available at
+The documentation is available at `sylikc.github.io`_
 
 ::
 
     http://sylikc.github.io/pyexiftool/
 
+.. _sylikc.github.io: http://sylikc.github.io/pyexiftool/
+
+
 Brief History
--------------
+=============
 
 PyExifTool was originally developed by `Sven Marnach`_ in 2012 to answer a
 stackoverflow question `Call exiftool from a python script?`_.  Over time,
@@ -138,7 +155,9 @@ Kevin M (sylikc) made the first release to PyPI repository in early 2021.
 At the same time, discussions were starting revolving around
 `Deprecating Python 2.x compatibility`_ and `refactoring the code and classes`_.
 
-The latest v0.5.x+ version is the result of all of that design and coding.
+The latest version is the result of all of those discussions, designs,
+and development.  Special thanks to the community contributions, especially
+`Jan Philip Göpfert`_, `Seth P`_, and `Kolen Cheung`_.
 
 .. _Sven Marnach: https://github.com/smarnach/pyexiftool
 .. _Call exiftool from a python script?: https://stackoverflow.com/questions/10075115/call-exiftool-from-a-python-script/10075210#10075210
@@ -150,9 +169,12 @@ The latest v0.5.x+ version is the result of all of that design and coding.
 .. _Provide visibility for an active fork: https://github.com/smarnach/pyexiftool/pull/31
 .. _Deprecating Python 2.x compatibility: https://github.com/sylikc/pyexiftool/discussions/9
 .. _refactoring the code and classes: https://github.com/sylikc/pyexiftool/discussions/10
+.. _Jan Philip Göpfert: https://github.com/jangop
+.. _Seth P: https://github.com/csparker247
+.. _Kolen Cheung: https://github.com/ickc
 
 Licence
--------
+=======
 
 PyExifTool is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
