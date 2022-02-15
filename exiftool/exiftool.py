@@ -478,28 +478,6 @@ class ExifTool(object):
 
 		return self._ver
 
-
-	# ----------------------------------------------------------------------------------------------------------------------
-	@property
-	def version_tuple(self) -> tuple:
-		""" returns a parsed (major, minor) with integers """
-		if not self.running:
-			raise RuntimeError("Can't get ExifTool version when it's not running!")
-
-		# TODO this isn't entirely tested... possibly a version with more "." or something might break this parsing
-		arr: List = self._ver.split(".", 1)  # split to (major).(whatever)
-
-		res: List = []
-		try:
-			for v in arr:
-				res.append(int(v))
-		except ValueError:
-			raise ValueError(f"Error parsing ExifTool version: '{self._ver}'")
-
-		return tuple(res)
-
-
-
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def last_stdout(self) -> Optional[str]:
@@ -597,6 +575,8 @@ class ExifTool(object):
 
 		If it doesn't run successfully, an error will be raised, otherwise, the ``exiftool`` process has started
 
+		If the minimum required version check fails, a RuntimeError will be raised, and exiftool is automatically terminated.
+
 		(if you have another executable named exiftool which isn't exiftool, then you're shooting yourself in the foot as there's no error checking for that)
 		"""
 		if self.running:
@@ -671,10 +651,27 @@ class ExifTool(object):
 
 		# get ExifTool version here and any Exiftool metadata
 		# this can also verify that it is really ExifTool we ran, not some other random process
-		self._ver = self._parse_ver()
+		try:
+			# apparently because .execute() has code that already depends on v12.15+ functionality, this will throw a ValueError immediately with
+			#   ValueError: invalid literal for int() with base 10: '${status}'
+			self._ver = self._parse_ver()
+		except ValueError:
+			# trap the error and return it as a minimum version problem
+			self.terminate()
+			raise RuntimeError(f"Error retrieving Exiftool info.  Is your Exiftool version ('exiftool -ver') >= required version ('{constants.EXIFTOOL_MINIMUM_VERSION}')?")
 
 		if self._logger: self._logger.info(f"Method 'run': Exiftool version '{self._ver}' (pid {self._process.pid}) launched with args '{proc_args}'")
 
+
+		# currently not needed... if it passes -ver, the rest is OK
+		"""
+		# check that the minimum required version is met, if not, terminate...
+		# if you run against a version which isn't supported, strange errors come up during execute()
+		if not self._exiftool_version_check():
+			self.terminate()
+			if self._logger: self._logger.error(f"Method 'run': Exiftool version '{self._ver}' did not meet the required minimum version '{constants.EXIFTOOL_MINIMUM_VERSION}'")
+			raise RuntimeError(f"exiftool version '{self._ver}' < required '{constants.EXIFTOOL_MINIMUM_VERSION}'")
+		"""
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -942,5 +939,50 @@ class ExifTool(object):
 		# -v gives you more info (perl version, platform, libraries) but isn't helpful for this library
 		# -v2 gives you even more, but it's less useful at that point
 		return self.execute("-ver").strip()
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	"""
+	def _exiftool_version_check(self) -> bool:
+		"" " private method to check the minimum required version of ExifTool
+
+		returns false if the version check fails
+		returns true if it's OK
+
+		"" "
+
+		# parse (major, minor) with integers... so far Exiftool versions are all ##.## with no exception
+		# this isn't entirely tested... possibly a version with more "." or something might break this parsing
+		arr: List = self._ver.split(".", 1)  # split to (major).(whatever)
+
+		version_nums: List = []
+		try:
+			for v in arr:
+				res.append(int(v))
+		except ValueError:
+			raise ValueError(f"Error parsing ExifTool version for version check: '{self._ver}'")
+
+		if len(version_nums) != 2:
+			raise ValueError(f"Expected Major.Minor len()==2, got: {version_nums}")
+
+		curr_major, curr_minor = version_nums
+
+
+		# same logic above except on one line
+		req_major, req_minor = [int(x) for x in constants.EXIFTOOL_MINIMUM_VERSION.split(".", 1)]
+
+		if curr_major > req_major:
+			# major version is bigger
+			return True
+		elif curr_major < req_major:
+			# major version is smaller
+			return False
+		elif curr_minor >= req_minor:
+			# major version is equal
+			# current minor is equal or better
+			return True
+		else:
+			# anything else is False
+			return False
+	"""
 
 	# ----------------------------------------------------------------------------------------------------------------------

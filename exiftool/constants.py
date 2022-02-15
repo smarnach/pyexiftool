@@ -73,3 +73,8 @@ PR_SET_PDEATHSIG: int = 1  # taken from linux/prctl.h
 # should be fine, though other values might give better performance in
 # some cases.
 DEFAULT_BLOCK_SIZE: int = 4096
+
+# this is the minimum version required at this time
+# 8.40 / 8.60 (production): implemented the -stay_open flag
+# 12.10 / 12.15 (production): implemented exit status on -echo4
+EXIFTOOL_MINIMUM_VERSION = "12.15"
