@@ -14,8 +14,24 @@ process for every single query.
 
 .. _ExifTool: https://exiftool.org/
 
+
 Getting PyExifTool
 ==================
+
+PyPI
+------------
+
+Easiest: Install a version from the official `PyExifTool PyPI`_
+
+::
+
+    python -m pip install -U pyexiftool
+
+.. _PyExifTool PyPI: https://pypi.org/project/PyExifTool/
+
+
+From Source
+------------
 
 The source code can be checked out from the github repository with
 
@@ -25,39 +41,56 @@ The source code can be checked out from the github repository with
 
 Alternatively, you can download a tarball_.
 
-Official releases are on the `PyExifTool PyPI`_
-
 .. _tarball: https://github.com/sylikc/pyexiftool/tarball/master
-.. _PyExifTool PyPI: https://pypi.org/project/PyExifTool/
+
+Run
+
+::
+
+    python setup.py install [--user|--prefix=<installation-prefix]
+
+to automatically install this module from source.
 
 
-Installation
-============
-
-Prerequisites
--------------
+PyExifTool Dependencies
+=======================
 
 Python
-^^^^^^
+------
 
 PyExifTool runs on **Python 3.6+**.  (If you need Python 2.6 support,
 please use version v0.4.x).  PyExifTool has been tested on Windows and
 Linux, and probably also runs on other Unix-like platforms.
 
 Phil Harvey's exiftool
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
-For PyExifTool to function, you need an installation of the ``exiftool``
-command-line tool.  The code requires a **minimum version of 12.15**
-(which was the first production version of exiftool featuring the options
-to allow exit status checks used in conjuction with ``-echo3`` and
-``-echo4`` parameters).
+For PyExifTool to function, ``exiftool`` command-line tool must exist on
+the system.  If ``exiftool`` is not on the ``PATH``, you can specify the full
+pathname to it by using ``ExifTool(executable=<full path>)``.
+
+PyExifTool requires a **minimum version of 12.15** (which was the first 
+production version of exiftool featuring the options to allow exit status 
+checks used in conjuction with ``-echo3`` and ``-echo4`` parameters).
+
+To check your ``exiftool`` version:
+
+::
+
+    exiftool -ver
+
+
+Windows/Mac
+^^^^^^^^^^^
 
 Windows/Mac users can download the latest version of exiftool:
 
 ::
 
     https://exiftool.org
+
+Linux
+^^^^^
 
 Most current Linux distributions have a package which will install ``exiftool``.
 Unfortunately, some do not have the minimum required version, in which case you
@@ -76,19 +109,22 @@ will have to `build from source`_.
 .. _build from source: https://exiftool.org/install.html#Unix
 
 
-Install PyExifTool
-^^^^^^^^^^^^^^^^^^
+Documentation
+=============
 
-Run
+The documentation is available at `sylikc.github.io`_.
+It is slightly outdated at the moment but will be improved as the
+project moves forward
+
 ::
 
-    python setup.py install [--user|--prefix=<installation-prefix]
+    http://sylikc.github.io/pyexiftool/
 
-to automatically install this module from source.
+.. _sylikc.github.io: http://sylikc.github.io/pyexiftool/
 
 
 Package Structure
-=================
+-----------------
 
 PyExifTool consists of a few modules, each with increasingly more features.
 
@@ -109,27 +145,6 @@ inherits and adds functionality.
   ``ExifTool`` or ``ExifToolHelper``.  There may be old or defunct code at any time.
   This is the least polished of the classes and functionality/API may be
   changed/added/removed at any time.
-
-
-Testing
-=============
-
-Run tests to make sure it's functional
-
-::
-
-    python -m unittest discover -v
-
-Documentation
-=============
-
-The documentation is available at `sylikc.github.io`_
-
-::
-
-    http://sylikc.github.io/pyexiftool/
-
-.. _sylikc.github.io: http://sylikc.github.io/pyexiftool/
 
 
 Brief History
@@ -185,4 +200,4 @@ PyExifTool is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-See COPYING.GPL or COPYING.BSD for more details.
+See ``LICENSE`` for more details.
