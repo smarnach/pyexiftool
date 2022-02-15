@@ -29,28 +29,28 @@ single instance needs to be launched and can be reused for many
 queries.  This is much more efficient than launching a separate
 process for every single query.
 
-.. _ExifTool: http://www.sno.phy.queensu.ca/~phil/exiftool/
+.. _ExifTool: https://exiftool.org
 
 The source code can be checked out from the github repository with
 
 ::
 
-	git clone git://github.com/smarnach/pyexiftool.git
+	git clone git://github.com/sylikc/pyexiftool.git
 
 Alternatively, you can download a tarball_.  There haven't been any
 releases yet.
 
-.. _tarball: https://github.com/smarnach/pyexiftool/tarball/master
+.. _tarball: https://github.com/sylikc/pyexiftool/tarball/master
 
-PyExifTool is licenced under GNU GPL version 3 or later.
+PyExifTool is licenced under GNU GPL version 3 or later, or BSD license.
 
 Example usage::
 
 	import exiftool
 
 	files = ["a.jpg", "b.png", "c.tif"]
-	with exiftool.ExifTool() as et:
-		metadata = et.get_metadata_batch(files)
+	with exiftool.ExifToolHelper() as et:
+		metadata = et.get_metadata(files)
 	for d in metadata:
 		print("{:20.20} {:20.20}".format(d["SourceFile"],
 										 d["EXIF:DateTimeOriginal"]))
@@ -226,7 +226,7 @@ class ExifTool(object):
 	def __init__(self,
 	  executable: Optional[str] = None,
 	  common_args: Optional[List[str]] = ["-G", "-n"],
-	  win_shell: bool = True,
+	  win_shell: bool = False,
 	  config_file: Optional[str] = None,
 	  encoding = None,
 	  logger = None) -> None:
