@@ -12,7 +12,6 @@ PERSISTENT_TMP_DIR = False  # if set to true, will not delete temp dir on exit (
 
 
 class InitializationTest(unittest.TestCase):
-	@unittest.expectedFailure
 	def test_initialization(self):
 		"""
 		Initialization with all arguments at their default values.
@@ -49,7 +48,7 @@ class ReadingTest(unittest.TestCase):
 		Confronted with a nonexistent file, `get_tag` should probably return None (as the tag is not found) or raise an
 		appropriate exception.
 		"""
-		result = self.exif_tool_helper.get_tag('DateTimeOriginal', 'foo.bar')
+		result = self.exif_tool_helper.get_tags('foo.bar', 'DateTimeOriginal')
 		self.assertIsNone(result)
 
 
@@ -66,6 +65,26 @@ class TestExifToolHelper(unittest.TestCase):
 		if hasattr(self, "process"):
 			if self.process.poll() is None:
 				self.process.terminate()
+
+	# ---------------------------------------------------------------------------------------------------------
+
+	def test_terminate(self):
+		self.et.terminate()
+		# no warnings good
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_get_tags(self):
+
+		with self.assertRaises(TypeError):
+			# files can't be None
+			self.et.get_tags(None, None)
+			self.et.get_tags([], None)
+
+
+
+
+	# ---------------------------------------------------------------------------------------------------------
+
 
 
 # ---------------------------------------------------------------------------------------------------------
