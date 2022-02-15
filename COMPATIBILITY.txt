@@ -1,15 +1,50 @@
 PyExifTool does not guarantee source-level compatibility from one release to the next.
 
-That said, efforts will be made to provide well-documented API-level compatibility, 
-and if there are major API changes, migration documentation will be provided, when 
+That said, efforts will be made to provide well-documented API-level compatibility,
+and if there are major API changes, migration documentation will be provided, when
 possible.
 
 ----
 
-v0.1.x - v0.2.0 = smarnach code, API compatible
-v0.2.1 - v0.4.5 = code with all PRs, a superset of functionality on Exiftool class
-v0.5.0 -        = "should be" API compatible with v0.2.0, but moves functionality added in the versions before to other classes
+v0.1.x - v0.2.0  = smarnach code, API compatible
+v0.2.1 - v0.4.13 = code with all PRs, a superset of functionality on Exiftool class
+v0.5.0 -         = not API compatible with the v0.4.x series.  See comments below:
 
 
-API changes between v0.2.0 and v0.5.0
-	Exiftool constructor, "executable_" parameter renamed to "executable"
+----
+API changes between v0.4.x and v0.5.0:
+
+	Old: Python 2.6 supported.  New: Python 3.6+ required
+
+	Exiftool constructor:
+		"executable_" parameter renamed to "executable"
+		common_args defaults to ["-G", "-n"] instead of None.  Old behavior set -G and -n if common_args is None.  New behavior common_args = [] if common_args is None.
+		Old: win_shell defaults to True.  New: win_shell defaults to False.
+		New encoding parameter
+		New logger parameter
+
+	a lot of properties were added to do get/set validation, and parameters can be changed outside of the constructor.
+
+	starting the process was renamed from "start" to "run"
+
+	exiftool command line utility minimum requirements.  Old: 8.60.  New: 12.15
+
+	execute() and execute_json() no longer take bytes, but is guided by the encoding set in constructor/property
+
+	execute_json() when no json was not returned (such as a set metadata operation) => Old: raised an error.  New: returns None
+
+	all methods other than execute() and execute_json() moved to ExifToolHelper or ExifToolAlpha class.
+
+	ExifToolHelper adds methods:
+		get_metadata()
+		get_tags()
+
+		NEW CONVENTION: all methods take "files" first, "tags" second (if needed) and "params" last
+
+
+	ExifToolAlpha adds all remaining methods in an alpha-quality way
+
+	NOTE: ExifToolAlpha has not been updated yet to use the new convention, and the edge case code may be removed/changed at any time.
+		If you depend on functionality provided by ExifToolAlpha, please submit an Issue to start a discussion on cleaning up the code and moving it into ExifToolHelper
+----
+
