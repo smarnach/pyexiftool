@@ -34,6 +34,7 @@ Date (Timezone)              | Version | Comment
 08/22/2021 08:32:30 PM (PDT) | 0.4.10  | logger changed to use logging.getLogger(__name__) instead of the root logger -- Merged pull request #24 from @nyoungstudios
 08/22/2021 08:34:45 PM (PDT) | 0.4.11  | no functional code changes.  Changed setup.py with updated version and Documentation link pointed to sylikc.github.io -- as per issue #27 by @derMart
 08/22/2021 09:02:33 PM (PDT) | 0.4.12  | fixed a bug ExifTool.terminate() where there was a typo.  Kept the unused outs, errs though. -- from suggestion in pull request #26 by @aaronkollasch
+02/13/2022 03:38:45 PM (PST) | 0.4.13  | (NOTE: Barring any critical bug, this is expected to be the LAST Python 2 supported release!)  added GitHub actions.  fixed bug in execute_json_wrapper() 'error' was not defined syntactically properly -- merged pull request #30 by https://github.com/jangop
 
 
 On version changes, update setup.py to reflect version
