@@ -10,4 +10,8 @@ MANIFEST
 .coverage
 
 # tests will be made to write to temp directories with this prefix
-tests/exiftool-tmp-*
+#tests/exiftool-tmp-*
+tests/tmp/
+
+# IntelliJ
+.idea
