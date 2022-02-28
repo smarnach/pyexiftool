@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import unittest
+import tempfile
 import exiftool
 from exiftool.exceptions import ExifToolRunning, ExifToolNotRunning
 import warnings
@@ -13,9 +14,12 @@ import logging  # to test logger
 import sys
 from pathlib import Path
 
-TMP_DIR = Path(__file__).resolve().parent / 'tmp'
 
 PLATFORM_WINDOWS: bool = (sys.platform == 'win32')
+
+
+SCRIPT_PATH = Path(__file__).resolve().parent
+PERSISTENT_TMP_DIR = False  # if set to true, will not delete temp dir on exit (useful for debugging output)
 
 
 class TestExifTool(unittest.TestCase):
@@ -49,11 +53,11 @@ class TestExifTool(unittest.TestCase):
 		self.assertTrue(Path(e).exists())
 
 		with self.assertRaises(ExifToolRunning):
-			self.et.executable = "x"
+			self.et.executable = "foo.bar"
 		self.et.terminate()
 
 		with self.assertRaises(FileNotFoundError):
-			self.et.executable = "lkajsdfoleiawjfasv"
+			self.et.executable = "foo.bar"
 
 		# specify the executable explicitly with the one known to exist (test coverage)
 		self.et.executable = e
@@ -86,11 +90,11 @@ class TestExifTool(unittest.TestCase):
 
 		# cannot set when running
 		with self.assertRaises(ExifToolRunning):
-			self.et.encoding = "x"
+			self.et.encoding = "foo.bar"
 		self.et.terminate()
 
-		self.et.encoding = "x"
-		self.assertEqual(self.et.encoding, "x")
+		self.et.encoding = "foo"
+		self.assertEqual(self.et.encoding, "foo")
 
 		# restore
 		self.et.encoding = current
@@ -106,6 +110,12 @@ class TestExifTool(unittest.TestCase):
 
 
 	# ---------------------------------------------------------------------------------------------------------
+	def test_get_version_protected(self):
+		""" test the protected method which can't be called when exiftool not running """
+		self.assertFalse(self.et.running)
+		self.assertRaises(ExifToolNotRunning, self.et._parse_ver)
+
+	# ---------------------------------------------------------------------------------------------------------
 	def test_version_attribute(self):
 		self.et.run()
 		# no error
@@ -116,35 +126,6 @@ class TestExifTool(unittest.TestCase):
 		# version is invalid when not running
 		with self.assertRaises(ExifToolNotRunning):
 			a = self.et.version
-
-
-
-	# ---------------------------------------------------------------------------------------------------------
-
-	def test_configfile_attribute(self):
-		current = self.et.config_file
-
-		with self.assertRaises(FileNotFoundError):
-			self.et.config_file = "lkasjdflkjasfd"
-
-		# see if Python 3.9.5 fixed this ... raises OSError right now and is a pathlib glitch https://bugs.python.org/issue35306
-		#self.et.config_file = "\"C:\\\"\"C:\\"
-
-		# TODO create a config file, and set it and test that it works
-
-
-		# then restore current config_file
-		self.et.config_file = current
-
-		self.assertFalse(self.et.running)
-		self.et.run()
-		self.assertTrue(self.et.running)
-
-		with self.assertRaises(ExifToolRunning):
-			self.et.config_file = None
-
-		self.et.terminate()
-
 
 	# ---------------------------------------------------------------------------------------------------------
 	def test_termination_cm(self):
@@ -269,6 +250,74 @@ class TestExifTool(unittest.TestCase):
 
 
 	# ---------------------------------------------------------------------------------------------------------
+
+
+
+
+class TestExifToolConfigFile(unittest.TestCase):
+
+	# ---------------------------------------------------------------------------------------------------------
+	def setUp(self):
+		self.et = exiftool.ExifTool(common_args=["-G", "-n", "-overwrite_original"])
+
+		# Prepare temporary directory for copy.
+		kwargs = {"prefix": "exiftool-tmp-", "dir": SCRIPT_PATH}
+		# mkdtemp requires cleanup or else it remains on the system
+		if PERSISTENT_TMP_DIR:
+			self.temp_obj = None
+			self.tmp_dir = Path(tempfile.mkdtemp(**kwargs))
+		else:
+			# have to save the object or else garbage collection cleans it up and dir gets deleted
+			# https://simpleit.rocks/python/test-files-creating-a-temporal-directory-in-python-unittests/
+			self.temp_obj = tempfile.TemporaryDirectory(**kwargs)
+			self.tmp_dir = Path(self.temp_obj.name)
+
+	def tearDown(self):
+		if self.et.running:
+			self.et.terminate()
+
+	# ---------------------------------------------------------------------------------------------------------
+
+	def test_configfile_attribute(self):
+		current = self.et.config_file
+
+		with self.assertRaises(FileNotFoundError):
+			self.et.config_file = "lkasjdflkjasfd"
+
+		# see if Python 3.9.5 fixed this ... raises OSError right now and is a pathlib glitch https://bugs.python.org/issue35306
+		#self.et.config_file = "\"C:\\\"\"C:\\"
+
+		# then restore current config_file
+		self.et.config_file = current
+
+		self.assertFalse(self.et.running)
+		self.et.run()
+		self.assertTrue(self.et.running)
+
+		with self.assertRaises(ExifToolRunning):
+			self.et.config_file = None
+
+		self.et.terminate()
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_configfile_set(self):
+		# set config file to empty, which is valid (should not throw error)
+		self.et.config_file = ""
+
+		# create a config file, and set it and test that it works
+		# a file that returns 1 is valid as a config file
+		tmp_config_file = self.tmp_dir / "config_test.txt"
+		with open(tmp_config_file, 'w') as f:
+			f.write("1;\n")
+
+		self.et.config_file = tmp_config_file
+
+		self.et.run()
+		self.assertTrue(self.et.running)
+
+		self.et.terminate()
+
+
 
 
 # ---------------------------------------------------------------------------------------------------------

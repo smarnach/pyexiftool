@@ -81,10 +81,10 @@ import warnings
 
 
 
-# ---------- Linting Imports ----------
+# ---------- Typing Imports ----------
 # for static analysis / type checking - Python 3.5+
 from collections.abc import Callable
-from typing import Optional, List
+from typing import Optional, List, Union
 
 
 
@@ -117,7 +117,7 @@ def _set_pdeathsig(sig) -> Optional[Callable]:
 
 		return callable_method
 	else:
-		return None
+		return None  # pragma: no cover
 
 
 # ======================================================================================================================
@@ -229,7 +229,7 @@ class ExifTool(object):
 	  common_args: Optional[List[str]] = ["-G", "-n"],
 	  win_shell: bool = False,
 	  config_file: Optional[str] = None,
-	  encoding = None,
+	  encoding: Optional[str] = None,
 	  logger = None) -> None:
 		""" common_args defaults to -G -n as this is the most common use case.
 		-n improves the speed, and consistency of output is more machine-parsable
@@ -241,7 +241,7 @@ class ExifTool(object):
 		self._win_shell: bool = win_shell  # do you want to see the shell on Windows?
 
 		self._process = None  # this is set to the process to interact with when _running=True
-		self._ver = None  # this is set to be the exiftool -v -ver when running
+		self._ver: Optional[str] = None  # this is set to be the exiftool -v -ver when running
 
 		self._last_stdout: Optional[str] = None  # previous output
 		self._last_stderr: Optional[str] = None  # previous stderr
@@ -255,7 +255,7 @@ class ExifTool(object):
 		self._config_file: Optional[str] = None  # config file that can only be set when exiftool is not running
 		self._common_args: Optional[List[str]] = None
 		self._logger = None
-		self._encoding = None
+		self._encoding: Optional[str] = None
 
 
 
@@ -340,18 +340,18 @@ class ExifTool(object):
 				raise FileNotFoundError(f'"{new_executable}" is not found, on path or as absolute path')
 
 		# absolute path is returned
-		self._executable = abs_path
+		self._executable = str(abs_path)
 
 		if self._logger: self._logger.info(f"Property 'executable': set to \"{abs_path}\"")
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def encoding(self):
+	def encoding(self) -> Optional[str]:
 		return self._encoding
 
 	@encoding.setter
-	def encoding(self, new_encoding) -> None:
+	def encoding(self, new_encoding: Optional[str]) -> None:
 		"""
 		Set the encoding of Popen() communication with exiftool process.  Does error checking.
 
@@ -425,8 +425,11 @@ class ExifTool(object):
 		return self._config_file
 
 	@config_file.setter
-	def config_file(self, new_config_file: Optional[str]) -> None:
+	def config_file(self, new_config_file: Optional[Union[str, Path]]) -> None:
 		""" set the config_file parameter
+
+		set to None to disable the -config parameter to exiftool
+		set to "" has special meaning and disables loading of default config file.  See exiftool documentation for more info
 
 		if running==True, it will throw an error.  Can only set config_file when exiftool is not running
 		"""
@@ -435,10 +438,14 @@ class ExifTool(object):
 
 		if new_config_file is None:
 			self._config_file = None
+		elif new_config_file == "":
+			# this is VALID usage of -config parameter
+			# As per exiftool documentation:  Loading of the default config file may be disabled by setting CFGFILE to an empty string (ie. "")
+			self._config_file = ""
 		elif not Path(new_config_file).exists():
 			raise FileNotFoundError("The config file could not be found")
 		else:
-			self._config_file = new_config_file
+			self._config_file = str(new_config_file)
 
 		if self._logger: self._logger.info(f"Property 'config_file': set to \"{self._config_file}\"")
 
@@ -584,7 +591,8 @@ class ExifTool(object):
 		proc_args = [self._executable, ]
 
 		# If working with a config file, it must be the first argument after the executable per: https://exiftool.org/config.html
-		if self._config_file:
+		if self._config_file is not None:
+			# must check explicitly for None, as "" is valid
 			proc_args.extend(["-config", self._config_file])
 
 		# this is the required stuff for the stay_open that makes pyexiftool so great!
