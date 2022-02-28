@@ -33,6 +33,10 @@ API changes between v0.4.x and v0.5.0:
 
 	execute_json() when no json was not returned (such as a set metadata operation) => Old: raised an error.  New: returns None
 
+	execute_json() no longer detects the '-w' flag being passed used in common_args.
+		If a user uses this flag, expect no output.
+		(detection in common_args was clunky anyways because -w can be passed as a per-run param for the same effect)
+
 	all methods other than execute() and execute_json() moved to ExifToolHelper or ExifToolAlpha class.
 
 	ExifToolHelper adds methods:

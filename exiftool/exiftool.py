@@ -253,7 +253,6 @@ class ExifTool(object):
 		self._executable: Optional[str] = None  # executable absolute path
 		self._config_file: Optional[str] = None  # config file that can only be set when exiftool is not running
 		self._common_args: Optional[List[str]] = None
-		self._no_output = None  # TODO examine whether this is needed
 		self._logger = None
 		self._encoding = None
 
@@ -415,9 +414,6 @@ class ExifTool(object):
 			self._common_args = new_args
 		else:
 			raise TypeError("common_args not a list of strings")
-
-		# TODO examine if this is still a needed thing
-		self._no_output = '-w' in self._common_args
 
 		if self._logger: self._logger.info(f"Property 'common_args': set to \"{self._common_args}\"")
 
@@ -853,22 +849,12 @@ class ExifTool(object):
 		as Unicode strings in Python 3.x.
 		"""
 
+		result = self.execute("-j", *params)
 
-		"""
-		params = map(os.fsencode, params)  # don't fsencode all params, leave them alone for exiftool process to manage
-		# Some latin bytes won't decode to utf-8.
-		# Try utf-8 and fallback to latin.
-		# http://stackoverflow.com/a/5552623/1318758
-		# https://github.com/jmathai/elodie/issues/127
-		"""
-
-		res_stdout = self.execute("-j", *params)
-		# TODO these aren't used, if not important, comment them out
-		res_err = self._last_stderr
-		res_status = self._last_status
+		# TODO check exitcode
 
 
-		if len(res_stdout) == 0:
+		if len(result) == 0:
 			# the output from execute() can be empty under many relatively ambiguous situations
 			# * command has no files it worked on
 			# * a file specified or files does not exist
@@ -877,35 +863,21 @@ class ExifTool(object):
 			#
 			# There's no easy way to check which params are files, or else we have to reproduce the parser exiftool does (so it's hard to detect to raise a FileNotFoundError)
 
-			# Returning [] could be ambugious if Exiftool changes the returned JSON structure in the future
+			# Returning [] could be ambiguous if Exiftool changes the returned JSON structure in the future
 			# Returning None is the safest as it clearly indicates that nothing came back from execute()
 			return None
 
 
-		res_decoded = res_stdout
-		"""
-		# TODO use fsdecode?
-		# os.fsdecode() instead of res_stdout.decode()
-		try:
-			res_decoded = res_stdout
-		except UnicodeDecodeError:
-			res_decoded = res_stdout.decode(ENCODING_LATIN1)
-		"""
-		# TODO res_decoded can be invalid json (test this) if `-w` flag is specified in common_args
+		parsed = json.loads(result)
+		# if `-w` flag is specified in common_args, nothing will return
+		#
 		# which will return something like
 		# image files read
 		# output files created
 
-		# res_decoded is also not valid if you do metadata manipulation without returning anything
-		if self._no_output:
-			print(res_decoded)
-			# TODO: test why is this not returning anything from this function?? what if we are SETTING something and not GETTING?
-		else:
-			# TODO: if len(res_decoded) == 0, then there's obviously an error here
-			#print(res_decoded)
-			return json.loads(res_decoded)
+		# result is also not valid (empty) if you do metadata manipulation (setting tags)
 
-		# TODO , return_tuple will also beautify stderr and output status as well
+		return parsed
 
 
 	#########################################################################################
