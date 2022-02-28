@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import unittest
 import exiftool
+from exiftool.exceptions import ExifToolRunning, ExifToolNotRunning
 import warnings
 
 import logging  # to test logger
@@ -47,7 +48,7 @@ class TestExifTool(unittest.TestCase):
 		e = self.et.executable
 		self.assertTrue(Path(e).exists())
 
-		with self.assertRaises(RuntimeError):
+		with self.assertRaises(ExifToolRunning):
 			self.et.executable = "x"
 		self.et.terminate()
 
@@ -84,7 +85,7 @@ class TestExifTool(unittest.TestCase):
 		self.et.run()
 
 		# cannot set when running
-		with self.assertRaises(RuntimeError):
+		with self.assertRaises(ExifToolRunning):
 			self.et.encoding = "x"
 		self.et.terminate()
 
@@ -100,12 +101,12 @@ class TestExifTool(unittest.TestCase):
 	def test_common_args_attribute(self):
 
 		self.et.run()
-		with self.assertRaises(RuntimeError):
+		with self.assertRaises(ExifToolRunning):
 			self.et.common_args = []
 
 
 	# ---------------------------------------------------------------------------------------------------------
-	def test_version_attirubte(self):
+	def test_version_attribute(self):
 		self.et.run()
 		# no error
 		a = self.et.version
@@ -113,7 +114,7 @@ class TestExifTool(unittest.TestCase):
 		self.et.terminate()
 
 		# version is invalid when not running
-		with self.assertRaises(RuntimeError):
+		with self.assertRaises(ExifToolNotRunning):
 			a = self.et.version
 
 
@@ -139,7 +140,7 @@ class TestExifTool(unittest.TestCase):
 		self.et.run()
 		self.assertTrue(self.et.running)
 
-		with self.assertRaises(RuntimeError):
+		with self.assertRaises(ExifToolRunning):
 			self.et.config_file = None
 
 		self.et.terminate()
@@ -150,7 +151,7 @@ class TestExifTool(unittest.TestCase):
 		# Test correct subprocess start and termination when using
 		# self.et as a context manager
 		self.assertFalse(self.et.running)
-		self.assertRaises(RuntimeError, self.et.execute)
+		self.assertRaises(ExifToolNotRunning, self.et.execute)
 		with self.et:
 			self.assertTrue(self.et.running)
 			with warnings.catch_warnings(record=True) as w:
@@ -255,6 +256,16 @@ class TestExifTool(unittest.TestCase):
 		self.et.run()  # get some coverage by doing stuff
 
 	# ---------------------------------------------------------------------------------------------------------
+	def test_run_twice(self):
+		""" test that a UserWarning is thrown when run() is called twice """
+		self.assertFalse(self.et.running)
+		self.et.run()
+
+		with warnings.catch_warnings(record=True) as w:
+			self.assertTrue(self.et.running)
+			self.et.run()
+			self.assertEqual(len(w), 1)
+			self.assertTrue(issubclass(w[0].category, UserWarning))
 
 
 	# ---------------------------------------------------------------------------------------------------------
