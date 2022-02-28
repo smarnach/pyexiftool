@@ -3,7 +3,7 @@
 Date (Timezone)              | Version | Comment
 ---------------------------- | ------- | -------
 07/17/2019 12:26:16 AM (PDT) | 0.2.0   | Source was pulled directly from https://github.com/smarnach/pyexiftool with a complete bare clone to preserve all history.  Because it's no longer being updated, I will pull all merge requests in and make updates accordingly
-07/17/2019 12:50:20 AM (PDT) | 0.2.1   | Convert leading spaces to tabs
+07/17/2019 12:50:20 AM (PDT) | 0.2.1   | Convert leading spaces to tabs.  (I'm aware of [PEP 8](https://www.python.org/dev/peps/pep-0008/#tabs-or-spaces) recommending spaces over tabs, but I <3 tabs)
 07/17/2019 12:52:33 AM (PDT) | 0.2.2   | Merge [Pull request #10 "add copy_tags method"](https://github.com/smarnach/pyexiftool/pull/10) by [Maik Riechert (letmaik) Cambridge, UK](https://github.com/letmaik) on May 28, 2014<br> *This adds a small convenience method to copy any tags from one file to another. I use it for several month now and it works fine for me.*
 07/17/2019 01:05:37 AM (PDT) | 0.2.3   | Merge [Pull request #25 "Added option for keeping print conversion active. #25"](https://github.com/smarnach/pyexiftool/pull/25) by [Bernhard Bliem (bbliem)](https://github.com/bbliem) on Jan 17, 2019<br> *For some tags, disabling print conversion (as was the default before) would not make much sense. For example, if print conversion is deactivated, the value of the Composite:LensID tag could be reported as something like "8D 44 5C 8E 34 3C 8F 0E". It is doubtful whether this is useful here, as we would then need to look up what this means in a table supplied with exiftool. We would probably like the human-readable value, which is in this case "AF-S DX Zoom-Nikkor 18-70mm f/3.5-4.5G IF-ED".*<br>*Disabling print conversion makes sense for a lot of tags (e.g., it's nicer to get as the exposure time not the string "1/2" but the number 0.5). In such cases, even if we enable print conversion, we can disable it for individual tags by appending a # symbol to the tag name.*
 07/17/2019 01:20:15 AM (PDT) | 0.2.4   | Merge with slight modifications to variable names for clarity (sylikc) [Pull request #27 "Add "shell" keyword argument to ExifTool initialization"](https://github.com/smarnach/pyexiftool/pull/27) by [Douglas Lassance (douglaslassance) Los Angeles, CA](https://github.com/douglaslassance) on 5/29/2019<br>*On Windows this will allow to run exiftool without showing the DOS shell.*<br>**This might break Linux but I don't know for sure**<br>Alternative source location with only this patch: https://github.com/blurstudio/pyexiftool/tree/shell-option
@@ -35,18 +35,22 @@ Date (Timezone)              | Version | Comment
 08/22/2021 08:34:45 PM (PDT) | 0.4.11  | no functional code changes.  Changed setup.py with updated version and Documentation link pointed to sylikc.github.io -- as per issue #27 by @derMart
 08/22/2021 09:02:33 PM (PDT) | 0.4.12  | fixed a bug ExifTool.terminate() where there was a typo.  Kept the unused outs, errs though. -- from suggestion in pull request #26 by @aaronkollasch
 02/13/2022 03:38:45 PM (PST) | 0.4.13  | (NOTE: Barring any critical bug, this is expected to be the LAST Python 2 supported release!)  added GitHub actions.  fixed bug in execute_json_wrapper() 'error' was not defined syntactically properly -- merged pull request #30 by https://github.com/jangop
+03/13/2021 01:54:44 PM (PST) | 0.5.0a0 | no functional code changes ... yet.  this is currently on a separate branch referring to [Break down Exiftool into 2+ classes, a raw Exiftool, and helper classes](https://github.com/sylikc/pyexiftool/discussions/10) and [Deprecating Python 2.x compatibility](https://github.com/sylikc/pyexiftool/discussions/9) .  In time this refactor will be the future of PyExifTool, once it stabilizes.  I'll make code-breaking updates in this branch from build to build and take comments to make improvements.  Consider the 0.5.0 "nightly" quality.  Also, changelog versions were modified because I noticed that the LAST release from smarnach is tagged with v0.2.0
+02/28/2022 12:39:57 PM (PST) | 0.5.0   | complete refactor of the PyExifTool code.  Lots of changes.  Some code breaking changes.  Not directly backwards-compatible with v0.4.x.  See COMPATIBILITY.TXT to understand all the code-breaking changes.
 
 
-On version changes, update setup.py to reflect version
+On version changes, update __int__.py to reflect version
+
 
 # Changes around the web
 
-Check for changes at the following resources to make sure we have the latest and greatest.  While we have the most active fork, I'm just one of the many forks, spoons, and knives!
+Check for changes at the following resources to see if anyone has added some nifty features.  While we have the most active fork, I'm just one of the many forks, spoons, and knives!
 
-(last checked 5/19/2021 all)
+We can also direct users here or answer existing questions as to how to use the original version of ExifTool.
+
+(last checked 2/28/2022 all)
 
 search "pyexiftool github" to see if you find any more random ports/forks
 check for updates https://github.com/smarnach/pyexiftool/pulls
-check for updates on elodie https://github.com/jmathai/elodie/commits/master/elodie/external/pyexiftool.py
 check for new open issues https://github.com/smarnach/pyexiftool/issues?q=is%3Aissue+is%3Aopen
 

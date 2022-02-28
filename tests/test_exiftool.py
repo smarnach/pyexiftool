@@ -3,217 +3,323 @@
 from __future__ import unicode_literals
 
 import unittest
-import exiftool
-import warnings
-import os
-import shutil
-import sys
 import tempfile
+import exiftool
+from exiftool.exceptions import ExifToolRunning, ExifToolNotRunning
+import warnings
+
+import logging  # to test logger
+#import os
+#import shutil
+import sys
+from pathlib import Path
 
 
-class TestTagCopying(unittest.TestCase):
-	def setUp(self):
-		# Prepare exiftool.
-		self.exiftool = exiftool.ExifTool()
-		self.exiftool.start()
+PLATFORM_WINDOWS: bool = (sys.platform == 'win32')
 
-		# Prepare temporary directory for copy.
-		directory = tempfile.mkdtemp(prefix='exiftool-test-')
 
-		# Find example image.
-		this_path = os.path.dirname(__file__)
-		self.tag_source = os.path.join(this_path, 'rose.jpg')
-
-		# Prepare path of copy.
-		self.tag_target = os.path.join(directory, 'copy.jpg')
-
-		# Copy image.
-		shutil.copyfile(self.tag_source, self.tag_target)
-
-		# Clear tags in copy.
-		params = ['-overwrite_original', '-all=', self.tag_target]
-		params_utf8 = [x.encode('utf-8') for x in params]
-		self.exiftool.execute(*params_utf8)
-
-	def test_tag_copying(self):
-		tag = 'XMP:Subject'
-		expected_value = 'Röschen'
-
-		# Ensure source image has correct tag.
-		original_value = self.exiftool.get_tag(tag, self.tag_source)
-		self.assertEqual(original_value, expected_value)
-
-		# Ensure target image does not already have that tag.
-		value_before_copying = self.exiftool.get_tag(tag, self.tag_target)
-		self.assertNotEqual(value_before_copying, expected_value)
-
-		# Copy tags.
-		self.exiftool.copy_tags(self.tag_source, self.tag_target)
-
-		value_after_copying = self.exiftool.get_tag(tag, self.tag_target)
-		self.assertEqual(value_after_copying, expected_value)
+SCRIPT_PATH = Path(__file__).resolve().parent
+PERSISTENT_TMP_DIR = False  # if set to true, will not delete temp dir on exit (useful for debugging output)
 
 
 class TestExifTool(unittest.TestCase):
 
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
 	def setUp(self):
 		self.et = exiftool.ExifTool(common_args=["-G", "-n", "-overwrite_original"])
+
 	def tearDown(self):
 		if hasattr(self, "et"):
-			self.et.terminate()
+			if self.et.running:
+				self.et.terminate()
 		if hasattr(self, "process"):
 			if self.process.poll() is None:
 				self.process.terminate()
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
+	def test_running_attribute(self):
+		# test if we can read "running" but can't set it
+		self.assertFalse(self.et.running)
+		with self.assertRaises(AttributeError):
+			self.et.running = True
+	# ---------------------------------------------------------------------------------------------------------
+	def test_executable_attribute(self):
+		# test if we can read "running" but can't set it
+		self.assertFalse(self.et.running)
+		self.et.run()
+		self.assertTrue(self.et.running)
+
+		# if it's running, the executable has to exist (test coverage on reading the property)
+		e = self.et.executable
+		self.assertTrue(Path(e).exists())
+
+		with self.assertRaises(ExifToolRunning):
+			self.et.executable = "foo.bar"
+		self.et.terminate()
+
+		with self.assertRaises(FileNotFoundError):
+			self.et.executable = "foo.bar"
+
+		# specify the executable explicitly with the one known to exist (test coverage)
+		self.et.executable = e
+		self.assertEqual(self.et.executable, e)  # absolute path set should not change
+
+		self.assertFalse(self.et.running)
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_blocksize_attribute(self):
+		current = self.et.block_size
+
+		# arbitrary
+		self.et.block_size = 4
+		self.assertEqual(self.et.block_size, 4)
+
+		with self.assertRaises(ValueError):
+			self.et.block_size = -1
+
+		with self.assertRaises(ValueError):
+			self.et.block_size = 0
+
+		# restore
+		self.et.block_size = current
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_encoding_attribute(self):
+		current = self.et.encoding
+
+		self.et.run()
+
+		# cannot set when running
+		with self.assertRaises(ExifToolRunning):
+			self.et.encoding = "foo.bar"
+		self.et.terminate()
+
+		self.et.encoding = "foo"
+		self.assertEqual(self.et.encoding, "foo")
+
+		# restore
+		self.et.encoding = current
+
+
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_common_args_attribute(self):
+
+		self.et.run()
+		with self.assertRaises(ExifToolRunning):
+			self.et.common_args = []
+
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_get_version_protected(self):
+		""" test the protected method which can't be called when exiftool not running """
+		self.assertFalse(self.et.running)
+		self.assertRaises(ExifToolNotRunning, self.et._parse_ver)
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_version_attribute(self):
+		self.et.run()
+		# no error
+		a = self.et.version
+
+		self.et.terminate()
+
+		# version is invalid when not running
+		with self.assertRaises(ExifToolNotRunning):
+			a = self.et.version
+
+	# ---------------------------------------------------------------------------------------------------------
 	def test_termination_cm(self):
 		# Test correct subprocess start and termination when using
 		# self.et as a context manager
 		self.assertFalse(self.et.running)
-		self.assertRaises(ValueError, self.et.execute)
+		self.assertRaises(ExifToolNotRunning, self.et.execute)
 		with self.et:
 			self.assertTrue(self.et.running)
 			with warnings.catch_warnings(record=True) as w:
-				self.et.start()
-				self.assertEquals(len(w), 1)
+				self.et.run()
+				self.assertEqual(len(w), 1)
 				self.assertTrue(issubclass(w[0].category, UserWarning))
 			self.process = self.et._process
 			self.assertEqual(self.process.poll(), None)
 		self.assertFalse(self.et.running)
 		self.assertNotEqual(self.process.poll(), None)
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
 	def test_termination_explicit(self):
 		# Test correct subprocess start and termination when
 		# explicitly using start() and terminate()
-		self.et.start()
+		self.et.run()
 		self.process = self.et._process
 		self.assertEqual(self.process.poll(), None)
 		self.et.terminate()
 		self.assertNotEqual(self.process.poll(), None)
-	#---------------------------------------------------------------------------------------------------------
+
+		# terminate when not running
+		with warnings.catch_warnings(record=True) as w:
+			self.et.terminate()
+			self.assertEqual(len(w), 1)
+			self.assertTrue(issubclass(w[0].category, UserWarning))
+
+	# ---------------------------------------------------------------------------------------------------------
 	def test_termination_implicit(self):
 		# Test implicit process termination on garbage collection
-		self.et.start()
+
+		# QUICKFIX: take out the method that is called on load (see test_process_died_running_status())
+		if PLATFORM_WINDOWS:
+			self.et._parse_ver = lambda: None
+
+		self.et.run()
 		self.process = self.et._process
+		# TODO freze here on windows for same reason as in test_process_died_running_status() as a zombie process remains
 		del self.et
 		self.assertNotEqual(self.process.poll(), None)
-	#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
+	def test_process_died_running_status(self):
+		""" Test correct .running status if process dies by itself """
+
+		# There is a very weird bug triggered on WINDOWS only which I've described here: https://exiftool.org/forum/index.php?topic=12472.0
+		# it happens specifically when you forcefully kill the process, but at least one command has run since launching, the exiftool wrapper on windows does not terminate the child process
+		# it's a very strange interaction and causes a zombie process to remain, and python hangs
+		#
+		# either kill the tree with psutil, or do it this way...
+
+		# QUICKFIX: take out the method that is called on load (probably not the way to do this well... you can take out this line and watch Python interpreter hang at .kill() below
+		if PLATFORM_WINDOWS:
+			self.et._parse_ver = lambda: None
+
+
+		self.et.run()
+		self.process = self.et._process
+		self.assertTrue(self.et.running)
+
+		# kill the process, out of ExifTool's control
+		self.process.kill()
+		# TODO freeze here on windows if there is a zombie process b/c killing immediate exiftool does not kill the spawned subprocess
+		outs, errs = self.process.communicate()
+
+		with warnings.catch_warnings(record=True) as w:
+			self.assertFalse(self.et.running)
+			self.assertEqual(len(w), 1)
+			self.assertTrue(issubclass(w[0].category, UserWarning))
+
+		# after removing that function, delete the object so it gets recreated cleanly
+		del self.et
+	# ---------------------------------------------------------------------------------------------------------
 	def test_invalid_args_list(self):
 		# test to make sure passing in an invalid args list will cause it to error out
 		with self.assertRaises(TypeError):
 			exiftool.ExifTool(common_args="not a list")
-	#---------------------------------------------------------------------------------------------------------
-	def test_get_metadata(self):
-		expected_data = [{"SourceFile": "rose.jpg",
-						  "File:FileType": "JPEG",
-						  "File:ImageWidth": 70,
-						  "File:ImageHeight": 46,
-						  "XMP:Subject": "Röschen",
-						  "Composite:ImageSize": "70 46"}, # older versions of exiftool used to display 70x46
-						 {"SourceFile": "skyblue.png",
-						  "File:FileType": "PNG",
-						  "PNG:ImageWidth": 64,
-						  "PNG:ImageHeight": 64,
-						  "Composite:ImageSize": "64 64"}] # older versions of exiftool used to display 64x64
-		script_path = os.path.dirname(__file__)
-		source_files = []
-		for d in expected_data:
-			d["SourceFile"] = f = os.path.join(script_path, d["SourceFile"])
-			self.assertTrue(os.path.exists(f))
-			source_files.append(f)
-		with self.et:
-			actual_data = self.et.get_metadata_batch(source_files)
-			tags0 = self.et.get_tags(["XMP:Subject"], source_files[0])
-			tag0 = self.et.get_tag("XMP:Subject", source_files[0])
-		for expected, actual in zip(expected_data, actual_data):
-			et_version = actual["ExifTool:ExifToolVersion"]
-			self.assertTrue(isinstance(et_version, float))
-			if isinstance(et_version, float):    # avoid exception in Py3k
-				self.assertTrue(
-					et_version >= 8.40,
-					"you should at least use ExifTool version 8.40")
-			actual["SourceFile"] = os.path.normpath(actual["SourceFile"])
-			for k, v in expected.items():
-				self.assertEqual(actual[k], v)
-		tags0["SourceFile"] = os.path.normpath(tags0["SourceFile"])
-		self.assertEqual(tags0, dict((k, expected_data[0][k])
-									 for k in ["SourceFile", "XMP:Subject"]))
-		self.assertEqual(tag0, "Röschen")
+	# ---------------------------------------------------------------------------------------------------------
+	def test_common_args(self):
+		# test to make sure passing in an invalid args list will cause it to error out
+		with self.assertRaises(TypeError):
+			exiftool.ExifTool(common_args={})
 
-	#---------------------------------------------------------------------------------------------------------
-	def test_set_metadata(self):
-		mod_prefix = "newcap_"
-		expected_data = [{"SourceFile": "rose.jpg",
-						  "Caption-Abstract": "Ein Röschen ganz allein"},
-						 {"SourceFile": "skyblue.png",
-						  "Caption-Abstract": "Blauer Himmel"}]
-		script_path = os.path.dirname(__file__)
-		source_files = []
-		for d in expected_data:
-			d["SourceFile"] = f = os.path.join(script_path, d["SourceFile"])
-			self.assertTrue(os.path.exists(f))
-			f_mod = os.path.join(os.path.dirname(f), mod_prefix + os.path.basename(f))
-			self.assertFalse(os.path.exists(f_mod), "%s should not exist before the test. Please delete." % f_mod)
-			shutil.copyfile(f, f_mod)
-			source_files.append(f_mod)
-			with self.et:
-				self.et.set_tags({"Caption-Abstract":d["Caption-Abstract"]}, f_mod)
-				tag0 = self.et.get_tag("IPTC:Caption-Abstract", f_mod)
-			os.remove(f_mod)
-			self.assertEqual(tag0, d["Caption-Abstract"])
+		# set to common_args=None == []
+		self.assertEqual(exiftool.ExifTool(common_args=None).common_args, [])
+	# ---------------------------------------------------------------------------------------------------------
+	def test_logger(self):
+		""" TODO improve this test, currently very rudimentary """
+		log = logging.getLogger("log_test")
+		#log.level = logging.WARNING
 
-	#---------------------------------------------------------------------------------------------------------
-	def test_set_keywords(self):
-		kw_to_add = ["added"]
-		mod_prefix = "newkw_"
-		expected_data = [{"SourceFile": "rose.jpg",
-						  "Keywords": ["nature", "red plant"]}]
-		script_path = os.path.dirname(__file__)
-		source_files = []
-		for d in expected_data:
-			d["SourceFile"] = f = os.path.join(script_path, d["SourceFile"])
-			self.assertTrue(os.path.exists(f))
-			f_mod = os.path.join(os.path.dirname(f), mod_prefix + os.path.basename(f))
-			self.assertFalse(os.path.exists(f_mod), "%s should not exist before the test. Please delete." % f_mod)
-			shutil.copyfile(f, f_mod)
-			source_files.append(f_mod)
-			with self.et:
-				self.et.set_keywords(exiftool.KW_REPLACE, d["Keywords"], f_mod)
-				kwtag0 = self.et.get_tag("IPTC:Keywords", f_mod)
-				kwrest = d["Keywords"][1:]
-				self.et.set_keywords(exiftool.KW_REMOVE, kwrest, f_mod)
-				kwtag1 = self.et.get_tag("IPTC:Keywords", f_mod)
-				self.et.set_keywords(exiftool.KW_ADD, kw_to_add, f_mod)
-				kwtag2 = self.et.get_tag("IPTC:Keywords", f_mod)
-			os.remove(f_mod)
-			self.assertEqual(kwtag0, d["Keywords"])
-			self.assertEqual(kwtag1, d["Keywords"][0])
-			self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
+		#logpath = TMP_DIR / 'exiftool_test.log'
+		#fh = logging.FileHandler(logpath)
+
+		#log.addHandler(fh)
+
+		self.et.logger = log
+		# no errors
+
+		log = "bad log" # not a logger object
+		with self.assertRaises(TypeError):
+			self.et.logger = log
+
+		self.et.run()  # get some coverage by doing stuff
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_run_twice(self):
+		""" test that a UserWarning is thrown when run() is called twice """
+		self.assertFalse(self.et.running)
+		self.et.run()
+
+		with warnings.catch_warnings(record=True) as w:
+			self.assertTrue(self.et.running)
+			self.et.run()
+			self.assertEqual(len(w), 1)
+			self.assertTrue(issubclass(w[0].category, UserWarning))
 
 
-	#---------------------------------------------------------------------------------------------------------
-	def test_executable_found(self):
-		# test if executable is found on path
-		save_sys_path = os.environ['PATH']
+	# ---------------------------------------------------------------------------------------------------------
 
-		if sys.platform == 'win32':
-			test_path = "C:\\"
+
+
+
+class TestExifToolConfigFile(unittest.TestCase):
+
+	# ---------------------------------------------------------------------------------------------------------
+	def setUp(self):
+		self.et = exiftool.ExifTool(common_args=["-G", "-n", "-overwrite_original"])
+
+		# Prepare temporary directory for copy.
+		kwargs = {"prefix": "exiftool-tmp-", "dir": SCRIPT_PATH}
+		# mkdtemp requires cleanup or else it remains on the system
+		if PERSISTENT_TMP_DIR:
+			self.temp_obj = None
+			self.tmp_dir = Path(tempfile.mkdtemp(**kwargs))
 		else:
-			test_path = "/"
+			# have to save the object or else garbage collection cleans it up and dir gets deleted
+			# https://simpleit.rocks/python/test-files-creating-a-temporal-directory-in-python-unittests/
+			self.temp_obj = tempfile.TemporaryDirectory(**kwargs)
+			self.tmp_dir = Path(self.temp_obj.name)
 
-		test_exec = exiftool.DEFAULT_EXECUTABLE
-		
-		# should be found in path as is
-		self.assertTrue(exiftool.find_executable(test_exec, path=None))
-		
-		# modify path and search again
-		self.assertFalse(exiftool.find_executable(test_exec, path=test_path))
-		os.environ['PATH'] = test_path
-		self.assertFalse(exiftool.find_executable(test_exec, path=None))
-		
-		# restore it
-		os.environ['PATH'] = save_sys_path
+	def tearDown(self):
+		if self.et.running:
+			self.et.terminate()
 
-#---------------------------------------------------------------------------------------------------------
+	# ---------------------------------------------------------------------------------------------------------
+
+	def test_configfile_attribute(self):
+		current = self.et.config_file
+
+		with self.assertRaises(FileNotFoundError):
+			self.et.config_file = "lkasjdflkjasfd"
+
+		# see if Python 3.9.5 fixed this ... raises OSError right now and is a pathlib glitch https://bugs.python.org/issue35306
+		#self.et.config_file = "\"C:\\\"\"C:\\"
+
+		# then restore current config_file
+		self.et.config_file = current
+
+		self.assertFalse(self.et.running)
+		self.et.run()
+		self.assertTrue(self.et.running)
+
+		with self.assertRaises(ExifToolRunning):
+			self.et.config_file = None
+
+		self.et.terminate()
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_configfile_set(self):
+		# set config file to empty, which is valid (should not throw error)
+		self.et.config_file = ""
+
+		# create a config file, and set it and test that it works
+		# a file that returns 1 is valid as a config file
+		tmp_config_file = self.tmp_dir / "config_test.txt"
+		with open(tmp_config_file, 'w') as f:
+			f.write("1;\n")
+
+		self.et.config_file = tmp_config_file
+
+		self.et.run()
+		self.assertTrue(self.et.running)
+
+		self.et.terminate()
+
+
+
+
+# ---------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
 	unittest.main()

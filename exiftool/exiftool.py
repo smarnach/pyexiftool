@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# PyExifTool <http://github.com/smarnach/pyexiftool>
+# PyExifTool <http://github.com/sylikc/pyexiftool>
 # Copyright 2012 Sven Marnach.
 # Copyright 2021 Kevin M (sylikc)
 
@@ -29,234 +29,165 @@ single instance needs to be launched and can be reused for many
 queries.  This is much more efficient than launching a separate
 process for every single query.
 
-.. _ExifTool: http://www.sno.phy.queensu.ca/~phil/exiftool/
+.. _ExifTool: https://exiftool.org
 
 The source code can be checked out from the github repository with
 
 ::
 
-	git clone git://github.com/smarnach/pyexiftool.git
+	git clone git://github.com/sylikc/pyexiftool.git
 
 Alternatively, you can download a tarball_.  There haven't been any
 releases yet.
 
-.. _tarball: https://github.com/smarnach/pyexiftool/tarball/master
+.. _tarball: https://github.com/sylikc/pyexiftool/tarball/master
 
-PyExifTool is licenced under GNU GPL version 3 or later.
+PyExifTool is licenced under GNU GPL version 3 or later, or BSD license.
 
 Example usage::
 
 	import exiftool
 
 	files = ["a.jpg", "b.png", "c.tif"]
-	with exiftool.ExifTool() as et:
-		metadata = et.get_metadata_batch(files)
+	with exiftool.ExifToolHelper() as et:
+		metadata = et.get_metadata(files)
 	for d in metadata:
 		print("{:20.20} {:20.20}".format(d["SourceFile"],
 										 d["EXIF:DateTimeOriginal"]))
 """
 
-from __future__ import unicode_literals
-
+# ---------- standard Python imports ----------
 import select
-import sys
 import subprocess
 import os
-try:
-	import ujson as json
-except ImportError:
-	import json
-import warnings
-import logging
-import codecs
+import shutil
+from pathlib import Path  # requires Python 3.4+
+import random
+import locale
 
 # for the pdeathsig
 import signal
 import ctypes
 
-try:        # Py3k compatibility
-	basestring
-except NameError:
-	basestring = (bytes, str)
+
+# ---------- UltraJSON overloaded import ----------
+
+try:
+	# Optional UltraJSON library - ultra-fast JSON encoder/decoder, drop-in replacement
+	import ujson as json
+except ImportError:
+	import json  # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
+import warnings
 
 
 
+# ---------- Typing Imports ----------
+# for static analysis / type checking - Python 3.5+
+from collections.abc import Callable
+from typing import Optional, List, Union
 
 
 
-# specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
-if sys.platform == 'win32':
-	DEFAULT_EXECUTABLE = "exiftool.exe"
-else:
-	DEFAULT_EXECUTABLE = "exiftool"
-"""The name of the executable to run.
+# ---------- Library Package Imports ----------
 
-If the executable is not located in one of the paths listed in the
-``PATH`` environment variable, the full path should be given here.
-"""
-
-# Sentinel indicating the end of the output of a sequence of commands.
-# The standard value should be fine.
-sentinel = b"{ready}"
-
-# The block size when reading from exiftool.  The standard value
-# should be fine, though other values might give better performance in
-# some cases.
-block_size = 4096
-
-# constants related to keywords manipulations
-KW_TAGNAME = "IPTC:Keywords"
-KW_REPLACE, KW_ADD, KW_REMOVE = range(3)
-
-#------------------------------------------------------------------------------------------------
+from . import constants
+from .exceptions import ExifToolVersionError, ExifToolRunning, ExifToolNotRunning, OutputEmpty, OutputNotJSON
 
 
-# This code has been adapted from Lib/os.py in the Python source tree
-# (sha1 265e36e277f3)
-def _fscodec():
-	encoding = sys.getfilesystemencoding()
-	errors = "strict"
-	if encoding != "mbcs":
-		try:
-			codecs.lookup_error("surrogateescape")
-		except LookupError:
-			pass
-		else:
-			errors = "surrogateescape"
+# ======================================================================================================================
 
-	def fsencode(filename):
-		"""
-		Encode filename to the filesystem encoding with 'surrogateescape' error
-		handler, return bytes unchanged. On Windows, use 'strict' error handler if
-		the file system encoding is 'mbcs' (which is the default encoding).
-		"""
-		if isinstance(filename, bytes):
-			return filename
-		else:
-			return filename.encode(encoding, errors)
 
-	return fsencode
+# constants to make typos obsolete!
+ENCODING_UTF8: str = "utf-8"
+#ENCODING_LATIN1: str = "latin-1"
 
-fsencode = _fscodec()
-del _fscodec
 
-#------------------------------------------------------------------------------------------------
+# ======================================================================================================================
 
-def set_pdeathsig(sig=signal.SIGTERM):
+def _set_pdeathsig(sig) -> Optional[Callable]:
 	"""
 	Use this method in subprocess.Popen(preexec_fn=set_pdeathsig()) to make sure,
 	the exiftool childprocess is stopped if this process dies.
 	However, this only works on linux.
 	"""
-	if sys.platform == "linux" or sys.platform == "linux2":
+	if constants.PLATFORM_LINUX:
 		def callable_method():
-			# taken from linux/prctl.h
-			pr_set_pdeathsig = 1
 			libc = ctypes.CDLL("libc.so.6")
-			return libc.prctl(pr_set_pdeathsig, sig)
+			return libc.prctl(constants.PR_SET_PDEATHSIG, sig)
 
 		return callable_method
 	else:
-		return None
+		return None  # pragma: no cover
 
 
+# ======================================================================================================================
 
+def _read_fd_endswith(fd, b_endswith, block_size: int):
+	""" read an fd and keep reading until it endswith the seq_ends
 
-#string helper
-def strip_nl (s):
-	return ' '.join(s.splitlines())
+		this allows a consolidated read function that is platform indepdent
 
-
-# Error checking function
-# very rudimentary checking
-# Note: They are quite fragile, because this just parse the output text from exiftool
-def check_ok (result):
-	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
-
-	The argument is the result from the execute method.
-
-	The result is True or False.
+		if you're not careful, on windows, this will block
 	"""
-	return not result is None and (not "due to errors" in result)
+	output = b""
 
-def format_error (result):
-	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
+	# if we're only looking at the last few bytes, make it meaningful.  4 is max size of \r\n? (or 2)
+	# this value can be bigger to capture more bytes at the "tail" of the read, but if it's too small, the whitespace might miss the detection
+	endswith_count = len(b_endswith) + 4
 
-	The argument is the result from the execute method.
+	# I believe doing a splice, then a strip is more efficient in memory hence the original code did it this way.
+	# need to benchmark to see if in large strings, strip()[-endswithcount:] is more expensive or not
+	while not output[-endswith_count:].strip().endswith(b_endswith):
+		if constants.PLATFORM_WINDOWS:
+			# windows does not support select() for anything except sockets
+			# https://docs.python.org/3.7/library/select.html
+			output += os.read(fd, block_size)
+		else:  # pytest-cov:windows: no cover
+			# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
+			inputready, outputready, exceptready = select.select([fd], [], [])
+			for i in inputready:
+				if i == fd:
+					output += os.read(fd, block_size)
 
-	The result is a human readable one-line string.
-	"""
-	if check_ok (result):
-		return 'exiftool finished probably properly. ("%s")' % strip_nl(result)
-	else:
-		if result is None:
-			return "exiftool operation can't be evaluated: No result given"
-		else:
-			return 'exiftool finished with error: "%s"' % strip_nl(result)
-
-
-
-
-#------------------------------------------------------------------------------------------------
-
-
-# https://gist.github.com/techtonik/4368898
-# Public domain code by anatoly techtonik <techtonik@gmail.com>
-# AKA Linux `which` and Windows `where`
-
-def find_executable(executable, path=None):
-	"""Find if 'executable' can be run. Looks for it in 'path'
-	(string that lists directories separated by 'os.pathsep';
-	defaults to os.environ['PATH']). Checks for all executable
-	extensions. Returns full path or None if no command is found.
-	"""
-	if path is None:
-		path = os.environ['PATH']
-	paths = path.split(os.pathsep)
-	extlist = ['']
-	
-	if os.name == 'os2':
-		(base, ext) = os.path.splitext(executable)
-		# executable files on OS/2 can have an arbitrary extension, but
-		# .exe is automatically appended if no dot is present in the name
-		if not ext:
-			executable = executable + ".exe"
-	elif sys.platform == 'win32':
-		pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
-		(base, ext) = os.path.splitext(executable)
-		if ext.lower() not in pathext:
-			extlist = pathext
-	
-	for ext in extlist:
-		execname = executable + ext
-		#print(execname)
-		if os.path.isfile(execname):
-			return execname
-		else:
-			for p in paths:
-				f = os.path.join(p, execname)
-				if os.path.isfile(f):
-					return f
-	else:
-		return None
+	return output
 
 
 
-#------------------------------------------------------------------------------------------------
+
+
+
+# ======================================================================================================================
+
 class ExifTool(object):
-	"""Run the `exiftool` command-line tool and communicate to it.
+	"""Run the `exiftool` command-line tool and communicate with it.
 
-	The argument ``print_conversion`` determines whether exiftool should
-	perform print conversion, which prints values in a human-readable way but
+	There argument ``print_conversion`` no longer exists.  Use ``common_args``
+	to enable/disable print conversion by specifying or not ``-n``.
+	This determines whether exiftool should perform print conversion,
+	which prints values in a human-readable way but
 	may be slower. If print conversion is enabled, appending ``#`` to a tag
 	name disables the print conversion for this particular tag.
+	See Exiftool documentation for more details:  https://exiftool.org/faq.html#Q6
 
-	You can pass two arguments to the constructor:
-	- ``common_args`` (list of strings): contains additional paramaters for
-	  the stay-open instance of exiftool
+	You can pass optional arguments to the constructor:
 	- ``executable`` (string): file name of the ``exiftool`` executable.
 	  The default value ``exiftool`` will only work if the executable
 	  is in your ``PATH``
+	  You can also specify the full path to the ``exiftool`` executable.
+	  See :py:attr:`executable` property for more details.
+	- ``common_args`` (list of strings): contains additional paramaters for
+	  the stay-open instance of exiftool.  The default is ``-G`` and ``-n``.
+	  Read the exiftool documenation to get further information on what the
+	  args do:  https://exiftool.org/exiftool_pod.html
+	- ``win_shell``
+	- ``config_file`` (string): file path to ``-config`` parameter when
+	  starting process.
+	  See :py:attr:`config_file` property for more details.
+	- ``encoding`` (string): encoding to be used when communicating with
+	  exiftool process.  By default, will use ``locale.getpreferredencoding()``
+	  See :py:attr:`encoding` property for more details
+	- ``logger`` (object):  Set a custom logger to log status and debug messages to.
+	  See :py:meth:``_set_logger()` for more details.
 
 	Most methods of this class are only available after calling
 	:py:meth:`start()`, which will actually launch the subprocess.  To
@@ -279,143 +210,563 @@ class ExifTool(object):
 	   options will be silently ignored by exiftool, so there's not
 	   much that can be done in that regard.  You should avoid passing
 	   non-existent files to any of the methods, since this will lead
-	   to undefied behaviour.
+	   to undefined behaviour.
 
-	.. py:attribute:: running
+	.. py:attribute:: _running
 
 	   A Boolean value indicating whether this instance is currently
 	   associated with a running subprocess.
 	"""
 
-	def __init__(self, executable_=None, common_args=None, win_shell=True, config_file=None):
+	##############################################################################
+	#################################### INIT ####################################
+	##############################################################################
 
-		self.win_shell = win_shell
+	# ----------------------------------------------------------------------------------------------------------------------
 
-		if executable_ is None:
-			self.executable = DEFAULT_EXECUTABLE
+	def __init__(self,
+	  executable: Optional[str] = None,
+	  common_args: Optional[List[str]] = ["-G", "-n"],
+	  win_shell: bool = False,
+	  config_file: Optional[str] = None,
+	  encoding: Optional[str] = None,
+	  logger = None) -> None:
+		""" common_args defaults to -G -n as this is the most common use case.
+		-n improves the speed, and consistency of output is more machine-parsable
+		-G separates the grouping
+		"""
+
+		# --- default settings / declare member variables ---
+		self._running: bool = False  # is it running?
+		self._win_shell: bool = win_shell  # do you want to see the shell on Windows?
+
+		self._process = None  # this is set to the process to interact with when _running=True
+		self._ver: Optional[str] = None  # this is set to be the exiftool -v -ver when running
+
+		self._last_stdout: Optional[str] = None  # previous output
+		self._last_stderr: Optional[str] = None  # previous stderr
+		self._last_status: Optional[int] = None  # previous exit status from exiftool (look up EXIT STATUS in exiftool documentation for more information)
+
+		self._block_size: int = constants.DEFAULT_BLOCK_SIZE  # set to default block size
+
+
+		# these are set via properties
+		self._executable: Optional[str] = None  # executable absolute path
+		self._config_file: Optional[str] = None  # config file that can only be set when exiftool is not running
+		self._common_args: Optional[List[str]] = None
+		self._logger = None
+		self._encoding: Optional[str] = None
+
+
+
+		# --- run external library initialization code ---
+		random.seed(None)  # initialize random number generator
+
+
+
+
+		# --- set variables via properties (which do the error checking) --
+
+		# set first, so that debug and info messages get logged
+		self.logger = logger
+
+		# use the passed in parameter, or the default if not set
+		# error checking is done in the property.setter
+		self.executable = executable or constants.DEFAULT_EXECUTABLE
+		self.encoding = encoding
+		self.common_args = common_args
+
+		# set the property, error checking happens in the property.setter
+		self.config_file = config_file
+
+
+
+
+	#######################################################################################
+	#################################### MAGIC METHODS ####################################
+	#######################################################################################
+
+	# ----------------------------------------------------------------------------------------------------------------------
+
+	def __enter__(self):
+		self.run()
+		return self
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+		if self.running:
+			self.terminate()
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def __del__(self) -> None:
+		if self.running:
+			# indicate that __del__ has been started - allows running alternate code path in terminate()
+			self.terminate(_del=True)
+
+
+
+
+	########################################################################################
+	#################################### PROPERTIES R/w ####################################
+	########################################################################################
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def executable(self) -> str:
+		return self._executable
+
+	@executable.setter
+	def executable(self, new_executable: Union[str, Path]) -> None:
+		"""
+		Set the executable.  Does error checking.
+		You can specify just the executable name, or a full path
+		"""
+		# cannot set executable when process is running
+		if self.running:
+			raise ExifToolRunning("Cannot set new executable")
+
+		abs_path: Optional[str] = None
+
+		# in testing, shutil.which() will work if a complete path is given,
+		# but this isn't clear from documentation, so we explicitly check and
+		# don't search if path exists
+		if Path(new_executable).exists():
+			abs_path = new_executable
 		else:
-			self.executable = executable_
-		
-		# error checking
-		if find_executable(self.executable) is None:
-			raise FileNotFoundError( '"{}" is not found, on path or as absolute path'.format(self.executable) )
-		
-		self.running = False
+			# Python 3.3+ required
+			abs_path = shutil.which(new_executable)
 
-		self._common_args = common_args
-		# it can't be none, check if it's a list, if not, error
+			if abs_path is None:
+				raise FileNotFoundError(f'"{new_executable}" is not found, on path or as absolute path')
 
-		if config_file and not os.path.exists(config_file):
-			raise FileNotFoundError("The config file could not be found")
+		# absolute path is returned
+		self._executable = str(abs_path)
 
-		self._config_file = config_file
+		if self._logger: self._logger.info(f"Property 'executable': set to \"{abs_path}\"")
 
-		self._process = None
 
-		if common_args is None:
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def encoding(self) -> Optional[str]:
+		return self._encoding
+
+	@encoding.setter
+	def encoding(self, new_encoding: Optional[str]) -> None:
+		"""
+		Set the encoding of Popen() communication with exiftool process.  Does error checking.
+
+		if new_encoding is None, will detect it from locale.getpreferredencoding(do_setlocale=False)
+		do_setlocale is set to False as not to affect a caller.  will default to UTF-8 if nothing comes back
+
+		this does NOT validate the encoding for validity.  It is passed verbatim into subprocess.Popen()
+		"""
+
+		# cannot set encoding when process is running
+		if self.running:
+			raise ExifToolRunning("Cannot set new encoding")
+
+		# auto-detect system specific
+		self._encoding = new_encoding or (locale.getpreferredencoding(do_setlocale=False) or ENCODING_UTF8)
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def block_size(self) -> int:
+		return self._block_size
+
+	@block_size.setter
+	def block_size(self, new_block_size: int) -> None:
+		"""
+		Set the block_size.  Does error checking.
+		"""
+		if new_block_size <= 0:
+			raise ValueError("Block Size doesn't make sense to be <= 0")
+
+		self._block_size = new_block_size
+
+		if self._logger: self._logger.info(f"Property 'block_size': set to \"{new_block_size}\"")
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def common_args(self) -> Optional[List[str]]:
+		return self._common_args
+
+	@common_args.setter
+	def common_args(self, new_args: Optional[List[str]]) -> None:
+		""" set the common_args parameter
+
+			this is the common_args that is passed when the Exiftool process is STARTED
+			see "-common_args" parameter in Exiftool documentation https://exiftool.org/exiftool_pod.html
+
+			so, if running==True, it will throw an error.  Can only set common_args when exiftool is not running
+
+			If new_args is None, will set to []
+		"""
+
+		if self.running:
+			raise ExifToolRunning("Cannot set new common_args")
+
+		if new_args is None:
+			self._common_args = []
+		elif isinstance(new_args, list):
 			# default parameters to exiftool
 			# -n = disable print conversion (speedup)
-			self.common_args = ["-G", "-n"]
-		elif type(common_args) is list:
-			self.common_args = common_args
+			self._common_args = new_args
 		else:
 			raise TypeError("common_args not a list of strings")
 
-		self.no_output = '-w' in self.common_args
-
-		# sets logger with name rather than using the root logger
-		self.logger = logging.getLogger(__name__)
+		if self._logger: self._logger.info(f"Property 'common_args': set to \"{self._common_args}\"")
 
 
-	def start(self):
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def config_file(self) -> Optional[str]:
+		""" Return currently set config file """
+		return self._config_file
+
+	@config_file.setter
+	def config_file(self, new_config_file: Optional[Union[str, Path]]) -> None:
+		""" set the config_file parameter
+
+		set to None to disable the -config parameter to exiftool
+		set to "" has special meaning and disables loading of default config file.  See exiftool documentation for more info
+
+		if :py:attr:`running` == True, it will throw an error.  Can only set config_file when exiftool is not running
+		"""
+		if self.running:
+			raise ExifToolRunning("Cannot set a new config_file")
+
+		if new_config_file is None:
+			self._config_file = None
+		elif new_config_file == "":
+			# this is VALID usage of -config parameter
+			# As per exiftool documentation:  Loading of the default config file may be disabled by setting CFGFILE to an empty string (ie. "")
+			self._config_file = ""
+		elif not Path(new_config_file).exists():
+			raise FileNotFoundError("The config file could not be found")
+		else:
+			self._config_file = str(new_config_file)
+
+		if self._logger: self._logger.info(f"Property 'config_file': set to \"{self._config_file}\"")
+
+
+
+	##############################################################################################
+	#################################### PROPERTIES Read only ####################################
+	##############################################################################################
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def running(self) -> bool:
+		"""
+		Read-only property which indicates whether the ExifTool instance is running or not
+
+		.. note::
+			This checks to make sure the process is still alive.
+
+			If the process has died since last `running` detection, this property
+			will detect that and reset the status accordingly
+		"""
+		if self._running:
+			# check if the process is actually alive
+			if self._process.poll() is not None:
+				# process died
+				warnings.warn("ExifTool process was previously running but died")
+				self._flag_running_false()
+
+				if self._logger: self._logger.warning(f"Property 'running': ExifTool process was previously running but died")
+
+		return self._running
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def version(self) -> str:
+		"""
+		Read-only property which is the string returned by `exiftool -ver`
+
+		The `-ver` command is ran once at process startup and cached.
+
+		This property is only valid when :py:attr:`running` == True
+		"""
+
+		if not self.running:
+			raise ExifToolNotRunning("Can't get ExifTool version")
+
+		return self._ver
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def last_stdout(self) -> Optional[str]:
+		"""
+		STDOUT for most recent result from execute()
+
+		.. note::
+			This property can be read at any time, and is not dependent on running state of ExifTool.
+
+			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
+			for executing a command and terminating, but still have result available.
+		"""
+		return self._last_stdout
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def last_stderr(self) -> Optional[str]:
+		"""
+		STDERR for most recent result from execute()
+
+		.. note::
+			This property can be read at any time, and is not dependent on running state of ExifTool.
+
+			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
+			for executing a command and terminating, but still have result available.
+		"""
+		return self._last_stderr
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def last_status(self) -> Optional[int]:
+		"""
+		Exit Status Code for most recent result from execute()
+
+		.. note::
+			This property can be read at any time, and is not dependent on running state of ExifTool.
+
+			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
+			for executing a command and terminating, but still have result available.
+		"""
+		return self._last_status
+
+
+
+
+	###############################################################################################
+	#################################### PROPERTIES Write only ####################################
+	###############################################################################################
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def _set_logger(self, new_logger) -> None:
+		""" set a new user-created logging.Logger object
+			can be set at any time to start logging.
+
+			Set to None at any time to stop logging
+		"""
+		if new_logger is None:
+			self._logger = None
+			return
+
+		# can't check this in case someone passes a drop-in replacement, like loguru, which isn't type logging.Logger
+		#elif not isinstance(new_logger, logging.Logger):
+		#	raise TypeError("logger needs to be of type logging.Logger")
+
+
+		# do some basic checks on methods available in the "logger" provided
+		check = True
+		try:
+			# ExifTool will probably use all of these logging method calls at some point
+			# check all these are callable methods
+			check = callable(new_logger.info) and \
+				callable(new_logger.warning) and \
+				callable(new_logger.error) and \
+				callable(new_logger.critical) and \
+				callable(new_logger.exception)
+		except AttributeError as e:
+			check = False
+
+		if not check:
+			raise TypeError("logger needs to implement methods (info,warning,error,critical,exception)")
+
+		self._logger = new_logger
+
+	# have to run this at the class level to create a special write-only property
+	# https://stackoverflow.com/questions/17576009/python-class-property-use-setter-but-evade-getter
+	# https://docs.python.org/3/howto/descriptor.html#properties
+	# can have it named same or different
+	logger = property(fset=_set_logger, doc="""
+		Write-only property to set the class of logging.Logger
+
+		If this is set, then status messages will log out to the given class.
+	""")
+
+
+
+
+
+
+	#########################################################################################
+	#################################### PROCESS CONTROL ####################################
+	#########################################################################################
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+
+	def run(self) -> None:
 		"""Start an ``exiftool`` process in batch mode for this instance.
 
 		This method will issue a ``UserWarning`` if the subprocess is
-		already running.  The process is by default started with the ``-G`` 
+		already running.  The process is by default started with the ``-G``
 		and ``-n`` (print conversion disabled) as common arguments,
 		which are automatically included in every command you run with
 		:py:meth:`execute()`.
 
-		However, you can override these default arguments with the 
+		However, you can override these default arguments with the
 		``common_args`` parameter in the constructor.
+
+		If it doesn't run successfully, an error will be raised, otherwise, the ``exiftool`` process has started
+
+		If the minimum required version check fails, a RuntimeError will be raised, and exiftool is automatically terminated.
+
+		(if you have another executable named exiftool which isn't exiftool, then you're shooting yourself in the foot as there's no error checking for that)
 		"""
 		if self.running:
-			warnings.warn("ExifTool already running; doing nothing.")
+			warnings.warn("ExifTool already running; doing nothing.", UserWarning)
 			return
 
-		proc_args = [self.executable, ]
+		# first the executable ...
+		proc_args = [self._executable, ]
+
 		# If working with a config file, it must be the first argument after the executable per: https://exiftool.org/config.html
-		if self._config_file:
+		if self._config_file is not None:
+			# must check explicitly for None, as "" is valid
 			proc_args.extend(["-config", self._config_file])
-		proc_args.extend(["-stay_open", "True", "-@", "-", "-common_args"])
-		proc_args.extend(self.common_args)  # add the common arguments
 
-		self.logger.debug(proc_args)
-		
-		with open(os.devnull, "w") as devnull:
-			try:
-				if sys.platform == 'win32':
-					startup_info = subprocess.STARTUPINFO()
-					if not self.win_shell:
-						SW_FORCEMINIMIZE = 11 # from win32con
-						# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
-						# keep it from throwing up a DOS shell when it launches.
-						startup_info.dwFlags |= 11
+		# this is the required stuff for the stay_open that makes pyexiftool so great!
+		proc_args.extend(["-stay_open", "True", "-@", "-"])
 
-					self._process = subprocess.Popen(
-						proc_args,
-						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-						stderr=devnull, startupinfo=startup_info)
-					# TODO check error before saying it's running
-				else:
-					# assume it's linux
-					self._process = subprocess.Popen(
-						proc_args,
-						stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-						stderr=devnull, preexec_fn=set_pdeathsig(signal.SIGTERM))
-						# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application. 
-						# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
-			except FileNotFoundError as fnfe:
-				raise fnfe
-			except OSError as oe:
-				raise oe
-			except ValueError as ve:
-				raise ve
-			except subprocess.CalledProcessError as cpe:
-				raise cpe
-		
+		# only if there are any common_args.  [] and None are skipped equally with this
+		if self._common_args:
+			proc_args.append("-common_args")  # add this param only if there are common_args
+			proc_args.extend(self._common_args)  # add the common arguments
+
+
+		# ---- set platform-specific kwargs for Popen ----
+		kwargs: dict = {}
+
+		if constants.PLATFORM_WINDOWS:
+			# TODO: I don't think this code actually does anything ... I've never seen a console pop up on Windows
+			# Perhaps need to specify subprocess.STARTF_USESHOWWINDOW to actually have any console pop up?
+			# https://docs.python.org/3/library/subprocess.html#windows-popen-helpers
+			startup_info = subprocess.STARTUPINFO()
+			if not self._win_shell:
+				# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
+				# keep it from throwing up a DOS shell when it launches.
+				startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
+
+			kwargs['startupinfo'] = startup_info
+		else:  # pytest-cov:windows: no cover
+			# assume it's linux
+			kwargs['preexec_fn'] = _set_pdeathsig(signal.SIGTERM)
+			# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application.
+			# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+
+
+		try:
+			# unify both platform calls into one subprocess.Popen call
+			self._process = subprocess.Popen(
+				proc_args,
+				stdin=subprocess.PIPE,
+				stdout=subprocess.PIPE,
+				stderr=subprocess.PIPE,
+				encoding=self._encoding,
+				**kwargs)
+		except FileNotFoundError as fnfe:
+			raise
+		except OSError as oe:
+			raise
+		except ValueError as ve:
+			raise
+		except subprocess.CalledProcessError as cpe:
+			raise
+		# TODO print out more useful error messages to these different errors above
+
 		# check error above before saying it's running
-		self.running = True
+		if self._process.poll() is not None:
+			# the Popen launched, then process terminated
+			self._process = None  # unset it as it's now terminated
+			raise RuntimeError("exiftool did not execute successfully")
 
-	def terminate(self, wait_timeout=30):
+
+		# have to set this before doing the checks below, or else execute() will fail
+		self._running = True
+
+		# get ExifTool version here and any Exiftool metadata
+		# this can also verify that it is really ExifTool we ran, not some other random process
+		try:
+			# apparently because .execute() has code that already depends on v12.15+ functionality, this will throw a ValueError immediately with
+			#   ValueError: invalid literal for int() with base 10: '${status}'
+			self._ver = self._parse_ver()
+		except ValueError:
+			# trap the error and return it as a minimum version problem
+			self.terminate()
+			raise ExifToolVersionError(f"Error retrieving Exiftool info.  Is your Exiftool version ('exiftool -ver') >= required version ('{constants.EXIFTOOL_MINIMUM_VERSION}')?")
+
+		if self._logger: self._logger.info(f"Method 'run': Exiftool version '{self._ver}' (pid {self._process.pid}) launched with args '{proc_args}'")
+
+
+		# currently not needed... if it passes -ver check, the rest is OK
+		# may use in the future again if another version feature is needed but the -ver check passes
+		"""
+		# check that the minimum required version is met, if not, terminate...
+		# if you run against a version which isn't supported, strange errors come up during execute()
+		if not self._exiftool_version_check():
+			self.terminate()
+			if self._logger: self._logger.error(f"Method 'run': Exiftool version '{self._ver}' did not meet the required minimum version '{constants.EXIFTOOL_MINIMUM_VERSION}'")
+			raise ExifToolVersionError(f"exiftool version '{self._ver}' < required '{constants.EXIFTOOL_MINIMUM_VERSION}'")
+		"""
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def terminate(self, timeout: int = 30, _del: bool = False) -> None:
 		"""Terminate the ``exiftool`` process of this instance.
 
-		If the subprocess isn't running, this method will do nothing.
+		If the subprocess isn't running, this method will throw a warning, and do nothing.
 		"""
 		if not self.running:
+			warnings.warn("ExifTool not running; doing nothing.", UserWarning)
 			return
-		self._process.stdin.write(b"-stay_open\nFalse\n")
-		self._process.stdin.flush()
-		try:
-			self._process.communicate(timeout=wait_timeout)
-		except subprocess.TimeoutExpired: # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
+
+		if _del and constants.PLATFORM_WINDOWS:
+			# don't cleanly exit on windows, during __del__ as it'll freeze at communicate()
 			self._process.kill()
-			outs, errs = self._process.communicate()
-			# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
-			
-		del self._process
-		self.running = False
+			#print("before comm", self._process.poll(), self._process)
+			self._process.poll()
+			# TODO freezes here on windows if subprocess zombie remains
+			outs, errs = self._process.communicate()  # have to cleanup the process or else .poll() will return None
+			#print("after comm")
+			# TODO a bug filed with Python, or user error... this doesn't seem to work at all ... .communicate() still hangs
+			# https://bugs.python.org/issue43784 ... Windows-specific issue affecting Python 3.8-3.10 (as of this time)
+		else:
+			try:
+				"""
+					On Windows, running this after __del__ freezes at communicate(), regardless of timeout
+						this is possibly because the file descriptors are no longer valid or were closed at __del__
 
-	def __enter__(self):
-		self.start()
-		return self
+						test yourself with simple code that calls .run() and then end of script
 
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.terminate()
+					On Linux, this runs as is, and the process terminates properly
+				"""
+				self._process.communicate(input="-stay_open\nFalse\n", timeout=timeout)  # TODO these are constants which should be elsewhere defined
+				self._process.kill()
+			except subprocess.TimeoutExpired:  # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
+				self._process.kill()
+				outs, errs = self._process.communicate()
+				# err handling code from https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
 
-	def __del__(self):
-		self.terminate()
+		self._flag_running_false()
 
+		# TODO log / return exit status from exiftool?
+		if self._logger: self._logger.info("Method 'terminate': Exiftool terminated successfully.")
+
+
+
+
+
+	##################################################################################
+	#################################### EXECUTE* ####################################
+	##################################################################################
+
+	# ----------------------------------------------------------------------------------------------------------------------
 	def execute(self, *params):
 		"""Execute the given batch of parameters with ``exiftool``.
 
@@ -428,7 +779,7 @@ class ExifTool(object):
 		end-of-output sentinel and returned as a raw ``bytes`` object,
 		excluding the sentinel.
 
-		The parameters must also be raw ``bytes``, in whatever
+		The parameters must be in ``str``, use the `encoding` property to change to
 		encoding exiftool accepts.  For filenames, this should be the
 		system's filesystem encoding.
 
@@ -436,66 +787,90 @@ class ExifTool(object):
 		   rarely be needed by application developers.
 		"""
 		if not self.running:
-			raise ValueError("ExifTool instance not running.")
-		
-		cmd_text = b"\n".join(params + (b"-execute\n",))
-		# cmd_text.encode("utf-8") # a commit put this in the next line, but i can't get it to work TODO
-		# might look at something like this https://stackoverflow.com/questions/7585435/best-way-to-convert-string-to-bytes-in-python-3
+			raise ExifToolNotRunning("Cannot execute()")
+
+
+		# ---------- build the special params to execute ----------
+
+		# there's a special usage of execute/ready specified in the manual which make almost ensure we are receiving the right signal back
+		# from exiftool man pages:  When this number is added, -q no longer suppresses the "{ready}"
+		signal_num = random.randint(100000, 999999)  # arbitrary create a 6 digit number (keep it down to save memory maybe)
+
+		# constant special sequences when running -stay_open mode
+		seq_execute = f"-execute{signal_num}\n"  # the default string is b"-execute\n"
+		seq_ready = f"{{ready{signal_num}}}"  # the default string is b"{ready}"
+
+		# these are special sequences to help with synchronization.  It will print specific text to STDERR before and after processing
+		#SEQ_STDERR_PRE_FMT = "pre{}" # can have a PRE sequence too but we don't need it for syncing
+		seq_err_post = f"post{signal_num}"  # default there isn't any string
+
+		SEQ_ERR_STATUS_DELIM = "="  # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
+		seq_err_status = "${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation - only supported on exiftool v12.10+
+
+		# f-strings are faster than concatentation of multiple strings -- https://stackoverflow.com/questions/59180574/string-concatenation-with-vs-f-string
+		cmd_text = "\n".join(params + ("-echo4", f"{SEQ_ERR_STATUS_DELIM}{seq_err_status}{SEQ_ERR_STATUS_DELIM}{seq_err_post}", seq_execute))
+
+
+		# ---------- write to the pipe connected with exiftool process ----------
+
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
-		output = b""
-		fd = self._process.stdout.fileno()
-		while not output[-32:].strip().endswith(sentinel):
-			if sys.platform == 'win32':
-				# windows does not support select() for anything except sockets
-				# https://docs.python.org/3.7/library/select.html
-				output += os.read(fd, block_size)
-			else:
-				# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
-				inputready,outputready,exceptready = select.select([fd],[],[])
-				for i in inputready:
-					if i == fd:
-						output += os.read(fd, block_size)
-		return output.strip()[:-len(sentinel)]
+
+		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_text.split('\n')[:-1]))
 
 
-	# i'm not sure if the verification works, but related to pull request (#11)
-	def execute_json_wrapper(self, filenames, params=None, retry_on_error=True):
-		# make sure the argument is a list and not a single string
-		# which would lead to strange errors
-		if isinstance(filenames, basestring):
-			raise TypeError("The argument 'filenames' must be an iterable of strings")
+		# ---------- read output from exiftool process until special sequences reached ----------
 
-		execute_params = []
+		fdout = self._process.stdout.fileno()
+		raw_stdout = _read_fd_endswith(fdout, seq_ready.encode(self._encoding), self._block_size).decode(self._encoding)
 
-		if params:
-			execute_params.extend(params)
-		execute_params.extend(filenames)
+		# when it's ready, we can safely read all of stderr out, as the command is already done
+		fderr = self._process.stderr.fileno()
+		raw_stderr = _read_fd_endswith(fderr, seq_err_post.encode(self._encoding), self._block_size).decode(self._encoding)
 
-		result = self.execute_json(execute_params)
 
-		if result:
-			try:
-				ExifTool._check_sanity_of_result(filenames, result)
-			except IOError as error:
-				# Restart the exiftool child process in these cases since something is going wrong
-				self.terminate()
-				self.start()
+		# ---------- parse output ----------
 
-				if retry_on_error:
-					result = self.execute_json_filenames(filenames, params, retry_on_error=False)
-				else:
-					raise error
-		else:
-			# Reasons for exiftool to provide an empty result, could be e.g. file not found, etc.
-			# What should we do in these cases? We don't have any information what went wrong, therefore
-			# we just return empty dictionaries.
-			result = [{} for _ in filenames]
+		# save the outputs to some variables first
+		cmd_stdout = raw_stdout.strip()[:-len(seq_ready)]
+		cmd_stderr = raw_stderr.strip()[:-len(seq_err_post)]  # save it in case the error below happens and output can be checked easily
 
-		return result
+		# sanity check the status code from the stderr output
+		delim_len = len(SEQ_ERR_STATUS_DELIM)
+		if cmd_stderr[-delim_len:] != SEQ_ERR_STATUS_DELIM:
+			# exiftool is expected to dump out the status code within the delims... if it doesn't, the class is broken
+			raise ExifToolVersionError(f"Exiftool expected to return status on stderr, but got unexpected character: {cmd_stderr[-delim_len:]} != {SEQ_ERR_STATUS_DELIM}")
+
+		# look for the previous delim (we could use regex here to do all this in one step, but it's probably overkill, and could slow down the code significantly)
+		# the other simplification that can be done is that, Exiftool is expected to only return 0, 1, or 2 as per documentation
+		# you could just lop the last 3 characters off... but if the return status changes in the future, then this code would break
+		err_delim_1 = cmd_stderr.rfind(SEQ_ERR_STATUS_DELIM, 0, -delim_len)
+		cmd_status = cmd_stderr[err_delim_1 + delim_len : -delim_len]
+
+
+		# ---------- save the output to class vars for later retrieval ----------
+
+		# lop off the actual status code from stderr
+		self._last_stderr = cmd_stderr[:err_delim_1]
+		self._last_stdout = cmd_stdout
+		# can check .isnumeric() here, but best just to duck-type cast it
+		self._last_status = int(cmd_status)
 
 
 
+		if self._logger:
+			self._logger.debug(f"Method 'execute': Reply stdout = \"{self._last_stdout}\"")
+			self._logger.debug(f"Method 'execute': Reply stderr = \"{self._last_stderr}\"")
+			self._logger.debug(f"Method 'execute': Reply status = {self._last_status}")
+
+
+		# the standard return: just stdout
+		# if you need other output, retrieve from properties
+		return self._last_stdout
+
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
 	def execute_json(self, *params):
 		"""Execute the given batch of parameters and parse the JSON output.
 
@@ -518,259 +893,123 @@ class ExifTool(object):
 		respective Python version – as raw strings in Python 2.x and
 		as Unicode strings in Python 3.x.
 		"""
-		params = map(fsencode, params)
-		# Some latin bytes won't decode to utf-8.
-		# Try utf-8 and fallback to latin.
-		# http://stackoverflow.com/a/5552623/1318758
-		# https://github.com/jmathai/elodie/issues/127
-		res = self.execute(b"-j", *params)
+
+		result = self.execute("-j", *params)  # stdout
+
+		# TODO check status code or have caller do it?
+		"""
+		status_code = self._last_status  # status code
+		if status_code != 0:
+			warnings.warn(f"ExifTool returned a non-zero status code: {status_code}", UserWarning)
+		"""
+
+
+		if len(result) == 0:
+			# the output from execute() can be empty under many relatively ambiguous situations
+			# * command has no files it worked on
+			# * a file specified or files does not exist
+			# * some other type of error
+			# * a command that does not return anything (like metadata manipulation/setting tags)
+			#
+			# There's no easy way to check which params are files, or else we have to reproduce the parser exiftool does (so it's hard to detect to raise a FileNotFoundError)
+
+			# Returning [] could be ambiguous if Exiftool changes the returned JSON structure in the future
+			# Returning None was preferred, because it's the safest as it clearly indicates that nothing came back from execute(), but it means execute_json() doesn't always return JSON
+			raise OutputEmpty("ExifTool did not return any stdout")
+
+
 		try:
-			res_decoded = res.decode("utf-8")
-		except UnicodeDecodeError:
-			res_decoded = res.decode("latin-1")
-		# res_decoded can be invalid json if `-w` flag is specified in common_args
-		# which will return something like
-		# image files read
-		# output files created
-		if self.no_output:
-			print(res_decoded)
+			parsed = json.loads(result)
+		except json.JSONDecodeError as e:
+			# if `-w` flag is specified in common_args or params, stdout will not be JSON parseable
+			#
+			# which will return something like:
+			#   x image files read
+			#   x output files created
+
+			# the user is expected to know this ahead of time, and if -w exists in common_args or as a param, this error will be thrown
+
+			# explicit chaining https://www.python.org/dev/peps/pep-3134/
+			raise OutputNotJSON() from e
+
+		return parsed
+
+
+	#########################################################################################
+	#################################### PRIVATE METHODS ####################################
+	#########################################################################################
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def _flag_running_false(self) -> None:
+		""" private method that resets the "running" state
+			It used to be that there was only self._running to unset, but now it's a trio of variables
+
+			This method makes it less likely a maintainer will leave off a variable if other ones are added in the future
+		"""
+		self._process = None  # don't delete, just leave as None
+		self._ver = None  # unset the version
+		self._running = False
+
+		# as an FYI, as per the last_* properties, they are intentionally not cleared when process closes
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def _parse_ver(self):
+		""" private method to run exiftool -ver
+			and parse out the information
+		"""
+		if not self.running:
+			raise ExifToolNotRunning("Cannot get version")
+
+
+		# -ver is just the version
+		# -v gives you more info (perl version, platform, libraries) but isn't helpful for this library
+		# -v2 gives you even more, but it's less useful at that point
+		return self.execute("-ver").strip()
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	"""
+	def _exiftool_version_check(self) -> bool:
+		"" " private method to check the minimum required version of ExifTool
+
+		returns false if the version check fails
+		returns true if it's OK
+
+		"" "
+
+		# parse (major, minor) with integers... so far Exiftool versions are all ##.## with no exception
+		# this isn't entirely tested... possibly a version with more "." or something might break this parsing
+		arr: List = self._ver.split(".", 1)  # split to (major).(whatever)
+
+		version_nums: List = []
+		try:
+			for v in arr:
+				res.append(int(v))
+		except ValueError:
+			raise ValueError(f"Error parsing ExifTool version for version check: '{self._ver}'")
+
+		if len(version_nums) != 2:
+			raise ValueError(f"Expected Major.Minor len()==2, got: {version_nums}")
+
+		curr_major, curr_minor = version_nums
+
+
+		# same logic above except on one line
+		req_major, req_minor = [int(x) for x in constants.EXIFTOOL_MINIMUM_VERSION.split(".", 1)]
+
+		if curr_major > req_major:
+			# major version is bigger
+			return True
+		elif curr_major < req_major:
+			# major version is smaller
+			return False
+		elif curr_minor >= req_minor:
+			# major version is equal
+			# current minor is equal or better
+			return True
 		else:
-			# TODO: if len(res_decoded) == 0, then there's obviously an error here
-			return json.loads(res_decoded)
+			# anything else is False
+			return False
+	"""
 
-	# allows adding additional checks (#11)
-	def get_metadata_batch_wrapper(self, filenames, params=None):
-		return self.execute_json_wrapper(filenames=filenames, params=params)
-
-	def get_metadata_batch(self, filenames, params=None):
-		"""Return all meta-data for the given files.
-
-		The return value will have the format described in the
-		documentation of :py:meth:`execute_json()`.
-		"""
-		if not params:
-			params = []
-		return self.execute_json(*filenames, *params)
-
-	# (#11)
-	def get_metadata_wrapper(self, filename, params=None):
-		return self.execute_json_wrapper(filenames=[filename], params=params)[0]
-
-	def get_metadata(self, filename, params=None):
-		"""Return meta-data for a single file.
-
-		The returned dictionary has the format described in the
-		documentation of :py:meth:`execute_json()`.
-		"""
-		if not params:
-			params = []
-		return self.execute_json(filename, *params)[0]
-
-	# (#11)
-	def get_tags_batch_wrapper(self, tags, filenames, params=None):
-		params = (params if params else []) + ["-" + t for t in tags]
-		return self.execute_json_wrapper(filenames=filenames, params=params)
-
-	def get_tags_batch(self, tags, filenames):
-		"""Return only specified tags for the given files.
-
-		The first argument is an iterable of tags.  The tag names may
-		include group names, as usual in the format <group>:<tag>.
-
-		The second argument is an iterable of file names.
-
-		The format of the return value is the same as for
-		:py:meth:`execute_json()`.
-		"""
-		# Explicitly ruling out strings here because passing in a
-		# string would lead to strange and hard-to-find errors
-		if isinstance(tags, basestring):
-			raise TypeError("The argument 'tags' must be "
-							"an iterable of strings")
-		if isinstance(filenames, basestring):
-			raise TypeError("The argument 'filenames' must be "
-							"an iterable of strings")
-		params = ["-" + t for t in tags]
-		params.extend(filenames)
-		return self.execute_json(*params)
-
-	# (#11)
-	def get_tags_wrapper(self, tags, filename, params=None):
-		return self.get_tags_batch_wrapper(tags, [filename], params=params)[0]
-
-	def get_tags(self, tags, filename):
-		"""Return only specified tags for a single file.
-
-		The returned dictionary has the format described in the
-		documentation of :py:meth:`execute_json()`.
-		"""
-		return self.get_tags_batch(tags, [filename])[0]
-
-	# (#11)
-	def get_tag_batch_wrapper(self, tag, filenames, params=None):
-		data = self.get_tags_batch_wrapper([tag], filenames, params=params)
-		result = []
-		for d in data:
-			d.pop("SourceFile")
-			result.append(next(iter(d.values()), None))
-		return result
-
-
-	def get_tag_batch(self, tag, filenames):
-		"""Extract a single tag from the given files.
-
-		The first argument is a single tag name, as usual in the
-		format <group>:<tag>.
-
-		The second argument is an iterable of file names.
-
-		The return value is a list of tag values or ``None`` for
-		non-existent tags, in the same order as ``filenames``.
-		"""
-		data = self.get_tags_batch([tag], filenames)
-		result = []
-		for d in data:
-			d.pop("SourceFile")
-			result.append(next(iter(d.values()), None))
-		return result
-
-	# (#11)
-	def get_tag_wrapper(self, tag, filename, params=None):
-		return self.get_tag_batch_wrapper(tag, [filename], params=params)[0]
-
-	def get_tag(self, tag, filename):
-		"""Extract a single tag from a single file.
-
-		The return value is the value of the specified tag, or
-		``None`` if this tag was not found in the file.
-		"""
-		return self.get_tag_batch(tag, [filename])[0]
-
-	def copy_tags(self, fromFilename, toFilename):
-		"""Copy all tags from one file to another."""
-		params = ["-overwrite_original", "-TagsFromFile", fromFilename, toFilename]
-		params_utf8 = [x.encode('utf-8') for x in params]
-		self.execute(*params_utf8)
-
-
-	def set_tags_batch(self, tags, filenames):
-		"""Writes the values of the specified tags for the given files.
-
-		The first argument is a dictionary of tags and values.  The tag names may
-		include group names, as usual in the format <group>:<tag>.
-
-		The second argument is an iterable of file names.
-
-		The format of the return value is the same as for
-		:py:meth:`execute()`.
-
-		It can be passed into `check_ok()` and `format_error()`.
-
-		tags items can be lists, in which case, the tag will be passed 
-		with each item in the list, in the order given
-		"""
-		# Explicitly ruling out strings here because passing in a
-		# string would lead to strange and hard-to-find errors
-		if isinstance(tags, basestring):
-			raise TypeError("The argument 'tags' must be dictionary "
-							"of strings")
-		if isinstance(filenames, basestring):
-			raise TypeError("The argument 'filenames' must be "
-							"an iterable of strings")
-
-		params = []
-		params_utf8 = []
-		for tag, value in tags.items():
-			# contributed by @daviddorme in https://github.com/sylikc/pyexiftool/issues/12#issuecomment-821879234
-			# allows setting things like Keywords which require separate directives 
-			# > exiftool -Keywords=keyword1 -Keywords=keyword2 -Keywords=keyword3 file.jpg
-			# which are not supported as duplicate keys in a dictionary
-			if isinstance(value, list):
-				for item in value:
-					params.append(u'-%s=%s' % (tag, item))
-			else:
-				params.append(u'-%s=%s' % (tag, value))
-
-		params.extend(filenames)
-		params_utf8 = [x.encode('utf-8') for x in params]
-		return self.execute(*params_utf8)
-
-	def set_tags(self, tags, filename):
-		"""Writes the values of the specified tags for the given file.
-
-		This is a convenience function derived from `set_tags_batch()`.
-		Only difference is that it takes as last arugemnt only one file name
-		as a string.
-		"""
-		return self.set_tags_batch(tags, [filename])
-
-	def set_keywords_batch(self, mode, keywords, filenames):
-		"""Modifies the keywords tag for the given files.
-
-		The first argument is the operation mode:
-		KW_REPLACE: Replace (i.e. set) the full keywords tag with `keywords`.
-		KW_ADD:     Add `keywords` to the keywords tag.
-					If a keyword is present, just keep it.
-		KW_REMOVE:  Remove `keywords` from the keywords tag.
-					If a keyword wasn't present, just leave it.
-
-		The second argument is an iterable of key words.
-
-		The third argument is an iterable of file names.
-
-		The format of the return value is the same as for
-		:py:meth:`execute()`.
-
-		It can be passed into `check_ok()` and `format_error()`.
-		"""
-		# Explicitly ruling out strings here because passing in a
-		# string would lead to strange and hard-to-find errors
-		if isinstance(keywords, basestring):
-			raise TypeError("The argument 'keywords' must be "
-							"an iterable of strings")
-		if isinstance(filenames, basestring):
-			raise TypeError("The argument 'filenames' must be "
-							"an iterable of strings")
-
-		params = []
-		params_utf8 = []
-
-		kw_operation = {KW_REPLACE:"-%s=%s",
-						KW_ADD:"-%s+=%s",
-						KW_REMOVE:"-%s-=%s"}[mode]
-
-		kw_params = [ kw_operation % (KW_TAGNAME, w)  for w in keywords ]
-
-		params.extend(kw_params)
-		params.extend(filenames)
-		self.logger.debug(params)
-
-		params_utf8 = [x.encode('utf-8') for x in params]
-		return self.execute(*params_utf8)
-
-	def set_keywords(self, mode, keywords, filename):
-		"""Modifies the keywords tag for the given file.
-
-		This is a convenience function derived from `set_keywords_batch()`.
-		Only difference is that it takes as last argument only one file name
-		as a string.
-		"""
-		return self.set_keywords_batch(mode, keywords, [filename])
-
-
-
-	@staticmethod
-	def _check_sanity_of_result(file_paths, result):
-		"""
-		Checks if the given file paths matches the 'SourceFile' entries in the result returned by
-		exiftool. This is done to find possible mix ups in the streamed responses.
-		"""
-		# do some sanity checks on the results to make sure nothing was mixed up during reading from stdout
-		if len(result) != len(file_paths):
-			raise IOError("exiftool did return %d results, but expected was %d" % (len(result), len(file_paths)))
-		for i in range(0, len(file_paths)):
-			returned_source_file = result[i]['SourceFile']
-			requested_file = file_paths[i]
-			if returned_source_file != requested_file:
-				raise IOError('exiftool returned data for file %s, but expected was %s'
-							  % (returned_source_file, requested_file))
+	# ----------------------------------------------------------------------------------------------------------------------

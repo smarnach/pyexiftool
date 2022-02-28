@@ -27,57 +27,64 @@ with open("README.rst", "r", encoding="utf-8") as fh:
 setup(
 	# detailed list of options:
 	# https://packaging.python.org/guides/distributing-packages-using-setuptools/
-	
+
 	# overview
 	name="PyExifTool",
-	version="0.4.13",
+	# version is configured in setup.cfg - https://packaging.python.org/en/latest/guides/single-sourcing-package-version/
+	#version=,
 	license="GPLv3+/BSD",
 	url="http://github.com/sylikc/pyexiftool",
-	python_requires=">=2.6",
-	
+	python_requires=">=3.6",
+
 	# authors
 	author="Sven Marnach, Kevin M (sylikc), various contributors",
 	author_email="sylikc@gmail.com",
-	
+
 	# info
 	description="Python wrapper for exiftool",
 	long_description=long_desc,
 	long_description_content_type="text/x-rst",
 	keywords="exiftool image exif metadata photo video photography",
-	
+
 	project_urls={
 		"Documentation": "https://sylikc.github.io/pyexiftool/",
 		"Tracker": "https://github.com/sylikc/pyexiftool/issues",
 		"Source": "https://github.com/sylikc/pyexiftool",
 	},
-	
-	
+
+
 	classifiers=[
 		# list is here:
 		# https://pypi.org/classifiers/
-		
+
 		"Development Status :: 3 - Alpha",
-		
+
 		"Intended Audience :: Developers",
-		
+
 		"License :: OSI Approved :: BSD License",
 		"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-		
+
 		"Operating System :: OS Independent",
-		
-		"Programming Language :: Python :: 2.6",
-		"Programming Language :: Python :: 2.7",
+
 		"Programming Language :: Python :: 3",
-		
+		"Programming Language :: Python :: 3.6",
+
 		"Topic :: Multimedia",
 		"Topic :: Utilities",
 	],
-	
-	
+
+
 	packages=find_packages(
 		where=".",
 		exclude = ['test*',]
 	),
-	
+
+	extras_require={
+			"test": ["packaging"],  # dependencies to do tests
+			"docs": ["sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],  # dependencies to build docs
+		},
+
+	#package_dir={'exiftool': 'exiftool'},
+
 	#py_modules=["exiftool"], - it is now the exiftool module
 )
