@@ -14,6 +14,22 @@ process for every single query.
 
 .. _ExifTool: https://exiftool.org/
 
+Example Usage
+=============
+
+.. code-block:: python
+	:caption: Quick Sample
+	:linenos:
+
+	import exiftool
+
+	files = ["a.jpg", "b.png", "c.tif"]
+	with exiftool.ExifToolHelper() as et:
+		metadata = et.get_metadata(files)
+	for d in metadata:
+		print("{:20.20} {:20.20}".format(d["SourceFile"],
+										 d["EXIF:DateTimeOriginal"]))
+
 
 Getting PyExifTool
 ==================
@@ -69,8 +85,8 @@ For PyExifTool to function, ``exiftool`` command-line tool must exist on
 the system.  If ``exiftool`` is not on the ``PATH``, you can specify the full
 pathname to it by using ``ExifTool(executable=<full path>)``.
 
-PyExifTool requires a **minimum version of 12.15** (which was the first 
-production version of exiftool featuring the options to allow exit status 
+PyExifTool requires a **minimum version of 12.15** (which was the first
+production version of exiftool featuring the options to allow exit status
 checks used in conjuction with ``-echo3`` and ``-echo4`` parameters).
 
 To check your ``exiftool`` version:

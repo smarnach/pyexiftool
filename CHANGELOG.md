@@ -36,18 +36,21 @@ Date (Timezone)              | Version | Comment
 08/22/2021 09:02:33 PM (PDT) | 0.4.12  | fixed a bug ExifTool.terminate() where there was a typo.  Kept the unused outs, errs though. -- from suggestion in pull request #26 by @aaronkollasch
 02/13/2022 03:38:45 PM (PST) | 0.4.13  | (NOTE: Barring any critical bug, this is expected to be the LAST Python 2 supported release!)  added GitHub actions.  fixed bug in execute_json_wrapper() 'error' was not defined syntactically properly -- merged pull request #30 by https://github.com/jangop
 03/13/2021 01:54:44 PM (PST) | 0.5.0a0 | no functional code changes ... yet.  this is currently on a separate branch referring to [Break down Exiftool into 2+ classes, a raw Exiftool, and helper classes](https://github.com/sylikc/pyexiftool/discussions/10) and [Deprecating Python 2.x compatibility](https://github.com/sylikc/pyexiftool/discussions/9) .  In time this refactor will be the future of PyExifTool, once it stabilizes.  I'll make code-breaking updates in this branch from build to build and take comments to make improvements.  Consider the 0.5.0 "nightly" quality.  Also, changelog versions were modified because I noticed that the LAST release from smarnach is tagged with v0.2.0
+02/28/2022 12:39:57 PM (PST) | 0.5.0   | complete refactor of the PyExifTool code.  Lots of changes.  Some code breaking changes.  Not directly backwards-compatible with v0.4.x.  See COMPATIBILITY.TXT to understand all the code-breaking changes.
 
 
-On version changes, update setup.py to reflect version
+On version changes, update __int__.py to reflect version
+
 
 # Changes around the web
 
-Check for changes at the following resources to make sure we have the latest and greatest.  While we have the most active fork, I'm just one of the many forks, spoons, and knives!
+Check for changes at the following resources to see if anyone has added some nifty features.  While we have the most active fork, I'm just one of the many forks, spoons, and knives!
 
-(last checked 5/19/2021 all)
+We can also direct users here or answer existing questions as to how to use the original version of ExifTool.
+
+(last checked 2/28/2022 all)
 
 search "pyexiftool github" to see if you find any more random ports/forks
 check for updates https://github.com/smarnach/pyexiftool/pulls
-check for updates on elodie https://github.com/jmathai/elodie/commits/master/elodie/external/pyexiftool.py
 check for new open issues https://github.com/smarnach/pyexiftool/issues?q=is%3Aissue+is%3Aopen
 

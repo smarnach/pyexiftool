@@ -312,11 +312,11 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def executable(self):
+	def executable(self) -> str:
 		return self._executable
 
 	@executable.setter
-	def executable(self, new_executable) -> None:
+	def executable(self, new_executable: Union[str, Path]) -> None:
 		"""
 		Set the executable.  Does error checking.
 		You can specify just the executable name, or a full path
@@ -422,6 +422,7 @@ class ExifTool(object):
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def config_file(self) -> Optional[str]:
+		""" Return currently set config file """
 		return self._config_file
 
 	@config_file.setter
@@ -431,7 +432,7 @@ class ExifTool(object):
 		set to None to disable the -config parameter to exiftool
 		set to "" has special meaning and disables loading of default config file.  See exiftool documentation for more info
 
-		if running==True, it will throw an error.  Can only set config_file when exiftool is not running
+		if :py:attr:`running` == True, it will throw an error.  Can only set config_file when exiftool is not running
 		"""
 		if self.running:
 			raise ExifToolRunning("Cannot set a new config_file")
@@ -458,8 +459,15 @@ class ExifTool(object):
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def running(self) -> bool:
-		# read-only property
+		"""
+		Read-only property which indicates whether the ExifTool instance is running or not
 
+		.. note::
+			This checks to make sure the process is still alive.
+
+			If the process has died since last `running` detection, this property
+			will detect that and reset the status accordingly
+		"""
 		if self._running:
 			# check if the process is actually alive
 			if self._process.poll() is not None:
@@ -475,7 +483,13 @@ class ExifTool(object):
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def version(self) -> str:
-		""" returns a string from -ver """
+		"""
+		Read-only property which is the string returned by `exiftool -ver`
+
+		The `-ver` command is ran once at process startup and cached.
+
+		This property is only valid when :py:attr:`running` == True
+		"""
 
 		if not self.running:
 			raise ExifToolNotRunning("Can't get ExifTool version")
@@ -485,25 +499,43 @@ class ExifTool(object):
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def last_stdout(self) -> Optional[str]:
-		"""last output stdout from execute()
-		currently it is INTENTIONALLY _NOT_ CLEARED on exiftool termination and not dependent on running state
-		This allows for executing a command and terminating, but still haven't last* around."""
+		"""
+		STDOUT for most recent result from execute()
+
+		.. note::
+			This property can be read at any time, and is not dependent on running state of ExifTool.
+
+			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
+			for executing a command and terminating, but still have result available.
+		"""
 		return self._last_stdout
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def last_stderr(self) -> Optional[str]:
-		"""last output stderr from execute()
-		currently it is INTENTIONALLY _NOT_ CLEARED on exiftool termination and not dependent on running state
-		This allows for executing a command and terminating, but still haven't last* around."""
+		"""
+		STDERR for most recent result from execute()
+
+		.. note::
+			This property can be read at any time, and is not dependent on running state of ExifTool.
+
+			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
+			for executing a command and terminating, but still have result available.
+		"""
 		return self._last_stderr
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
 	def last_status(self) -> Optional[int]:
-		"""last exit status from execute()
-		currently it is INTENTIONALLY _NOT_ CLEARED on exiftool termination and not dependent on running state
-		This allows for executing a command and terminating, but still haven't last* around."""
+		"""
+		Exit Status Code for most recent result from execute()
+
+		.. note::
+			This property can be read at any time, and is not dependent on running state of ExifTool.
+
+			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
+			for executing a command and terminating, but still have result available.
+		"""
 		return self._last_status
 
 
@@ -551,7 +583,11 @@ class ExifTool(object):
 	# https://stackoverflow.com/questions/17576009/python-class-property-use-setter-but-evade-getter
 	# https://docs.python.org/3/howto/descriptor.html#properties
 	# can have it named same or different
-	logger = property(fset=_set_logger, doc="'logger' property to set to the class logging.Logger")
+	logger = property(fset=_set_logger, doc="""
+		Write-only property to set the class of logging.Logger
+
+		If this is set, then status messages will log out to the given class.
+	""")
 
 
 

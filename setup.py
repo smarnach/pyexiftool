@@ -80,7 +80,8 @@ setup(
 	),
 
 	extras_require={
-			"test": ["packaging"],
+			"test": ["packaging"],  # dependencies to do tests
+			"docs": ["sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],  # dependencies to build docs
 		},
 
 	#package_dir={'exiftool': 'exiftool'},
