@@ -17,18 +17,16 @@ process for every single query.
 Example Usage
 =============
 
-.. code-block:: python
-	:caption: Quick Sample
-	:linenos:
+Simple example: ::
 
 	import exiftool
 
 	files = ["a.jpg", "b.png", "c.tif"]
 	with exiftool.ExifToolHelper() as et:
-		metadata = et.get_metadata(files)
+	    metadata = et.get_metadata(files)
 	for d in metadata:
-		print("{:20.20} {:20.20}".format(d["SourceFile"],
-										 d["EXIF:DateTimeOriginal"]))
+	    print("{:20.20} {:20.20}".format(d["SourceFile"],
+	                                     d["EXIF:DateTimeOriginal"]))
 
 
 Getting PyExifTool

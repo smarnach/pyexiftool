@@ -76,7 +76,7 @@ setup(
 
 	packages=find_packages(
 		where=".",
-		exclude = ['test*',]
+		exclude = ['test*','doc*']
 	),
 
 	extras_require={

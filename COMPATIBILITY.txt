@@ -7,8 +7,8 @@ possible.
 ----
 
 v0.1.x - v0.2.0  = smarnach code, API compatible
-v0.2.1 - v0.4.13 = code with all PRs, a superset of functionality on Exiftool class
-v0.5.0 -         = not API compatible with the v0.4.x series.  See comments below:
+v0.2.1 - v0.4.13 = original v0.2 code with all PRs, a superset of functionality on Exiftool class
+v0.5.0 -         = not API compatible with the v0.4.x series.  Broke down functionality stability by classes.  See comments below:
 
 
 ----
