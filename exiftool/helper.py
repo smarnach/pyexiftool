@@ -26,6 +26,7 @@ This contains a helper class, which makes it easier to use the low-level ExifToo
 import logging
 
 from .exiftool import ExifTool
+from .exceptions import OutputEmpty, OutputNotJSON
 
 try:        # Py3k compatibility
 	basestring
