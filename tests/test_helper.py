@@ -60,7 +60,7 @@ class ReadingTest(unittest.TestCase):
 		test passing a -w flag to write some output
 		"""
 		with self.assertRaises(OutputNotJSON):
-			self.exif_tool_helper.get_metadata(EXAMPLE_FILE, params=["-w", f"{self.tmp_dir.name}/%f.txt"])
+			self.exif_tool_helper.get_metadata(EXAMPLE_FILE, params=["-w", f"{self.tmp_dir}/%f.txt"])
 
 
 
