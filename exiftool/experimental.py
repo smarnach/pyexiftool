@@ -286,10 +286,11 @@ class ExifToolAlpha(ExifToolHelper):
 		"""Modifies the keywords tag for the given files.
 
 		The first argument is the operation mode:
-		KW_REPLACE: Replace (i.e. set) the full keywords tag with `keywords`.
-		KW_ADD:     Add `keywords` to the keywords tag.
+
+		* KW_REPLACE: Replace (i.e. set) the full keywords tag with `keywords`.
+		* KW_ADD:     Add `keywords` to the keywords tag.
 					If a keyword is present, just keep it.
-		KW_REMOVE:  Remove `keywords` from the keywords tag.
+		* KW_REMOVE:  Remove `keywords` from the keywords tag.
 					If a keyword wasn't present, just leave it.
 
 		The second argument is an iterable of key words.

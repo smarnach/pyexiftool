@@ -2,8 +2,10 @@
 PyExifTool
 **********
 
-PyExifTool is a Python library to communicate with an instance of Phil
-Harvey's excellent ExifTool_ command-line application.  The library
+.. DESCRIPTION_START
+
+PyExifTool is a Python library to communicate with an instance of
+`Phil Harvey's ExifTool`_ command-line application.  The library
 provides the class ``exiftool.ExifTool`` that runs the command-line
 tool in batch mode and features methods to send commands to that
 program, including methods to extract meta-information from one or
@@ -12,7 +14,9 @@ single instance needs to be launched and can be reused for many
 queries.  This is much more efficient than launching a separate
 process for every single query.
 
-.. _ExifTool: https://exiftool.org/
+.. _Phil Harvey's ExifTool: https://exiftool.org/
+
+.. DESCRIPTION_END
 
 Example Usage
 =============
@@ -28,6 +32,8 @@ Simple example: ::
 	    print("{:20.20} {:20.20}".format(d["SourceFile"],
 	                                     d["EXIF:DateTimeOriginal"]))
 
+
+.. INSTALLATION_START
 
 Getting PyExifTool
 ==================
@@ -123,6 +129,9 @@ will have to `build from source`_.
 .. _build from source: https://exiftool.org/install.html#Unix
 
 
+.. INSTALLATION_END
+
+
 Documentation
 =============
 
@@ -140,29 +149,52 @@ project moves forward
 Package Structure
 -----------------
 
-PyExifTool consists of a few modules, each with increasingly more features.
+.. DESIGN_INFO_START
 
-The base ``ExifTool`` class is the most rudimentary, and each successive class
-inherits and adds functionality.
+PyExifTool was designed with flexibility and extensibility in mind.  The library consists of a few classes, each with increasingly more features.
 
-* ``ExifTool`` is the base class with functionality which will not likely change.
-  It contains the core features with no extra fluff.  The API is considered stable
-  and should not change much with new versions.
+The base ``ExifTool`` class contains the core functionality exposed in the most rudimentary way, and each successive class inherits and adds functionality.
 
-* ``ExifToolHelper`` adds the most commonly used functionality.  It overloads
-  some functions to turn common errors into warnings or makes checks to make
-  ``ExifTool`` easier to use.  More methods may be added or slight tweaks may
-  come with new versions.
+.. DESIGN_INFO_END
 
-* ``ExifToolAlpha`` includes some of the community functionality that contributors
-  added for edge use cases.  It is *not* up to the rigorous testing standard of both
-  ``ExifTool`` or ``ExifToolHelper``.  There may be old or defunct code at any time.
-  This is the least polished of the classes and functionality/API may be
-  changed/added/removed at any time.
+.. DESIGN_CLASS_START
+
+* ``exiftool.ExifTool`` is the base class with core logic to interface with PH's ExifTool process.
+  It contains only the core features with no extra fluff.
+  The main methods provided are ``execute()`` and ``execute_json()`` which allows direct interaction with the underlying exiftool process.
+
+  * The API is considered stable and should not change much with future releases.
+
+* ``exiftool.ExifToolHelper`` exposes some of the most commonly used functionality.  It overloads
+  some inherited functions to turn common errors into warnings and adds logic to make
+  ``exiftool.ExifTool`` easier to use.
+  For example, ``ExifToolHelper`` provides wrapper functions to get metadata, and auto-starts the exiftool instance if it's not running (instead of raising an Exception).
+  ``ExifToolHelper`` demonstrates how to extend ``ExifTool`` to your liking if your project demands customizations not directly provided by ``ExifTool``.
+
+  * More methods may be added and/or slight API tweaks may occur with future releases.
+
+* ``exiftool.ExifToolAlpha`` further extends the ``ExifToolHelper`` and includes some community-contributed not-very-well-tested methods.
+  These methods were formerly added ad-hoc by various community contributors, but no longer stand up to the rigor of the current design.
+  ``ExifToolAlpha`` is *not* up to the rigorous testing standard of both
+  ``ExifTool`` or ``ExifToolHelper``.  There may be old, buggy, or defunct code.
+
+  * This is the least polished of the classes and functionality/API may be changed/added/removed on any release.
+
+  * **NOTE: The methods exposed may be changed/removed at any time.**
+
+  * If you are using any of these methods in your project, please `Submit an Issue`_ to start a discussion on making those functions more robust, and making their way into ``ExifToolHelper``.
+    (Think of ``ExifToolAlpha`` as ideas on how to extend ``ExifTool``, where new functionality which may one day make it into the ``ExifToolHelper`` class.)
+
+.. _Submit an Issue: https://github.com/sylikc/pyexiftool/issues
+
+
+.. DESIGN_CLASS_END
 
 
 Brief History
 =============
+
+.. HISTORY_START
 
 PyExifTool was originally developed by `Sven Marnach`_ in 2012 to answer a
 stackoverflow question `Call exiftool from a python script?`_.  Over time,
@@ -202,8 +234,13 @@ and development.  Special thanks to the community contributions, especially
 .. _Seth P: https://github.com/csparker247
 .. _Kolen Cheung: https://github.com/ickc
 
+
+.. HISTORY_END
+
 Licence
 =======
+
+.. LICENSE_START
 
 PyExifTool is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -215,3 +252,6 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See ``LICENSE`` for more details.
+
+
+.. LICENSE_END

@@ -80,8 +80,9 @@ setup(
 	),
 
 	extras_require={
+			"json": ["ujson"],  # supported option for ExifTool, but not currently advertised
 			"test": ["packaging"],  # dependencies to do tests
-			"docs": ["sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],  # dependencies to build docs
+			"docs": ["packaging", "sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],  # dependencies to build docs
 		},
 
 	#package_dir={'exiftool': 'exiftool'},

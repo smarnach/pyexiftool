@@ -30,18 +30,23 @@ sys.path.insert(1, Path(__file__).resolve().parent.parent)
 # -- Project information -----------------------------------------------------
 
 # General information about the project.
-project = u'PyExifTool'
-copyright = u'2012, Sven Marnach. 2021, Kevin M'
-author = 'Sven Marnach, Kevin M'
+project = 'PyExifTool'
+copyright = '2022, Kevin M (sylikc)'
+author = 'Kevin M (sylikc)'
+
+# read directly from exiftool's version instead of hard coding it here
+import exiftool
+from packaging import version as pv
+et_ver = pv.parse(exiftool.__version__)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '0.5'
+version = f'{et_ver.major}.{et_ver.minor}'
 # The full version, including alpha/beta/rc tags.
-release = '0.5.0a1'
+release = exiftool.__version__
 
 
 # -- General configuration -----------------------------------------------------
@@ -52,15 +57,32 @@ release = '0.5.0a1'
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-	'sphinx.ext.autodoc', # Core library for html generation from docstrings
-	'sphinx.ext.autosummary', # Create neat summary tables
-	'autoapi.extension', # pip install sphinx-autoapi
+	'sphinx.ext.autodoc',  # Core library for html generation from docstrings
+	'sphinx.ext.autodoc.typehints',
+	#'sphinx.ext.autosummary',  # Create neat summary tables
+	'autoapi.extension',  # pip install sphinx-autoapi
+	'sphinx_autodoc_typehints',  # pip install sphinx-autodoc-typehints
+	'sphinx.ext.inheritance_diagram',
 ]
-autosummary_generate = True # Turn on sphinx.ext.autosummary
+#autosummary_generate = True # Turn on sphinx.ext.autosummary
 
 autoapi_type = 'python'
-autoapi_dirs = [ str(Path(__file__).parent.parent.parent / 'exiftool') ]
+autoapi_dirs = ['../../exiftool']
+autoapi_member_order = 'groupwise'
+#autoapi_python_use_implicit_namespaces = True
+#autoapi_options = [ 'members', 'undoc-members', 'show-inheritance', 'show-module-summary', 'special-members', ]
+#autoapi_generate_api_docs = False
 
+autodoc_typehints = 'description'
+
+typehints_defaults = "comma"
+
+# the common names of the classes rather than the absolute paths
+inheritance_alias = {
+	'exiftool.exiftool.ExifTool': 'exiftool.ExifTool',
+	'exiftool.helper.ExifToolHelper': 'exiftool.ExifToolHelper',
+	'exiftool.experimental.ExifToolAlpha': 'exiftool.ExifToolAlpha',
+}
 
 
 
@@ -116,14 +138,20 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#html_theme = 'default'
-# pip install sphinx_rtd_theme
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'sphinx_rtd_theme'  # pip install sphinx_rtd_theme
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #html_theme_options = {}
+
+# https://stackoverflow.com/questions/62904172/how-do-i-replace-view-page-source-with-edit-on-github-links-in-sphinx-rtd-th/62904217#62904217
+html_context = {
+	#'display_github': True,
+	'github_user': 'sylikc',
+	'github_repo': 'pyexiftool',
+	'github_version': 'master/docs/source/',
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -209,10 +237,12 @@ latex_elements = {
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
+"""
 latex_documents = [
 	('index', 'PyExifTool.tex', u'PyExifTool Documentation',
 	 u'Sven Marnach', 'manual'),
 ]
+"""
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
@@ -239,10 +269,12 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
+"""
 man_pages = [
 	('index', 'pyexiftool', u'PyExifTool Documentation',
 	 [u'Sven Marnach'], 1)
 ]
+"""
 
 # If true, show URL addresses after external links.
 #man_show_urls = False
@@ -253,11 +285,13 @@ man_pages = [
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
+"""
 texinfo_documents = [
 	('index', 'PyExifTool', u'PyExifTool Documentation',
 	 u'Sven Marnach', 'PyExifTool', 'One line description of project.',
 	 'Miscellaneous'),
 ]
+"""
 
 # Documents to append as an appendix to all manuals.
 #texinfo_appendices = []

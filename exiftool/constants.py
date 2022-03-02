@@ -13,9 +13,8 @@
 # See COPYING.GPL or COPYING.BSD for more details.
 
 """
-This file defines constants which are used by others in the package
+This file defines constants which are used by other modules in the package
 """
-
 
 import sys
 
@@ -27,9 +26,12 @@ import sys
 # instead of comparing everywhere sys.platform, do it all here in the constants (less typo chances)
 # True if Windows
 PLATFORM_WINDOWS: bool = (sys.platform == 'win32')
+"""sys.platform check, set to True if Windows"""
+
 # Prior to Python 3.3, the value for any Linux version is always linux2; after, it is linux.
 # https://stackoverflow.com/a/13874620/15384838
 PLATFORM_LINUX: bool = (sys.platform == 'linux' or sys.platform == 'linux2')
+"""sys.platform check, set to True if Linux"""
 
 
 
@@ -40,16 +42,18 @@ PLATFORM_LINUX: bool = (sys.platform == 'linux' or sys.platform == 'linux2')
 
 # specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
 DEFAULT_EXECUTABLE: str
+"""The name of the default executable to run.
+
+``exiftool`` (Linux) or ``exiftool.exe`` (Windows)
+
+By default, the executable is searched for on one of the paths listed in the
+``PATH`` environment variable.  If it's not on the ``PATH``, a full path should be given to the ExifTool constructor.
+"""
 
 if PLATFORM_WINDOWS:
 	DEFAULT_EXECUTABLE = "exiftool.exe"
 else:  # pytest-cov:windows: no cover
 	DEFAULT_EXECUTABLE = "exiftool"
-"""The name of the executable to run.
-
-If the executable is not located in one of the paths listed in the
-``PATH`` environment variable, the full path should be given here.
-"""
 
 
 
@@ -58,10 +62,18 @@ If the executable is not located in one of the paths listed in the
 ##################################
 
 # for Windows STARTUPINFO
-SW_FORCEMINIMIZE: int = 11  # from win32con
+SW_FORCEMINIMIZE: int = 11
+"""Windows ShowWindow constant from win32con
+
+Indicates the launched process window should start minimized
+"""
 
 # for Linux preexec_fn
-PR_SET_PDEATHSIG: int = 1  # taken from linux/prctl.h
+PR_SET_PDEATHSIG: int = 1
+"""taken from linux/prctl.h
+
+Allows a kill signal to be sent to child processes when the parent unexpectedly dies
+"""
 
 
 
@@ -69,12 +81,14 @@ PR_SET_PDEATHSIG: int = 1  # taken from linux/prctl.h
 ######## GLOBAL DEFAULTS #########
 ##################################
 
-# The default block size when reading from exiftool.  The standard value
-# should be fine, though other values might give better performance in
-# some cases.
 DEFAULT_BLOCK_SIZE: int = 4096
+"""The default block size when reading from exiftool.  The standard value
+should be fine, though other values might give better performance in
+some cases."""
 
-# this is the minimum version required at this time
-# 8.40 / 8.60 (production): implemented the -stay_open flag
-# 12.10 / 12.15 (production): implemented exit status on -echo4
 EXIFTOOL_MINIMUM_VERSION = "12.15"
+"""this is the minimum *exiftool* version required for current version of PyExifTool
+
+* 8.40 / 8.60 (production): implemented the -stay_open flag
+* 12.10 / 12.15 (production): implemented exit status on -echo4
+"""

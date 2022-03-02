@@ -66,8 +66,10 @@ def _is_iterable(in_param: Any) -> bool:
 # ======================================================================================================================
 
 class ExifToolHelper(ExifTool):
-	""" this class extends the low-level class with 'wrapper'/'helper' functionality
-	It keeps low-level functionality with the base class but adds helper functions on top of it
+	"""
+	This class extends the low-level :py:class:`exiftool.ExifTool` class with 'wrapper'/'helper' functionality
+
+	It keeps low-level core functionality with the base class but extends helper functions in a separate class
 	"""
 
 	##########################################################################################
@@ -79,7 +81,7 @@ class ExifToolHelper(ExifTool):
 		"""
 		auto_start = BOOLEAN.  will autostart the exiftool process on first command run
 
-		all other parameters are passed directly to super-class' constructor: ExifTool(**)
+		all other parameters are passed directly to super-class' constructor: :py:meth:`exiftool.ExifTool.__init__()`
 		"""
 		# call parent's constructor
 		super().__init__(**kwargs)
@@ -89,7 +91,11 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def execute(self, *params):
-		""" override the execute() method so that it checks if it's running first, and if not, start it """
+		"""
+		override the execute() method
+
+		Adds logic to auto-start if not running, if auto_start == True
+		"""
 		if self._auto_start and not self.running:
 			self.run()
 
@@ -98,7 +104,10 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def run(self) -> None:
-		""" override the run() method so that if it's running, won't call super() method (so no warning about 'ExifTool already running' will trigger) """
+		"""
+		override the run() method
+
+		Adds logic to check if already running.  Will not attempt to run if already running (so no warning about 'ExifTool already running' will trigger) """
 		if self.running:
 			return
 
@@ -107,9 +116,12 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def terminate(self, **opts) -> None:
-		""" override the terminate() method so that if it's not running, won't call super() method (so no warning about 'ExifTool not running' will trigger)
+		"""
+		override the terminate() method
 
-		options are passed directly to the parent verbatim
+		Adds logic to check if not running (so no warning about 'ExifTool not running' will trigger)
+
+		opts are passed directly to the parent verbatim
 		"""
 		if not self.running:
 			return
@@ -131,13 +143,12 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def get_metadata(self, files, params=None):
-		"""Return all meta-data for the given files.
+		"""
+		Return all meta-data for the given files.
 
-			This will returns a list, or None
+		Files parameter matches :py:meth:`get_tags()`
 
-			files parameter matches :py:meth:`get_tags()`
-
-			wildcard strings are accepted as it's passed straight to exiftool
+		wildcard strings are accepted as it's passed straight to exiftool
 
 		The return value will have the format described in the
 		documentation of :py:meth:`get_tags()`.
@@ -147,9 +158,11 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def get_tags(self, files, tags, params=None):
-		"""Return only specified tags for the given files.
+		"""
+		Return only specified tags for the given files.
 
 		The first argument is the files to be worked on.  It can be:
+
 		* an iterable of strings/bytes
 		* string/bytes
 
@@ -166,7 +179,7 @@ class ExifToolHelper(ExifTool):
 
 
 		The format of the return value is the same as for
-		:py:meth:`execute_json()`.
+		:py:meth:`exiftool.ExifTool.execute_json()`.
 		"""
 
 		final_tags = None
