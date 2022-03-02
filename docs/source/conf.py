@@ -84,6 +84,13 @@ inheritance_alias = {
 	'exiftool.experimental.ExifToolAlpha': 'exiftool.ExifToolAlpha',
 }
 
+# help on attributes and Graphviz params:
+# https://www.sphinx-doc.org/en/master/usage/extensions/inheritance.html
+# https://graphs.grevian.org/reference
+# https://graphviz.org/doc/info/attrs.html
+#inheritance_graph_attrs = dict(rankdir="LR", size='"6.0, 8.0"', fontsize=14, ratio='compress')
+inheritance_graph_attrs = dict(pad="0.2", center=True)
+inheritance_node_attrs = dict(shape='box', fontsize=14, height=0.75, color='dodgerblue1', style='rounded')
 
 
 # Add any paths that contain templates here, relative to this directory.

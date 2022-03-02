@@ -2,6 +2,8 @@
 Class exiftool.ExifToolHelper
 *****************************
 
+.. inheritance-diagram:: exiftool.ExifToolHelper
+
 .. autoapimodule:: exiftool.ExifToolHelper
    :members:
    :undoc-members:
