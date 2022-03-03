@@ -138,36 +138,6 @@ class TestExifToolAlpha(unittest.TestCase):
         )
         self.assertEqual(tag0, "Röschen")
 
-    def test_set_metadata(self):
-        mod_prefix = "newcap_"
-        expected_data = [
-            {
-                "SourceFile": Path("rose.jpg"),
-                "Caption-Abstract": "Ein Röschen ganz allein",
-            },
-            {"SourceFile": Path("skyblue.png"), "Caption-Abstract": "Blauer Himmel"},
-        ]
-        source_files = []
-
-        for d in expected_data:
-            d["SourceFile"] = f = SCRIPT_PATH / d["SourceFile"]
-            self.assertTrue(f.exists())
-
-            f_mod = self.tmp_dir / (mod_prefix + f.name)
-            f_mod_str = str(f_mod)
-
-            self.assertFalse(
-                f_mod.exists(),
-                f"{f_mod} should not exist before the test. Please delete.",
-            )
-            shutil.copyfile(f, f_mod)
-            source_files.append(f_mod)
-            with self.et:
-                self.et.set_tags(f_mod_str, {"Caption-Abstract": d["Caption-Abstract"]})
-                tag0 = self.et.get_tag(f_mod_str, "IPTC:Caption-Abstract")
-            f_mod.unlink()
-            self.assertEqual(tag0, d["Caption-Abstract"])
-
     def test_set_keywords(self):
         kw_to_add = ["added"]
         mod_prefix = "newkw_"

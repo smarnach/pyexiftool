@@ -2,7 +2,7 @@
 
 import unittest
 import exiftool
-from exiftool.exceptions import ExifToolNotRunning, OutputEmpty, OutputNotJSON
+from exiftool.exceptions import ExifToolNotRunning, OutputEmpty, OutputNotJSON, ExifToolExecuteError
 import shutil
 import tempfile
 from pathlib import Path
@@ -43,17 +43,39 @@ class ReadingTest(unittest.TestCase):
 			cls.tmp_dir = Path(cls.temp_obj.name)
 
 
-	def test_read_all_from_nonexistent_file(self):
+	def test_read_all_from_nonexistent_file_no_checkexecute(self):
 		"""
 		`get_metadata`/`get_tags` raises an error if None comes back from execute_json()
 
 		ExifToolHelper DOES NOT check each individual file in the list for existence.  If you pass invalid files to exiftool, undefined behavior can occur
 		"""
+		check_value = self.exif_tool_helper.check_execute  # save off current setting
+
+		self.exif_tool_helper.check_execute = False
+
 		with self.assertRaises(OutputEmpty):
 			self.exif_tool_helper.get_metadata(['foo.bar'])
 
 		with self.assertRaises(OutputEmpty):
 			self.exif_tool_helper.get_tags('foo.bar', 'DateTimeOriginal')
+
+		self.exif_tool_helper.check_execute = check_value
+
+	def test_read_all_from_nonexistent_file_yes_checkexecute(self):
+		# run above test again and check_execute = True
+
+		check_value = self.exif_tool_helper.check_execute  # save off current setting
+
+		self.exif_tool_helper.check_execute = True
+
+		with self.assertRaises(ExifToolExecuteError):
+			self.exif_tool_helper.get_metadata(['foo.bar'])
+
+		with self.assertRaises(ExifToolExecuteError):
+			self.exif_tool_helper.get_tags('foo.bar', 'DateTimeOriginal')
+
+		self.exif_tool_helper.check_execute = check_value
+
 
 	def test_w_flag(self):
 		"""
@@ -144,6 +166,78 @@ class TestExifToolHelper(unittest.TestCase):
 			# test invalid
 			self.et.get_metadata(EXAMPLE_FILE, params=object())
 
+
+	# ---------------------------------------------------------------------------------------------------------
+
+
+	# ---------------------------------------------------------------------------------------------------------
+
+class WritingTest(unittest.TestCase):
+	@classmethod
+	def setUp(self):
+		self.et = exiftool.ExifToolHelper(
+			common_args=["-G", "-n", "-overwrite_original"], encoding="UTF-8"
+		)
+
+		# Prepare temporary directory for copy.
+		kwargs = {"prefix": "exiftool-tmp-", "dir": SCRIPT_PATH}
+		if PERSISTENT_TMP_DIR:
+			self.temp_obj = None
+			self.tmp_dir = Path(tempfile.mkdtemp(**kwargs))
+		else:
+			self.temp_obj = tempfile.TemporaryDirectory(**kwargs)
+			self.tmp_dir = Path(self.temp_obj.name)
+
+	# ---------------------------------------------------------------------------------------------------------
+
+	def test_set_metadata(self):
+		mod_prefix = "newcap_"
+		expected_data = [
+			{
+				"SourceFile": "rose.jpg",
+				"Caption-Abstract": "Ein Röschen ganz allein",
+			},
+			{"SourceFile": "skyblue.png", "Caption-Abstract": "Blauer Himmel"},
+		]
+		source_files = []
+
+		for d in expected_data:
+			d["SourceFile"] = f = SCRIPT_PATH / d["SourceFile"]
+			self.assertTrue(f.exists())
+
+			f_mod = self.tmp_dir / (mod_prefix + f.name)
+			f_mod_str = str(f_mod)
+
+			self.assertFalse(
+				f_mod.exists(),
+				f"{f_mod} should not exist before the test. Please delete.",
+			)
+			shutil.copyfile(f, f_mod)
+			source_files.append(f_mod)
+			with self.et:
+				self.et.set_tags(f_mod_str, {"Caption-Abstract": d["Caption-Abstract"]})
+				result = self.et.get_tags(f_mod_str, "IPTC:Caption-Abstract")[0]
+				tag0 = list(result.values())[1]
+			f_mod.unlink()
+			self.assertEqual(tag0, d["Caption-Abstract"])
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_set_tags_files_invalid(self):
+		""" test to cover the files == None """
+
+		with self.assertRaises(ValueError):
+			self.et.set_tags(None, [])
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_set_tags_tags_invalid(self):
+		""" test to cover the files == None """
+
+		with self.assertRaises(ValueError):
+			self.et.set_tags("rose.jpg", None)
+
+
+		with self.assertRaises(TypeError):
+			self.et.set_tags("rose.jpg", object())
 
 	# ---------------------------------------------------------------------------------------------------------
 
