@@ -49,3 +49,19 @@ class OutputNotJSON(ExifToolException):
 	"""
 	ExifTool did not return valid JSON, only thrown by execute_json()
 	"""
+
+
+class ExifToolExecuteError(ExifToolException):
+	"""
+	ExifTool executed the command but returned a non-zero exit status
+
+	mimics the signature of :py:class:`subprocess.CalledProcessError`
+	"""
+	def __init__(self, exit_status, cmd_stdout, cmd_stderr, params):
+		super().__init__(f"Exiftool execute returned a non-zero exit status: {exit_status}")
+
+		self.returncode: int = exit_status
+		self.cmd: list = params
+		self.stdout: str = cmd_stdout
+		self.stderr: str = cmd_stderr
+

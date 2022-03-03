@@ -26,7 +26,7 @@ This contains a helper class, which makes it easier to use the low-level ExifToo
 import logging
 
 from .exiftool import ExifTool
-from .exceptions import OutputEmpty, OutputNotJSON
+from .exceptions import OutputEmpty, OutputNotJSON, ExifToolExecuteError
 
 try:        # Py3k compatibility
 	basestring
@@ -90,17 +90,46 @@ class ExifToolHelper(ExifTool):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def execute(self, *params):
+	def execute(self, *params, check=False):
 		"""
 		override the execute() method
 
 		Adds logic to auto-start if not running, if auto_start == True
+
+		:raises ExifToolExecuteError: If check=True, and exit status was non-zero
 		"""
 		if self._auto_start and not self.running:
 			self.run()
 
-		return super().execute(*params)
+		result = super().execute(*params)
 
+		# imitate the subprocess.run() signature.  check=True will check non-zero exit status
+		if check and self._last_status:
+			raise ExifToolExecuteError(self._last_status, self._last_stdout, self._last_stderr, params)
+
+		return result
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def execute_json(self, *params, check=False):
+		"""
+		override the execute_json() method
+
+		Add logic to auto-start
+
+		Add the optional check flag
+
+		:raises ExifToolExecuteError: If check=True, and exit status was non-zero
+		"""
+		if self._auto_start and not self.running:
+			self.run()
+
+		result = super().execute_json(*params)
+
+		# imitate the subprocess.run() signature.  check=True will check non-zero exit status
+		if check and self._last_status:
+			raise ExifToolExecuteError(self._last_status, self._last_stdout, self._last_stderr, params)
+
+		return result
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def run(self) -> None:
@@ -142,7 +171,7 @@ class ExifToolHelper(ExifTool):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_metadata(self, files, params=None):
+	def get_metadata(self, files, params=None, check=True):
 		"""
 		Return all meta-data for the given files.
 
@@ -153,11 +182,11 @@ class ExifToolHelper(ExifTool):
 		The return value will have the format described in the
 		documentation of :py:meth:`get_tags()`.
 		"""
-		return self.get_tags(files, None, params=params)
+		return self.get_tags(files, None, params=params, check=check)
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def get_tags(self, files, tags, params=None):
+	def get_tags(self, files, tags, params=None, check=True):
 		"""
 		Return only specified tags for the given files.
 
@@ -180,6 +209,9 @@ class ExifToolHelper(ExifTool):
 
 		The format of the return value is the same as for
 		:py:meth:`exiftool.ExifTool.execute_json()`.
+
+
+		:raises ExifToolExecuteError: If check=True, and exit status was non-zero
 		"""
 
 		final_tags = None
@@ -229,12 +261,14 @@ class ExifToolHelper(ExifTool):
 		exec_params.extend(final_files)
 
 		try:
-			ret = self.execute_json(*exec_params)
+			ret = self.execute_json(*exec_params, check=check)
 		except OutputEmpty:
 			raise
 			#raise RuntimeError(f"{self.__class__.__name__}.get_tags: exiftool returned no data")
 		except OutputNotJSON:
-			# TODO if last_status is <> 0, raise a warning that one or more files failed?
+			raise
+		except ExifToolExecuteError:
+			# if last_status is <> 0, raise an error that one or more files failed?
 			raise
 
 		return ret
