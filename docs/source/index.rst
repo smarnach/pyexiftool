@@ -4,22 +4,20 @@
 PyExifTool -- Python wrapper for Phil Harvey's ExifTool
 =======================================================
 
-PyExifTool is a Python library to communicate with an instance of
-`Phil Harvey's ExifTool`_ command-line application.
-
-.. _Phil Harvey's ExifTool: https://exiftool.org/
-
+.. include:: ../../README.rst
+	:start-after: BLURB_START
+	:end-before: BLURB_END
 
 .. toctree::
-   :maxdepth: 2
-   :glob:
-   :caption: Contents:
+	:maxdepth: 2
+	:glob:
+	:caption: Contents:
 
-   intro
-   package
-   installation
-   examples
-   reference/*
+	intro
+	package
+	installation
+	examples
+	reference/*
 
 
 ..   maintenance/*

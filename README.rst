@@ -4,9 +4,17 @@ PyExifTool
 
 .. DESCRIPTION_START
 
+.. BLURB_START
+
 PyExifTool is a Python library to communicate with an instance of
-`Phil Harvey's ExifTool`_ command-line application.  The library
-provides the class ``exiftool.ExifTool`` that runs the command-line
+`Phil Harvey's ExifTool`_ command-line application.
+
+.. _Phil Harvey's ExifTool: https://exiftool.org/
+
+
+.. BLURB_END
+
+The library provides the class ``exiftool.ExifTool`` that runs the command-line
 tool in batch mode and features methods to send commands to that
 program, including methods to extract meta-information from one or
 more image files.  Since ``exiftool`` is run in batch mode, only a
@@ -14,7 +22,6 @@ single instance needs to be launched and can be reused for many
 queries.  This is much more efficient than launching a separate
 process for every single query.
 
-.. _Phil Harvey's ExifTool: https://exiftool.org/
 
 .. DESCRIPTION_END
 
@@ -135,9 +142,9 @@ will have to `build from source`_.
 Documentation
 =============
 
-The documentation is available at `sylikc.github.io`_.
-It is slightly outdated at the moment but will be improved as the
-project moves forward
+The current documentation is available at `sylikc.github.io`_.
+It may slightly lag behind the most updated version will be improved as the
+project moves forward.
 
 ::
 
@@ -202,18 +209,19 @@ Sven refined the code, added tests, documentation, and a slew of improvements.
 While PyExifTool gained popularity, Sven `never intended to maintain it`_ as
 an active project.  The `original repository`_ was last updated in 2014.
 
-In early 2019, `Martin Čarnogurský`_ created a `PyPI release`_ from the
-2014 code.  Coincidentally in mid 2019, `Kevin M (sylikc)`_ forked the original
-repository and started merging PR and issues which were reported on Sven's
-issues/PR page.
+Over the years, numerous issues were filed and several PRs were opened on the
+stagnant repository.  In early 2019, `Martin Čarnogurský`_ created a
+`PyPI release`_ from the 2014 code with some minor updates.  Coincidentally in
+mid 2019, `Kevin M (sylikc)`_ forked the original repository and started merging
+the PR and issues which were reported on Sven's issues/PR page.
 
 In late 2019 and early 2020 there was a discussion started to
 `Provide visibility for an active fork`_.  There was a conversation to
 transfer ownership of the original repository, have a coordinated plan to
 communicate to PyExifTool users, amongst other things, but it never materialized.
 
-Kevin M (sylikc) made the first release to PyPI repository in early 2021.
-At the same time, discussions were starting revolving around
+Kevin M (sylikc) made the first release to the PyPI repository in early 2021.
+At the same time, discussions were started, revolving around
 `Deprecating Python 2.x compatibility`_ and `refactoring the code and classes`_.
 
 The latest version is the result of all of those discussions, designs,

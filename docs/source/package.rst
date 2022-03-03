@@ -2,6 +2,8 @@
 Package Overview
 ****************
 
+All classes live under the PyExifTool library namespace: ``exiftool``
+
 Design
 ======
 
