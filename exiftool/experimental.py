@@ -227,60 +227,6 @@ class ExifToolAlpha(ExifToolHelper):
 		params = ["-overwrite_original", "-TagsFromFile", str(from_filename), str(to_filename)]
 		self.execute(*params)
 
-
-	# ----------------------------------------------------------------------------------------------------------------------
-	def set_tags_batch(self, filenames, tags):
-		"""Writes the values of the specified tags for the given files.
-
-		The first argument is a dictionary of tags and values.  The tag names may
-		include group names, as usual in the format <group>:<tag>.
-
-		The second argument is an iterable of file names.
-
-		The format of the return value is the same as for
-		:py:meth:`execute()`.
-
-		It can be passed into `check_ok()` and `format_error()`.
-
-		tags items can be lists, in which case, the tag will be passed
-		with each item in the list, in the order given
-		"""
-		# Explicitly ruling out strings here because passing in a
-		# string would lead to strange and hard-to-find errors
-		if isinstance(tags, basestring):
-			raise TypeError("The argument 'tags' must be dictionary "
-							"of strings")
-		if isinstance(filenames, basestring):
-			raise TypeError("The argument 'filenames' must be "
-							"an iterable of strings")
-
-		params = []
-		for tag, value in tags.items():
-			# contributed by @daviddorme in https://github.com/sylikc/pyexiftool/issues/12#issuecomment-821879234
-			# allows setting things like Keywords which require separate directives
-			# > exiftool -Keywords=keyword1 -Keywords=keyword2 -Keywords=keyword3 file.jpg
-			# which are not supported as duplicate keys in a dictionary
-			if isinstance(value, list):
-				for item in value:
-					params.append(f"-{tag}={item}")
-			else:
-				params.append(f"-{tag}={value}")
-
-		params.extend(filenames)
-		return self.execute(*params)
-
-		#TODO if execute returns data, then error?
-
-	# ----------------------------------------------------------------------------------------------------------------------
-	def set_tags(self, filename, tags):
-		"""Writes the values of the specified tags for the given file.
-
-		This is a convenience function derived from `set_tags_batch()`.
-		Only difference is that it takes as last arugemnt only one file name
-		as a string.
-		"""
-		return self.set_tags_batch([filename], tags)
-
 	# ----------------------------------------------------------------------------------------------------------------------
 	def set_keywords_batch(self, filenames, mode, keywords):
 		"""Modifies the keywords tag for the given files.
