@@ -73,6 +73,7 @@ autoapi_member_order = 'groupwise'
 #autoapi_options = [ 'members', 'undoc-members', 'show-inheritance', 'show-module-summary', 'special-members', ]
 #autoapi_generate_api_docs = False
 
+# comment out when all documentation has documented parameters ... sometimes causes duplicates, but that may be a RST problem... always put links at the END of the docstring instead of in the middle
 autodoc_typehints = 'description'
 
 typehints_defaults = "comma"

@@ -477,7 +477,6 @@ class ExifTool(object):
 		See `ExifTool documentation for -config`_ for more details.
 
 
-
 		:getter: Returns current config file path, or None if not set
 
 		:setter: File existence is checked when setting parameter
@@ -660,7 +659,7 @@ class ExifTool(object):
 	:setter: Specify an object to log to.  The class is not checked, but validation is done to ensure the object has callable methods ``info``, ``warning``, ``error``, ``critical``, ``exception``.
 
 	:raises AttributeError: If object does not contain one or more of the required methods.
-	:raises TypeError: If object has one or more non-callable methods.
+	:raises TypeError: If object contains those attributes, but one or more are non-callable methods.
 
 	:type: Object
 	"""
@@ -701,6 +700,7 @@ class ExifTool(object):
 			return
 
 		# first the executable ...
+		# TODO should we check the executable for existence here?
 		proc_args = [self._executable, ]
 
 		# If working with a config file, it must be the first argument after the executable per: https://exiftool.org/config.html
@@ -851,7 +851,7 @@ class ExifTool(object):
 	##################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def execute(self, *params):
+	def execute(self, *params: str) -> str:
 		"""Execute the given batch of parameters with *exiftool*.
 
 		This method accepts any number of parameters and sends them to
@@ -873,6 +873,16 @@ class ExifTool(object):
 
 			No processing is done on the input or output.
 
+		:param params: One or more parameters to send to the ``exiftool`` subprocess.
+
+			Typically passed in via `Unpacking Argument Lists`_
+
+			.. note::
+				The parameters to this function must be type ``str``
+
+		:type params: one or more string parameters
+
+
 		:return:
 			* STDOUT is returned by the method call, and is also set in :py:attr:`last_stdout`
 			* STDERR is set in :py:attr:`last_stderr`
@@ -880,6 +890,9 @@ class ExifTool(object):
 
 		:raises ExifToolNotRunning: If attempting to execute when not running (:py:attr:`running` == False)
 		:raises ExifToolVersionError: If unexpected text was returned from the command while parsing out the sentinels
+
+
+		.. _Unpacking Argument Lists: https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists
 		"""
 		if not self.running:
 			raise ExifToolNotRunning("Cannot execute()")
@@ -966,7 +979,7 @@ class ExifTool(object):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def execute_json(self, *params):
+	def execute_json(self, *params: str) -> List:
 		"""Execute the given batch of parameters and parse the JSON output.
 
 		This method is similar to :py:meth:`execute()`.  It
@@ -984,9 +997,16 @@ class ExifTool(object):
 
 			You can adjust the output structure with various *exiftool* options.
 
-		The parameters to this function must be type ``str``
+		:param params: One or more parameters to send to the ``exiftool`` subprocess.
 
-		:return: valid JSON parsed into a Python list of dicts
+			Typically passed in via `Unpacking Argument Lists`_
+
+			.. note::
+				The parameters to this function must be type ``str``
+
+		:type params: one or more string parameters
+
+		:return: Valid JSON parsed into a Python list of dicts
 		:raises OutputEmpty: If *exiftool* did not return any STDOUT
 
 			.. note::
@@ -996,6 +1016,9 @@ class ExifTool(object):
 
 			.. note::
 				This is not necessarily an error, ``-w`` can cause this behavior.  Use :py:meth:`execute()` if using the ``-w`` flag.
+
+
+		.. _Unpacking Argument Lists: https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists
 		"""
 
 		result = self.execute("-j", *params)  # stdout
