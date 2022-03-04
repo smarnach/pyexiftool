@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-# PyExifTool <http://github.com/sylikc/pyexiftool>
-# Copyright 2021 Kevin M (sylikc)
-
-# More contributors in the CHANGELOG for the pull requests
-
+#
 # This file is part of PyExifTool.
+#
+# PyExifTool <http://github.com/sylikc/pyexiftool>
+#
+# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2012-2014 Sven Marnach
+#
+# Community contributors are listed in the CHANGELOG.md for the PRs
 #
 # PyExifTool is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,9 +20,9 @@
 #
 # See COPYING.GPL or COPYING.BSD for more details.
 
-"""
 
-This contains a helper class, which makes it easier to use the low-level ExifTool class
+"""
+This submodule contains the ``ExifToolHelper`` class, which makes the core ``ExifTool`` class easier, and safer to use.
 
 .. note::
 	:py:class:`exiftool.helper.ExifToolHelper` class of this submodule is available in the ``exiftool`` namespace as :py:class:`exiftool.ExifToolHelper`

@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-# PyExifTool <http://github.com/sylikc/pyexiftool>
-# Copyright 2021 Kevin M (sylikc)
-
-# More contributors in the CHANGELOG for the pull requests
-
+#
 # This file is part of PyExifTool.
+#
+# PyExifTool <http://github.com/sylikc/pyexiftool>
+#
+# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2012-2014 Sven Marnach
+#
+# Community contributors are listed in the CHANGELOG.md for the PRs
 #
 # PyExifTool is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,26 +20,9 @@
 #
 # See COPYING.GPL or COPYING.BSD for more details.
 
+
 """
-
-This contains the "experimental" functionality.  In the grand scheme of things, this class
-contains "untested" functionality, or those that are less used.
-If there is increased demand, or robustness improves, functionality may merge into
-:py:class:`exiftool.ExifToolHelper` class.
-
-The starting point of this class was to remove all the "less used" functionality that was merged in
-on some arbitrary pull requests to the pre-fork repository.  This code is brittle and contains
-a lot of "hacks" for a niche set of use cases.  As such, it shouldn't crowd the core functionality
-of the :py:class:`exiftool.ExifTool` class or the stable extended functionality of the :py:class:`exiftool.ExifToolHelper` class.
-
-The class heirarchy:  ExifTool -> ExifToolHelper -> ExifToolAlpha
-
-* ExifTool - stable base class with CORE functionality
-* ExifToolHelper - user friendly class that extends the base class with general functionality not found in the core
-* ExifToolAlpha - alpha-quality code which extends the ExifToolHelper to add functionality that is niche, brittle, or not well tested
-
-Because of this heirarchy, you could always use/extend the :py:class:`exiftool.ExifToolAlpha` class to have all functionality,
-or at your discretion, use one of the more stable classes above.
+This submodule contains the ``ExifToolAlpha`` class, which extends the ``ExifToolHelper`` class with experimental functionality.
 
 .. note::
 	:py:class:`exiftool.helper.ExifToolAlpha` class of this submodule is available in the ``exiftool`` namespace as :py:class:`exiftool.ExifToolAlpha`
@@ -107,18 +93,27 @@ def format_error(result):
 # ======================================================================================================================
 
 class ExifToolAlpha(ExifToolHelper):
-	""" this class extends the ExifToolHelper class with alpha-quality code, which,
-	may add functionality, but may introduce bugs or add in unneeded bloat which may
-	be specific to niche use cases
+	"""
+	This class is for the "experimental" functionality.  In the grand scheme of things, this class
+	contains "not well tested" functionality, methods that are less used, or methods with niche use cases.
+	In some methods, edge cases on some of these methods may produce unexpected or ambiguous results.
+	However, if there is increased demand, or robustness improves, functionality may merge into
+	:py:class:`exiftool.ExifToolHelper` class.
 
-	lots of these methods are from the original incarnation of pyexiftool
-	with miscellaneous added pull requests.
+	The starting point of this class was to remove all the "less used" functionality that was merged in
+	on some arbitrary pull requests to the original v0.2 PyExifTool repository.  This alpha-quality code is brittle and contains
+	a lot of "hacks" for a niche set of use cases.  As such, it may be buggy and it shouldn't crowd the core functionality
+	of the :py:class:`exiftool.ExifTool` class or the stable extended functionality of the :py:class:`exiftool.ExifToolHelper` class
+	with unneeded bloat.
 
-	There's a lot of extra functionality, but the code quality leaves a lot to be desired
+	The class heirarchy:  ExifTool -> ExifToolHelper -> ExifToolAlpha
 
-	And in some cases, there are edge cases which return unexpected results... so
-	they will be placed into this class until the functionality can be standardized in a "stable" way
+	* ExifTool - stable base class with CORE functionality
+	* ExifToolHelper - user friendly class that extends the base class with general functionality not found in the core
+	* ExifToolAlpha - alpha-quality code which extends the ExifToolHelper to add functionality that is niche, brittle, or not well tested
 
+	Because of this heirarchy, you could always use/extend the :py:class:`exiftool.ExifToolAlpha` class to have all functionality,
+	or at your discretion, use one of the more stable classes above.
 
 	Please issue PR to this class to add functionality, even if not tested well.  This class is for experimental code after all!
 	"""

@@ -1,7 +1,13 @@
-# PyExifTool <http://github.com/sylikc/pyexiftool>
-# Copyright 2012 Sven Marnach, Kevin M (sylikc)
-
+# -*- coding: utf-8 -*-
+#
 # This file is part of PyExifTool.
+#
+# PyExifTool <http://github.com/sylikc/pyexiftool>
+#
+# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2012-2014 Sven Marnach
+#
+# Community contributors are listed in the CHANGELOG.md for the PRs
 #
 # PyExifTool is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,6 +19,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 # See COPYING.GPL or COPYING.BSD for more details.
+
 
 # this "could" still be used, but not the industry recommended option -- https://stackoverflow.com/questions/25337706/setuptools-vs-distutils-why-is-distutils-still-a-thing
 #from distutils.core import setup
