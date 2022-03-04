@@ -54,7 +54,7 @@ setup(
 
 	# info
 	description="Python wrapper for exiftool",
-	long_description=long_desc,
+	long_description=get_long_desc(),
 	long_description_content_type="text/x-rst",
 	keywords="exiftool image exif metadata photo video photography",
 
