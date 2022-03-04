@@ -38,9 +38,10 @@ Date (Timezone)              | Version | Comment
 03/13/2021 01:54:44 PM (PST) | 0.5.0a0 | no functional code changes ... yet.  this is currently on a separate branch referring to [Break down Exiftool into 2+ classes, a raw Exiftool, and helper classes](https://github.com/sylikc/pyexiftool/discussions/10) and [Deprecating Python 2.x compatibility](https://github.com/sylikc/pyexiftool/discussions/9) .  In time this refactor will be the future of PyExifTool, once it stabilizes.  I'll make code-breaking updates in this branch from build to build and take comments to make improvements.  Consider the 0.5.0 "nightly" quality.  Also, changelog versions were modified because I noticed that the LAST release from smarnach is tagged with v0.2.0
 02/28/2022 12:39:57 PM (PST) | 0.5.0   | complete refactor of the PyExifTool code.  Lots of changes.  Some code breaking changes.  Not directly backwards-compatible with v0.4.x.  See COMPATIBILITY.TXT to understand all the code-breaking changes.
 03/02/2022 07:07:26 AM (PST) | 0.5.1   | v0.5 Sphinx documentation generation finally working.  Lots of reStructuredText written to make the documentation better!<br>There's no functional changes to PyExifTool, but after several days and hours of effort, every single docstring in ExifTool and ExifToolHelper was updated to reflect all v0.5.0 changes.  ExifToolAlpha was largely untouched because the methods exposed haven't really been updated this time.
+03/03/2022 06:49:31 PM (PST) | 0.5.2   | Predicting the next most requested method: ExifToolHelper now has a set_tags() method similar to the get_tags() method.  This was pulled from ExifToolAlpha, combining the old set_tags/set_tags_batch into one method.<br>Added a new constructor/property to ExifToolHelper: check_execute, which (by default) will raise ExifToolExecuteError when the exit status code from exiftool subprocess is non-zero.  This should help users debug otherwise silent errors.<br>Also updated more docstrings and added maintenance script to generate docs.
 
 
-On version changes, update __int__.py to reflect version
+On version changes, update __init__.py to reflect version
 
 
 # Changes around the web
