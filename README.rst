@@ -2,6 +2,19 @@
 PyExifTool
 **********
 
+.. HIDE_FROM_PYPI_START
+
+.. image:: https://github.com/sylikc/pyexiftool/actions/workflows/lint-and-test.yml/badge.svg
+	:alt: GitHub Actions
+	:target: https://github.com/sylikc/pyexiftool/actions
+
+.. image:: https://img.shields.io/pypi/v/pyexiftool.svg
+	:target: https://pypi.org/project/PyExifTool/
+
+
+.. HIDE_FROM_PYPI_END
+
+
 .. DESCRIPTION_START
 
 .. BLURB_START
@@ -143,7 +156,7 @@ Documentation
 =============
 
 The current documentation is available at `sylikc.github.io`_.
-It may slightly lag behind the most updated version will be improved as the
+It may slightly lag behind the most updated version but will be improved as the
 project moves forward.
 
 ::

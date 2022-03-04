@@ -21,8 +21,20 @@
 # https://packaging.python.org/tutorials/packaging-projects/#configuring-metadata
 from setuptools import setup, find_packages
 
-with open("README.rst", "r", encoding="utf-8") as fh:
-	long_desc = fh.read()
+import re
+
+def get_long_desc():
+	""" read README.rst without the badges (don't need those showing up on PyPI) """
+
+	with open("README.rst", "r", encoding="utf-8") as fh:
+		long_desc = fh.read()
+
+	# crop out the portion between HIDE_FROM_PYPI_START and HIDE_FROM_PYPI_END
+	sub_pattern = r"^\.\. HIDE_FROM_PYPI_START.+\.\. HIDE_FROM_PYPI_END$"
+	long_desc = re.sub(sub_pattern, "", long_desc, flags=re.MULTILINE | re.DOTALL)
+
+	return long_desc
+
 
 setup(
 	# detailed list of options:
