@@ -4,13 +4,15 @@ import unittest
 import exiftool
 from exiftool.exceptions import ExifToolNotRunning, OutputEmpty, OutputNotJSON, ExifToolExecuteError
 import shutil
-import tempfile
 from pathlib import Path
+
+from tests.common_util import et_get_temp_dir
 
 from packaging import version
 
+
 SCRIPT_PATH = Path(__file__).resolve().parent
-PERSISTENT_TMP_DIR = False  # if set to true, will not delete temp dir on exit (useful for debugging output)
+
 
 # Find example image.
 EXAMPLE_FILE = SCRIPT_PATH / "rose.jpg"
@@ -31,18 +33,6 @@ class ReadingTest(unittest.TestCase):
 	def setUpClass(cls) -> None:
 		cls.exif_tool_helper = exiftool.ExifToolHelper(common_args=['-G', '-n', '-overwrite_original'])
 		cls.exif_tool_helper.run()
-
-
-		# Prepare temporary directory.
-		kwargs = {"prefix": "exiftool-tmp-", "dir": SCRIPT_PATH}
-		# mkdtemp requires cleanup or else it remains on the system
-		if PERSISTENT_TMP_DIR:
-			cls.temp_obj = None
-			cls.tmp_dir = Path(tempfile.mkdtemp(**kwargs))
-		else:
-			# have to save the object or else garbage collection cleans it up and dir gets deleted
-			cls.temp_obj = tempfile.TemporaryDirectory(**kwargs)
-			cls.tmp_dir = Path(cls.temp_obj.name)
 
 	# ---------------------------------------------------------------------------------------------------------
 
@@ -87,8 +77,10 @@ class ReadingTest(unittest.TestCase):
 		"""
 		test passing a -w flag to write some output
 		"""
+		(temp_obj, temp_dir) = et_get_temp_dir(suffix="wflag")
+
 		with self.assertRaises(OutputNotJSON):
-			self.exif_tool_helper.get_metadata(EXAMPLE_FILE, params=["-w", f"{self.tmp_dir}/%f.txt"])
+			self.exif_tool_helper.get_metadata(EXAMPLE_FILE, params=["-w", f"{temp_dir}/%f.txt"])
 
 	# ---------------------------------------------------------------------------------------------------------
 
@@ -259,18 +251,11 @@ class WritingTest(unittest.TestCase):
 			common_args=["-G", "-n", "-overwrite_original"], encoding="UTF-8"
 		)
 
-		# Prepare temporary directory for copy.
-		kwargs = {"prefix": "exiftool-tmp-", "dir": SCRIPT_PATH}
-		if PERSISTENT_TMP_DIR:
-			self.temp_obj = None
-			self.tmp_dir = Path(tempfile.mkdtemp(**kwargs))
-		else:
-			self.temp_obj = tempfile.TemporaryDirectory(**kwargs)
-			self.tmp_dir = Path(self.temp_obj.name)
-
 	# ---------------------------------------------------------------------------------------------------------
 
 	def test_set_tags(self):
+		(temp_obj, temp_dir) = et_get_temp_dir(suffix="settag")
+
 		mod_prefix = "newcap_"
 		expected_data = [
 			{
@@ -285,7 +270,7 @@ class WritingTest(unittest.TestCase):
 			d["SourceFile"] = f = SCRIPT_PATH / d["SourceFile"]
 			self.assertTrue(f.exists())
 
-			f_mod = self.tmp_dir / (mod_prefix + f.name)
+			f_mod = temp_dir / (mod_prefix + f.name)
 
 			self.assertFalse(
 				f_mod.exists(),
@@ -297,12 +282,14 @@ class WritingTest(unittest.TestCase):
 				self.et.set_tags([f_mod], {"Caption-Abstract": d["Caption-Abstract"]})
 				result = self.et.get_tags([f_mod], "IPTC:Caption-Abstract")[0]
 				tag0 = list(result.values())[1]
-			f_mod.unlink()
+			#f_mod.unlink()  # don't delete file, tempdir will take care of it
 			self.assertEqual(tag0, d["Caption-Abstract"])
 
 	# ---------------------------------------------------------------------------------------------------------
 	def test_set_tags_file_existence(self):
 		""" test setting tags on a non-existent file """
+		(temp_obj, temp_dir) = et_get_temp_dir(suffix="settagfe")
+
 		check_value = self.et.check_execute  # save off current setting
 
 		junk_tag = {"not_a_valid_tag_foo_bar": "lorem ipsum"}
@@ -310,7 +297,7 @@ class WritingTest(unittest.TestCase):
 		# set up temp working file
 		mod_prefix = "test_"
 		f = SCRIPT_PATH / "rose.jpg"
-		f_mod = self.tmp_dir / (mod_prefix + f.name)
+		f_mod = temp_dir / (mod_prefix + f.name)
 		self.assertTrue(f.exists())
 		self.assertFalse(f_mod.exists())
 		shutil.copyfile(f, f_mod)
@@ -366,6 +353,8 @@ class WritingTest(unittest.TestCase):
 		"""
 		test that covers setting keywords in set_tags() using a list (not using the ExifToolAlpha's keywords functionality directly)
 		"""
+		(temp_obj, temp_dir) = et_get_temp_dir(suffix="settagkw")
+
 		mod_prefix = "newkw_"
 		expected_data = [{"SourceFile": "rose.jpg",
 						  "Keywords": ["nature", "red plant", "flower"]}]
@@ -374,7 +363,7 @@ class WritingTest(unittest.TestCase):
 		for d in expected_data:
 			d["SourceFile"] = f = SCRIPT_PATH / d["SourceFile"]
 			self.assertTrue(f.exists())
-			f_mod = self.tmp_dir / (mod_prefix + f.name)
+			f_mod = temp_dir / (mod_prefix + f.name)
 			self.assertFalse(
 				f_mod.exists(),
 				f"{f_mod} should not exist before the test. Please delete.",
@@ -387,7 +376,7 @@ class WritingTest(unittest.TestCase):
 				self.et.set_tags(f_mod, {"Keywords": expected_data[0]["Keywords"]})
 				ret_data = self.et.get_tags(f_mod, "IPTC:Keywords")
 
-			f_mod.unlink()
+			#f_mod.unlink()  # don't delete file, tempdir will take care of it
 
 			self.assertEqual(ret_data[0]["IPTC:Keywords"], expected_data[0]["Keywords"])
 

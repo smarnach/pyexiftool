@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import shutil
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -9,8 +8,10 @@ from packaging import version
 
 import exiftool
 
+from tests.common_util import et_get_temp_dir
+
+
 SCRIPT_PATH = Path(__file__).resolve().parent
-PERSISTENT_TMP_DIR = False  # if set to true, will not delete temp dir on exit (useful for debugging output)
 
 
 class TestTagCopying(unittest.TestCase):
@@ -23,23 +24,12 @@ class TestTagCopying(unittest.TestCase):
         self.exiftool = exiftool.ExifToolAlpha(encoding="UTF-8")
         self.exiftool.run()
 
-        # Prepare temporary directory for copy.
-        kwargs = {"prefix": "exiftool-tmp-", "dir": SCRIPT_PATH}
-        # mkdtemp requires cleanup or else it remains on the system
-        if PERSISTENT_TMP_DIR:
-            self.temp_obj = None
-            self.tmp_dir = Path(tempfile.mkdtemp(**kwargs))
-        else:
-            # have to save the object or else garbage collection cleans it up and dir gets deleted
-            # https://simpleit.rocks/python/test-files-creating-a-temporal-directory-in-python-unittests/
-            self.temp_obj = tempfile.TemporaryDirectory(**kwargs)
-            self.tmp_dir = Path(self.temp_obj.name)
-
         # Find example image.
         self.tag_source = SCRIPT_PATH / "rose.jpg"
 
         # Prepare path of copy.
-        self.tag_target = self.tmp_dir / "rose-tagcopy.jpg"
+        (self.temp_obj, self.temp_dir) = et_get_temp_dir(suffix="ttc")
+        self.tag_target = self.temp_dir / "rose-tagcopy.jpg"
 
         # Copy image.
         shutil.copyfile(self.tag_source, self.tag_target)
@@ -76,14 +66,6 @@ class TestExifToolAlpha(unittest.TestCase):
             common_args=["-G", "-n", "-overwrite_original"], encoding="UTF-8"
         )
 
-        # Prepare temporary directory for copy.
-        kwargs = {"prefix": "exiftool-tmp-", "dir": SCRIPT_PATH}
-        if PERSISTENT_TMP_DIR:
-            self.temp_obj = None
-            self.tmp_dir = Path(tempfile.mkdtemp(**kwargs))
-        else:
-            self.temp_obj = tempfile.TemporaryDirectory(**kwargs)
-            self.tmp_dir = Path(self.temp_obj.name)
 
     def tearDown(self):
         if hasattr(self, "et"):
@@ -95,6 +77,8 @@ class TestExifToolAlpha(unittest.TestCase):
 
 
     def test_set_keywords(self):
+        (temp_obj, temp_dir) = et_get_temp_dir(suffix="setkw")
+
         kw_to_add = ["added"]
         mod_prefix = "newkw_"
         expected_data = [
@@ -105,7 +89,7 @@ class TestExifToolAlpha(unittest.TestCase):
         for d in expected_data:
             d["SourceFile"] = f = SCRIPT_PATH / d["SourceFile"]
             self.assertTrue(f.exists())
-            f_mod = self.tmp_dir / (mod_prefix + f.name)
+            f_mod = temp_dir / (mod_prefix + f.name)
             f_mod_str = str(f_mod)
             self.assertFalse(
                 f_mod.exists(),
@@ -124,7 +108,7 @@ class TestExifToolAlpha(unittest.TestCase):
                 kwtag1 = self.et.get_tag(f_mod_str, "IPTC:Keywords")
                 self.et.set_keywords(f_mod_str, exiftool.experimental.KW_ADD, kw_to_add)
                 kwtag2 = self.et.get_tag(f_mod_str, "IPTC:Keywords")
-            f_mod.unlink()
+            #f_mod.unlink()  # don't delete file, tempdir will take care of it
             self.assertEqual(kwtag0, d["Keywords"])
             self.assertEqual(kwtag1, d["Keywords"][0])
             self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
