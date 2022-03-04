@@ -93,50 +93,6 @@ class TestExifToolAlpha(unittest.TestCase):
             if self.process.poll() is None:
                 self.process.terminate()
 
-    def test_get_metadata(self):
-        expected_data = [
-            {
-                "SourceFile": Path("rose.jpg"),
-                "File:FileType": "JPEG",
-                "File:ImageWidth": 70,
-                "File:ImageHeight": 46,
-                "XMP:Subject": "Röschen",
-                "Composite:ImageSize": "70 46",
-            },
-            {
-                "SourceFile": Path("skyblue.png"),
-                "File:FileType": "PNG",
-                "PNG:ImageWidth": 64,
-                "PNG:ImageHeight": 64,
-                "Composite:ImageSize": "64 64",
-            },
-        ]
-        source_files = []
-
-        for d in expected_data:
-            path = SCRIPT_PATH / d["SourceFile"]
-            d["SourceFile"] = path
-            self.assertTrue(path.exists())
-            source_files.append(path)
-
-        with self.et:
-            actual_data = self.et.get_metadata(source_files)
-            tags0 = self.et.get_tags(source_files[0], ["XMP:Subject"])[0]
-            tag0 = self.et.get_tag(source_files[0], "XMP:Subject")
-
-        required_version = version.parse("8.40")
-        for expected, actual in zip(expected_data, actual_data):
-            actual_version = version.parse(str(actual["ExifTool:ExifToolVersion"]))
-            self.assertGreaterEqual(actual_version, required_version)
-            actual["SourceFile"] = Path(actual["SourceFile"]).resolve()
-            for k, v in expected.items():
-                self.assertEqual(actual[k], v)
-
-        tags0["SourceFile"] = Path(tags0["SourceFile"]).resolve()
-        self.assertEqual(
-            tags0, dict((k, expected_data[0][k]) for k in ["SourceFile", "XMP:Subject"])
-        )
-        self.assertEqual(tag0, "Röschen")
 
     def test_set_keywords(self):
         kw_to_add = ["added"]
@@ -174,37 +130,6 @@ class TestExifToolAlpha(unittest.TestCase):
             self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
 
 
-    """
-    # TODO: write a test that covers keywords in set_tags_batch() and not using the keywords functionality directly
-    def test_set_list_keywords(self):
-        mod_prefix = "newkw_"
-        expected_data = [{"SourceFile": "rose.jpg",
-                          "Keywords": ["nature", "red plant"]}]
-        source_files = []
-
-        for d in expected_data:
-            d["SourceFile"] = f = SCRIPT_PATH / d["SourceFile"]
-            self.assertTrue(f.exists())
-            f_mod = self.tmp_dir / (mod_prefix + f.name)
-            f_mod_str = str(f_mod)
-            self.assertFalse(f_mod.exists(), "%s should not exist before the test. Please delete." % f_mod)
-
-            shutil.copyfile(f, f_mod)
-            source_files.append(f_mod)
-
-            with self.et:
-                self.et.set_keywords(exiftool.helper.KW_REPLACE, d["Keywords"], f_mod_str)
-                kwtag0 = self.et.get_tag("IPTC:Keywords", f_mod_str)
-                kwrest = d["Keywords"][1:]
-                self.et.set_keywords(exiftool.helper.KW_REMOVE, kwrest, f_mod_str)
-                kwtag1 = self.et.get_tag("IPTC:Keywords", f_mod_str)
-                self.et.set_keywords(exiftool.helper.KW_ADD, kw_to_add, f_mod_str)
-                kwtag2 = self.et.get_tag("IPTC:Keywords", f_mod_str)
-            f_mod.unlink()
-            self.assertEqual(kwtag0, d["Keywords"])
-            self.assertEqual(kwtag1, d["Keywords"][0])
-            self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)
-    """
 
 
 if __name__ == "__main__":
