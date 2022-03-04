@@ -101,7 +101,6 @@ class ExifToolHelper(ExifTool):
 		:raises ExifToolExecuteError: If :py:attr:`check_execute` == True, and exit status was non-zero
 		"""
 		if self._auto_start and not self.running:
-			print('hey')
 			self.run()
 
 		result: str = super().execute(*params)
@@ -150,6 +149,13 @@ class ExifToolHelper(ExifTool):
 		Flag to enable/disable checking exit status (return code) on execute
 
 		If enabled, will raise :py:exc:`exiftool.exceptions.ExifToolExecuteError` if a non-zero exit status is returned during :py:meth:`execute()`
+
+		.. warning::
+			While this property is provided to give callers an option to enable/disable error checking, it is generally **NOT** recommended to disable ``check_execute``.
+
+			**If disabled, exiftool will fail silently, and hard-to-catch bugs may arise.**
+
+			That said, there may be some use cases where continue-on-error behavior is desired.
 
 		:getter: Returns current setting
 		:setter: Enable or Disable the check
