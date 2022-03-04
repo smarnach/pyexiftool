@@ -38,9 +38,8 @@ process for every single query.
 
 .. DESCRIPTION_END
 
-.. contents:: Table of Contents
+.. contents::
 	:depth: 2
-	:backlinks: top
 
 Example Usage
 =============
