@@ -40,6 +40,7 @@ process for every single query.
 
 .. contents::
 	:depth: 2
+	:backlinks: none
 
 Example Usage
 =============
