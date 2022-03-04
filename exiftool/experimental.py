@@ -233,7 +233,7 @@ class ExifToolAlpha(ExifToolHelper):
 		self.execute(*params)
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def set_keywords_batch(self, filenames, mode, keywords):
+	def set_keywords_batch(self, files, mode, keywords):
 		"""Modifies the keywords tag for the given files.
 
 		The first argument is the operation mode:
@@ -258,9 +258,9 @@ class ExifToolAlpha(ExifToolHelper):
 		if isinstance(keywords, basestring):
 			raise TypeError("The argument 'keywords' must be "
 							"an iterable of strings")
-		if isinstance(filenames, basestring):
-			raise TypeError("The argument 'filenames' must be "
-							"an iterable of strings")
+
+		# allow the files argument to be a str, and process it into a list of str
+		filenames = self.__class__._parse_arg_files(files)
 
 		params = []
 

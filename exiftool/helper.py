@@ -180,6 +180,9 @@ class ExifToolHelper(ExifTool):
 
 
 
+
+
+
 	#####################################################################################
 	#################################### NEW METHODS ####################################
 	#####################################################################################
@@ -250,7 +253,7 @@ class ExifToolHelper(ExifTool):
 		"""
 
 		final_tags:  Optional[List] = None
-		final_files: Optional[List] = None
+		final_files: List = self.__class__._parse_arg_files(files)
 
 		if tags is None:
 			# all tags
@@ -262,33 +265,10 @@ class ExifToolHelper(ExifTool):
 		else:
 			raise TypeError(f"{self.__class__.__name__}.get_tags: argument 'tags' must be a str/bytes or a list")
 
-		if not files:
-			# Exiftool process would return None anyways
-			raise ValueError(f"{self.__class__.__name__}.get_tags: argument 'files' cannot be empty")
-		elif isinstance(files, basestring):
-			final_files = [files]
-		elif not _is_iterable(files):
-			final_files = [str(files)]
-		else:
-			# duck-type any iterable given, and str() it
-			# this was originally to support Path() but it's now generic to support any object that str() to something useful
-
-			# Thanks @jangop for the single line contribution!
-			final_files = [x if isinstance(x, basestring) else str(x) for x in files]
-
-			# TODO: this list copy could be expensive if the input is a very huge list.  Perhaps in the future have a flag that takes the lists in verbatim without any processing?
 
 		exec_params: List = []
 
-		if params:
-			if isinstance(params, basestring):
-				# if params is a string, append it as is
-				exec_params.append(params)
-			elif _is_iterable(params):
-				# this is done to avoid accidentally modifying the reference object params
-				exec_params.extend(params)
-			else:
-				raise TypeError(f"{self.__class__.__name__}.get_tags: argument 'params' must be a str or a list")
+		self.__class__._extend_arg_params(exec_params, params)
 
 		# tags is always a list by this point.  It will always be iterable... don't have to check for None
 		exec_params.extend([f"-{t}" for t in final_tags])
@@ -363,20 +343,7 @@ class ExifToolHelper(ExifTool):
 		.. _ExifTool Common Mistakes - Over-use of Wildcards in File Names: https://exiftool.org/mistakes.html#M2
 
 		"""
-		final_files: Optional[List] = None
-
-		if not files:
-			# Exiftool process would return None anyways
-			raise ValueError(f"{self.__class__.__name__}.set_tags: argument 'files' cannot be empty")
-		elif isinstance(files, basestring):
-			final_files = [files]
-		elif not _is_iterable(files):
-			final_files = [str(files)]
-		else:
-			# duck-type any iterable given, and str() it
-			# this was originally to support Path() but it's now generic to support any object that str() to something useful
-			final_files = [x if isinstance(x, basestring) else str(x) for x in files]
-			# TODO: this list copy could be expensive if the input is a very huge list.  Perhaps in the future have a flag that takes the lists in verbatim without any processing?
+		final_files: List = self.__class__._parse_arg_files(files)
 
 		if not tags:
 			raise ValueError(f"{self.__class__.__name__}.set_tags: argument 'tags' cannot be empty")
@@ -386,16 +353,7 @@ class ExifToolHelper(ExifTool):
 
 		exec_params: List = []
 
-		if params:
-			if isinstance(params, basestring):
-				# if params is a string, append it as is
-				exec_params.append(params)
-			elif _is_iterable(params):
-				# this is done to avoid accidentally modifying the reference object params
-				exec_params.extend(params)
-			else:
-				raise TypeError(f"{self.__class__.__name__}.get_tags: argument 'params' must be a str or a list")
-
+		self.__class__._extend_arg_params(exec_params, params)
 
 		for tag, value in tags.items():
 			# contributed by @daviddorme in https://github.com/sylikc/pyexiftool/issues/12#issuecomment-821879234
@@ -419,3 +377,95 @@ class ExifToolHelper(ExifTool):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+	#########################################################################################
+	#################################### PRIVATE METHODS ####################################
+	#########################################################################################
+
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@staticmethod
+	def _parse_arg_files(files: Union[str, List]) -> List:
+		"""
+		This logic to process the files argument is common across most ExifToolHelper methods
+
+		It can be used by a developer to process the files argument the same way if this class is extended
+
+		:param files: File(s) to be worked on.
+		:type files: str or list
+
+		:return: A list of one or more elements containing strings of files
+
+		:raises ValueError: Files parameter is empty
+		"""
+
+		final_files: List = []
+
+		if not files:
+			# Exiftool process would return an error anyways
+			raise ValueError(f"ERROR: Argument 'files' cannot be empty")
+		elif isinstance(files, basestring):
+			# if it's a string
+			final_files = [files]
+		elif not _is_iterable(files):
+			# if it's not a string but also not iterable
+			final_files = [str(files)]
+		else:
+			# duck-type any iterable given, and str() it
+
+			# this was originally to support Path() but it's now generic enough to support any object that str() to something useful
+
+			# Thanks @jangop for the single line contribution!
+			final_files = [x if isinstance(x, basestring) else str(x) for x in files]
+
+			# TODO: this list copy could be expensive if the input is a very huge list.  Perhaps in the future have a flag that takes the lists in verbatim without any processing?
+
+		return final_files
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@staticmethod
+	def _extend_arg_params(mod_list: List, params: Optional[Union[str, List]]) -> None:
+		"""
+		This protected method is a helper method to extend a list if params is given
+
+		:param list mod_list: List to modify
+
+		:param params: Extra params to append to mod_list, if provided
+		:type params: str, list, or None
+
+		:raises TypeError: params is specified but not a str or a list
+		"""
+		if params:
+			if isinstance(params, basestring):
+				# if params is a string, append it as is
+				mod_list.append(params)
+			elif _is_iterable(params):
+				# we extend an empty list to avoid accidentally modifying the reference object params
+				mod_list.extend(params)
+			else:
+				raise TypeError(f"Argument 'params' must be a str or a list")  # or None, but no need to be explicit if specified
+
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@staticmethod
+	def _check_tag_list(tags: List) -> bool:
+		r"""
+		This method is used to check the validity of a tag list passed in.
+
+		According to the exiftool source code, the valid regex on tags is (/^([-\w*]+:)*([-\w*?]+)#?$/)
+		"""
+		pass
+
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+
