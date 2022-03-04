@@ -55,7 +55,12 @@ class ExifToolExecuteError(ExifToolException):
 	"""
 	ExifTool executed the command but returned a non-zero exit status
 
-	mimics the signature of :py:class:`subprocess.CalledProcessError`
+	(mimics the signature of :py:class:`subprocess.CalledProcessError`)
+
+	:attribute returncode: Exit Status (Return code) of the ``execute()`` command which raised the error
+	:attribute cmd: Parameters sent to *exiftool* which raised the error
+	:attribute stdout: STDOUT stream returned by the command which raised the error
+	:attribute stderr: STDERR stream returned by the command which raised the error
 	"""
 	def __init__(self, exit_status, cmd_stdout, cmd_stderr, params):
 		super().__init__(f"Exiftool execute returned a non-zero exit status: {exit_status}")
