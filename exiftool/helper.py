@@ -211,16 +211,16 @@ class ExifToolHelper(ExifTool):
 
 		:param files: File(s) to be worked on.
 
-			If a ``str`` is provided, it will get tags for a single file
-
-			If an interable is provided, the list is copied and any non-basestring elements are converted to str (to support ``PurePath`` and other similar objects)
+			* If a ``str`` is provided, it will get tags for a single file
+			* If an iterable is provided, the list is copied and any non-basestring elements are converted to str (to support ``PurePath`` and other similar objects)
 
 			.. warning::
-				Currently, filenames are NOT checked for existence, that is left up to the caller.
+				Currently, filenames are NOT checked for existence!  That is left up to the caller.
 
+			.. warning::
 				Wildcard strings are valid and passed verbatim to exiftool.
 
-				However, exiftool's globbing is different than Python's globbing.  Read `ExifTool Common Mistakes - Over-use of Wildcards in File Names`_ for more info
+				However, exiftool's wildcard matching/globbing may be different than Python's matching/globbing, which may cause unexpected behavior if you're using one and comparing the result to the other.  Read `ExifTool Common Mistakes - Over-use of Wildcards in File Names`_ for some related info.
 
 		:type files: str or list
 
@@ -316,26 +316,26 @@ class ExifToolHelper(ExifTool):
 
 		:param files: File(s) to be worked on.
 
-			If a ``str`` is provided, it will set tags for a single file
-
-			If an interable is provided, the list is copied and any non-basestring elements are converted to str (to support ``PurePath`` and other similar objects)
+			* If a ``str`` is provided, it will set tags for a single file
+			* If an iterable is provided, the list is copied and any non-basestring elements are converted to str (to support ``PurePath`` and other similar objects)
 
 			.. warning::
-				Currently, filenames are NOT checked for existence, that is left up to the caller.
+				Currently, filenames are NOT checked for existence!  That is left up to the caller.
 
+			.. warning::
 				Wildcard strings are valid and passed verbatim to exiftool.
 
-				However, exiftool's globbing is different than Python's globbing.  Read `ExifTool Common Mistakes - Over-use of Wildcards in File Names`_ for more info
+				However, exiftool's wildcard matching/globbing may be different than Python's matching/globbing, which may cause unexpected behavior if you're using one and comparing the result to the other.  Read `ExifTool Common Mistakes - Over-use of Wildcards in File Names`_ for some related info.
 
 		:type files: str or list
 
 
 		:param tags: Tag(s) to write.
 
-			Dictionary keys = tags, values = str or list
+			Dictionary keys = tags, values = tag values (str or list)
 
-			If a value is a str, will set key=value
-			If a value is a list, will iterate over list and set each individual value to the same tag (
+			* If a value is a str, will set key=value
+			* If a value is a list, will iterate over list and set each individual value to the same tag (
 
 			.. note::
 				The tag names may include group names, as usual in the format ``<group>:<tag>``.
