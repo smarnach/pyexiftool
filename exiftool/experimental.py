@@ -20,21 +20,26 @@
 """
 
 This contains the "experimental" functionality.  In the grand scheme of things, this class
-contains "untested" functionality, or those that are less used, and may merge in with the
-ExifToolHelper() class at some point.
+contains "untested" functionality, or those that are less used.
+If there is increased demand, or robustness improves, functionality may merge into
+:py:class:`exiftool.ExifToolHelper` class.
 
 The starting point of this class was to remove all the "less used" functionality that was merged in
 on some arbitrary pull requests to the pre-fork repository.  This code is brittle and contains
 a lot of "hacks" for a niche set of use cases.  As such, it shouldn't crowd the core functionality
-of the ExifTool() class or the stable extended functionality of the ExifToolHelper() class.
+of the :py:class:`exiftool.ExifTool` class or the stable extended functionality of the :py:class:`exiftool.ExifToolHelper` class.
 
-The class heirarchy:  ExifTool -> ExifToolHelper -> ExifToolAlpha,
+The class heirarchy:  ExifTool -> ExifToolHelper -> ExifToolAlpha
+
 * ExifTool - stable base class with CORE functionality
 * ExifToolHelper - user friendly class that extends the base class with general functionality not found in the core
 * ExifToolAlpha - alpha-quality code which extends the ExifToolHelper to add functionality that is niche, brittle, or not well tested
 
-Because of this heirarchy, you could always use/extend the ExifToolAlpha() class to have all functionality,
+Because of this heirarchy, you could always use/extend the :py:class:`exiftool.ExifToolAlpha` class to have all functionality,
 or at your discretion, use one of the more stable classes above.
+
+.. note::
+	:py:class:`exiftool.helper.ExifToolAlpha` class of this submodule is available in the ``exiftool`` namespace as :py:class:`exiftool.ExifToolAlpha`
 
 """
 

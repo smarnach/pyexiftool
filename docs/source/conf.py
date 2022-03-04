@@ -64,19 +64,30 @@ extensions = [
 	'sphinx_autodoc_typehints',  # pip install sphinx-autodoc-typehints
 	'sphinx.ext.inheritance_diagram',
 ]
+
 #autosummary_generate = True # Turn on sphinx.ext.autosummary
+
+
 
 autoapi_type = 'python'
 autoapi_dirs = ['../../exiftool']
 autoapi_member_order = 'groupwise'
 #autoapi_python_use_implicit_namespaces = True
-#autoapi_options = [ 'members', 'undoc-members', 'show-inheritance', 'show-module-summary', 'special-members', ]
+
+# make my life easier, configure the autoapi with specific options for things that I care about ... aka
+# hide 'private-members' - inheriting classes should not have to handle or interfere with private variables
+# hide 'imported-members' - after all i import the submodules into the base namespace - don't need it to show twice
+autoapi_options = [ 'members', 'undoc-members', 'show-inheritance', 'show-inheritance-diagram', 'show-module-summary', 'special-members',  ]
 #autoapi_generate_api_docs = False
+
+
 
 # comment out when all documentation has documented parameters ... sometimes causes duplicates, but that may be a RST problem... always put links at the END of the docstring instead of in the middle
 autodoc_typehints = 'description'
 
 typehints_defaults = "comma"
+
+
 
 # the common names of the classes rather than the absolute paths
 inheritance_alias = {
@@ -92,6 +103,8 @@ inheritance_alias = {
 #inheritance_graph_attrs = dict(rankdir="LR", size='"6.0, 8.0"', fontsize=14, ratio='compress')
 inheritance_graph_attrs = dict(pad="0.2", center=True)
 inheritance_node_attrs = dict(shape='box', fontsize=14, height=0.75, color='dodgerblue1', style='rounded')
+
+
 
 
 # Add any paths that contain templates here, relative to this directory.

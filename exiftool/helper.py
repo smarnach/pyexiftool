@@ -21,6 +21,9 @@
 
 This contains a helper class, which makes it easier to use the low-level ExifTool class
 
+.. note::
+	:py:class:`exiftool.helper.ExifToolHelper` class of this submodule is available in the ``exiftool`` namespace as :py:class:`exiftool.ExifToolHelper`
+
 """
 
 import logging

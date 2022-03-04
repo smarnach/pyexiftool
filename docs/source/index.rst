@@ -18,6 +18,7 @@ PyExifTool -- Python wrapper for Phil Harvey's ExifTool
 	installation
 	examples
 	reference/*
+	autoapi/*
 
 
 ..   maintenance/*

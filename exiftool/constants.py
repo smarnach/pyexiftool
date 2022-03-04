@@ -70,7 +70,7 @@ Indicates the launched process window should start minimized
 
 # for Linux preexec_fn
 PR_SET_PDEATHSIG: int = 1
-"""taken from linux/prctl.h
+"""Extracted from linux/prctl.h
 
 Allows a kill signal to be sent to child processes when the parent unexpectedly dies
 """
