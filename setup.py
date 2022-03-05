@@ -76,7 +76,7 @@ setup(
 		# list is here:
 		# https://pypi.org/classifiers/
 
-		"Development Status :: 3 - Alpha",
+		"Development Status :: 4 - Beta",
 
 		"Intended Audience :: Developers",
 
@@ -85,8 +85,13 @@ setup(
 
 		"Operating System :: OS Independent",
 
+		"Programming Language :: Python",
 		"Programming Language :: Python :: 3",
+		"Programming Language :: Python :: 3 :: Only",
 		"Programming Language :: Python :: 3.6",
+		"Programming Language :: Python :: 3.7",
+		"Programming Language :: Python :: 3.8",
+		"Programming Language :: Python :: 3.9",
 
 		"Topic :: Multimedia",
 		"Topic :: Utilities",

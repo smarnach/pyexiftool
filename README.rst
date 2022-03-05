@@ -10,9 +10,23 @@ PyExifTool
 
 .. image:: https://img.shields.io/pypi/v/pyexiftool.svg
 	:target: https://pypi.org/project/PyExifTool/
+	:alt: PyPI Version
 
 
 .. HIDE_FROM_PYPI_END
+
+.. image:: https://img.shields.io/pypi/pyversions/pyexiftool.svg
+	:target: https://pypi.org/project/PyExifTool/
+	:alt: Supported Python Versions
+
+.. image:: https://pepy.tech/badge/pyexiftool
+	:target: https://pepy.tech/project/pyexiftool
+	:alt: Total PyPI Downloads
+
+.. image:: https://static.pepy.tech/personalized-badge/pyexiftool?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads%2030d
+	:target: https://pepy.tech/project/pyexiftool
+	:alt: PyPI Downloads this month
+
 
 
 .. DESCRIPTION_START
