@@ -2,7 +2,7 @@
 
 import unittest
 import exiftool
-from exiftool.exceptions import ExifToolNotRunning, OutputEmpty, OutputNotJSON, ExifToolExecuteError
+from exiftool.exceptions import ExifToolNotRunning, OutputEmpty, OutputNotJSON, ExifToolExecuteError, ExifToolTagNameError
 import shutil
 from pathlib import Path
 
@@ -83,7 +83,6 @@ class ReadingTest(unittest.TestCase):
 			self.exif_tool_helper.get_metadata(EXAMPLE_FILE, params=["-w", f"{temp_dir}/%f.txt"])
 
 	# ---------------------------------------------------------------------------------------------------------
-
 
 
 class TestExifToolHelper(unittest.TestCase):
@@ -244,6 +243,31 @@ class TestExifToolHelper(unittest.TestCase):
 
 	# ---------------------------------------------------------------------------------------------------------
 
+	def test_check_tag_names(self):
+		""" simple read test for tag names """
+
+		with self.assertRaises(ExifToolTagNameError):
+			self.et.get_tags(EXAMPLE_FILE, "-Comment")
+
+		self.et.get_tags(EXAMPLE_FILE, "Comment#")
+
+		with self.assertRaises(ExifToolTagNameError):
+			self.et.get_tags(EXAMPLE_FILE, "Com#ment")
+
+		self.et.get_tags(EXAMPLE_FILE, "test:tag")
+		self.et.get_tags(EXAMPLE_FILE, "*date*")
+
+		# non-sensical, but exiftool lets this slide with no errors
+		self.et.get_tags(EXAMPLE_FILE, "C-o:m:m:ent#")
+		self.et.get_tags(EXAMPLE_FILE, "Comment-")
+		self.et.get_tags(EXAMPLE_FILE, "test:-tag")
+		self.et.get_tags(EXAMPLE_FILE, "t-e-st:-tag---")
+
+
+
+
+	# ---------------------------------------------------------------------------------------------------------
+
 class WritingTest(unittest.TestCase):
 	@classmethod
 	def setUp(self):
@@ -381,6 +405,93 @@ class WritingTest(unittest.TestCase):
 			self.assertEqual(ret_data[0]["IPTC:Keywords"], expected_data[0]["Keywords"])
 
 	# ---------------------------------------------------------------------------------------------------------
+
+class TagNameTest(unittest.TestCase):
+	""" these tests are to ensure the robustness of the check_tag_names feature """
+
+	@classmethod
+	def setUp(self):
+		self.et = exiftool.ExifToolHelper(
+			common_args=["-G", "-n", "-overwrite_original"], encoding="UTF-8"
+		)
+
+		# standardize, all these need the example file copied to a temp directory
+		(self.temp_obj, self.temp_dir) = et_get_temp_dir(suffix="tagname")
+
+		self.test_file = self.temp_dir / "test_rose.jpg"
+
+		shutil.copyfile(EXAMPLE_FILE, self.test_file)
+
+	# ---------------------------------------------------------------------------------------------------------
+
+	def test_write_comment(self):
+
+		test_file = self.test_file
+		my_tag = "File:Comment"
+		my_comment = "foo.bar/comment"
+		bad_comment = "lorem ipsum"
+
+		self.et.set_tags(test_file, {my_tag: my_comment})
+
+		self.assertEqual(my_comment, self.et.get_tags(test_file, my_tag)[0][my_tag])
+
+		with self.assertRaises(ExifToolTagNameError):
+			# this was what the flag was meant to prevent
+			self.et.get_tags(test_file, f"Comment={bad_comment}")
+
+		self.assertEqual(my_comment, self.et.get_tags(test_file, my_tag)[0][my_tag])
+
+
+		# turn off that tag check (this is what you DON'T WANT to happen)
+		self.et.check_tag_names = False
+		with self.assertRaises(OutputEmpty):
+			self.et.get_tags(test_file, f"Comment={bad_comment}")
+		self.assertEqual(bad_comment, self.et.get_tags(test_file, my_tag)[0][my_tag])
+
+
+		self.et.check_tag_names = True
+
+
+	# ---------------------------------------------------------------------------------------------------------
+
+	def test_tag_name_hyphen(self):
+		""" this is cited on some examples on exiftool's documentation
+
+		this example also demonstrates how what you ask for as a tag isn't what you get back sometimes... the tag comes back in the case that's defined inside exiftool
+		"""
+
+		test_file = self.test_file
+		my_tag = "xmp:description-de"
+		my_value = "k&uuml;hl"
+
+		# note how what you asked for isn't always what you get
+		my_tag_case = "XMP:Description-de"
+		my_utf8 = "kühl"
+
+		self.et.set_tags(test_file, {my_tag: my_value}, params="-E")
+
+		self.assertEqual(my_utf8, self.et.get_tags(test_file, my_tag)[0][my_tag_case])
+
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_set_tags_delete_all(self):
+		""" delete tags with set tags is valid """
+
+		test_file = self.test_file
+		my_tag = "XMP:Subject"
+
+		original_subject = self.et.get_tags(test_file, my_tag)[0][my_tag]
+
+		self.et.set_tags(test_file, {"all": ""})
+
+		# deleted
+		self.assertTrue(my_tag not in self.et.get_tags(test_file, my_tag)[0])
+		#self.assertNotEqual(original_subject, )
+
+
+	# ---------------------------------------------------------------------------------------------------------
+
+
 
 
 

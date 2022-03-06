@@ -90,3 +90,13 @@ class ExifToolExecuteError(ExifToolException):
 		self.stdout: str = cmd_stdout
 		self.stderr: str = cmd_stderr
 
+
+class ExifToolTagNameError(ExifToolException):
+	"""
+	ExifToolHelper found an invalid tag name
+
+	This error is raised when :py:attr:`exiftool.ExifToolHelper.check_tag_names` is enabled, and a bad tag is provided to a method
+	"""
+	def __init__(self, bad_tag):
+		super().__init__(f"Invalid Tag Name found: \"{bad_tag}\"")
+

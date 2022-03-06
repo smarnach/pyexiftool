@@ -29,10 +29,11 @@ This submodule contains the ``ExifToolHelper`` class, which makes the core ``Exi
 
 """
 
+import re
 import logging
 
 from .exiftool import ExifTool
-from .exceptions import OutputEmpty, OutputNotJSON, ExifToolExecuteError
+from .exceptions import OutputEmpty, OutputNotJSON, ExifToolExecuteError, ExifToolTagNameError
 
 try:        # Py3k compatibility
 	basestring
@@ -83,18 +84,20 @@ class ExifToolHelper(ExifTool):
 	##########################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def __init__(self, auto_start: bool = True, check_execute: bool = True, **kwargs) -> None:
+	def __init__(self, auto_start: bool = True, check_execute: bool = True, check_tag_names: bool = True, **kwargs) -> None:
 		"""
 		:param bool auto_start: Will automatically start the exiftool process on first command run, defaults to True
-		:param bool check_execute: Will check the exit status (return code) of all commands.  This catches some invalid commands passed to exiftool subprocess, defaults to True
+		:param bool check_execute: Will check the exit status (return code) of all commands.  This catches some invalid commands passed to exiftool subprocess, defaults to True.  See :py:attr:`check_execute` for more info.
+		:param bool check_tag_names: Will check the tag names provided to methods which work directly with tag names.  This catches unintended uses and bugs, default to True.  See :py:attr:`check_tag_names` for more info.
 
-		all other parameters are passed directly to super-class' constructor: :py:meth:`exiftool.ExifTool.__init__()`
+		:param kwargs: All other parameters are passed directly to the super-class constructor: :py:meth:`exiftool.ExifTool.__init__()`
 		"""
 		# call parent's constructor
 		super().__init__(**kwargs)
 
 		self._auto_start: bool = auto_start
 		self._check_execute: bool = check_execute
+		self._check_tag_names: bool = check_tag_names
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
@@ -102,7 +105,7 @@ class ExifToolHelper(ExifTool):
 		"""
 		Override the :py:meth:`exiftool.ExifTool.execute()` method
 
-		Adds logic to auto-start if not running, if auto_start == True
+		Adds logic to auto-start if not running, if :py:attr:`auto_start` == True
 
 		:raises ExifToolExecuteError: If :py:attr:`check_execute` == True, and exit status was non-zero
 		"""
@@ -150,6 +153,18 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
+	def auto_start(self) -> bool:
+		"""
+		Read-only property.  Gets the current setting passed into the constructor as to whether auto_start is enabled or not.
+
+		(There's really no point to having this a read-write property, but allowing a read can be helpful at runtime to detect expected behavior.)
+		"""
+		return self._auto_start
+
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
 	def check_execute(self) -> bool:
 		"""
 		Flag to enable/disable checking exit status (return code) on execute
@@ -176,6 +191,52 @@ class ExifToolHelper(ExifTool):
 	@check_execute.setter
 	def check_execute(self, new_setting: bool) -> None:
 		self._check_execute = new_setting
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	@property
+	def check_tag_names(self) -> bool:
+		"""
+		Flag to enable/disable checking of tag names
+
+		If enabled, will raise :py:exc:`exiftool.exceptions.ExifToolTagNameError` if an invalid tag name is detected.
+
+		.. warning::
+			ExifToolHelper only checks the validity of the Tag **NAME** based on a simple regex pattern.
+
+			* It *does not* validate whether the tag name is actually valid on the file type(s) you're accessing.
+			* It *does not* validate whether the tag you passed in that "looks like" a tag is actually an option
+			* It does support a "#" at the end of the tag name to disable print conversion
+
+			Please refer to `ExifTool Tag Names`_ documentation for a complete list of valid tags recognized by ExifTool.
+
+		.. warning::
+			While this property is provided to give callers an option to enable/disable tag names checking, it is generally **NOT** recommended to disable ``check_tag_names``.
+
+			**If disabled, you could accidentally edit a file when you meant to read it.**
+
+			Example: ``get_tags("a.jpg", "tag=value")`` will call ``execute_json("-tag=value", "a.jpg")`` which will inadvertently write to a.jpg instead of reading it!
+
+			That said, if PH's exiftool changes its tag name regex and tag names are being erroneously rejected because of this flag, disabling this could be used as a workaround (more importantly, if this is happening, please `file an issue`_!).
+
+		:getter: Returns current setting
+		:setter: Enable or Disable the check
+
+			.. note::
+				This settings can be changed any time and will only affect subsequent calls
+
+		:type: bool
+
+
+		.. _file an issue: https://github.com/sylikc/pyexiftool/issues
+		.. _ExifTool Tag Names: https://exiftool.org/TagNames/
+		"""
+		return self._check_tag_names
+
+	@check_tag_names.setter
+	def check_tag_names(self, new_setting: bool) -> None:
+		self._check_tag_names = new_setting
+
 
 
 
@@ -268,6 +329,9 @@ class ExifToolHelper(ExifTool):
 		else:
 			raise TypeError(f"{self.__class__.__name__}.get_tags: argument 'tags' must be a str/bytes or a list")
 
+		if self._check_tag_names:
+			# run check if enabled
+			self.__class__._check_tag_list(final_tags)
 
 		exec_params: List = []
 
@@ -353,6 +417,10 @@ class ExifToolHelper(ExifTool):
 		elif not isinstance(tags, dict):
 			raise TypeError(f"{self.__class__.__name__}.set_tags: argument 'tags' must be a dict")
 
+
+		if self._check_tag_names:
+			# run check if enabled
+			self.__class__._check_tag_list(list(tags))  # gets only the keys (tag names)
 
 		exec_params: List = []
 
@@ -460,13 +528,45 @@ class ExifToolHelper(ExifTool):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@staticmethod
-	def _check_tag_list(tags: List) -> bool:
-		r"""
-		This method is used to check the validity of a tag list passed in.
-
-		According to the exiftool source code, the valid regex on tags is (/^([-\w*]+:)*([-\w*?]+)#?$/)
+	def _check_tag_list(tags: List) -> None:
 		"""
-		pass
+		Private method.  This method is used to check the validity of a tag list passed in.
+
+		See any notes/warnings in the property :py:attr:`check_tag_names` to get a better understanding of what this is for and not for.
+
+		:param list tags: List of tags to check
+
+		:return: None if checks passed.  Raises an error otherwise.  (Think of it like an assert statement)
+		"""
+		# In the future if a specific version changed the match pattern,
+		# we can check self.version ... then this method will no longer
+		# be static and requires the underlying exiftool process to be running to get the self.version
+		#
+		# This is not done right now because the odds of the tag name format changing is very low, and requirin
+		# exiftool to be running during this tag check could introduce unneccesary overhead at this time
+
+
+
+		# According to the exiftool source code, the valid regex on tags is (/^([-\w*]+:)*([-\w*?]+)#?$/)
+		# However, it appears that "-" may be allowed within a tag name/group (i.e. https://exiftool.org/TagNames/XMP.html Description tags)
+		#
+		# \w in Perl => https://perldoc.perl.org/perlrecharclass#Backslash-sequences
+		# \w in Python => https://docs.python.org/3/library/re.html#regular-expression-syntax
+		#
+		# Perl vs Python's "\w" seem to mean slightly different things, so we write our own regex / matching algo
+
+
+		# * make sure the first character is not a special one
+		# * "#" can only appear at the end
+		# * Tag:Tag:tag is not valid, but passes the simple regex (it's ok, this is not supposed to be a catch-all)... exiftool subprocess accepts it anyways, even if invalid.
+		# * *wildcard* tags are permitted by exiftool
+		tag_regex = r"[\w\*][\w\:\-\*]*(#|)"
+
+		for t in tags:
+			if re.fullmatch(tag_regex, t) is None:
+				raise ExifToolTagNameError(t)
+
+		# returns nothing, if no error was raised, the tags passed
 
 
 
