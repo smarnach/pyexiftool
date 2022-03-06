@@ -214,12 +214,35 @@ class ExifToolAlpha(ExifToolHelper):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def get_tag(self, filename, tag):
-		"""Extract a single tag from a single file.
+		"""
+		Extract a single tag from a single file.
 
 		The return value is the value of the specified tag, or
 		``None`` if this tag was not found in the file.
+
+		Does existence checks
 		"""
-		return self.get_tag_batch([filename], tag)[0]
+
+		#return self.get_tag_batch([filename], tag)[0]
+
+		p = Path(filename)
+
+		if not p.exists():
+			raise FileNotFoundError
+
+		data = self.get_tags(p, tag)
+		if len(data) > 1:
+			raise RuntimeError("one file requested but multiple returned?")
+
+		d = data[0]
+		d.pop("SourceFile")
+
+		if len(d.values()) > 1:
+			raise RuntimeError("multiple tag values returned, invalid use case")
+
+		return next(iter(d.values()), None)
+
+
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	def copy_tags(self, from_filename, to_filename):
