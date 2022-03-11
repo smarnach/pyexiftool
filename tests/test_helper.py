@@ -2,7 +2,7 @@
 
 import unittest
 import exiftool
-from exiftool.exceptions import ExifToolNotRunning, OutputEmpty, OutputNotJSON, ExifToolExecuteError, ExifToolTagNameError
+from exiftool.exceptions import ExifToolNotRunning, ExifToolOutputEmptyError, ExifToolJSONInvalidError, ExifToolExecuteError, ExifToolTagNameError
 import shutil
 from pathlib import Path
 
@@ -46,10 +46,10 @@ class ReadingTest(unittest.TestCase):
 
 		self.exif_tool_helper.check_execute = False
 
-		with self.assertRaises(OutputEmpty):
+		with self.assertRaises(ExifToolOutputEmptyError):
 			self.exif_tool_helper.get_metadata(['foo.bar'])
 
-		with self.assertRaises(OutputEmpty):
+		with self.assertRaises(ExifToolOutputEmptyError):
 			self.exif_tool_helper.get_tags('foo.bar', 'DateTimeOriginal')
 
 		self.exif_tool_helper.check_execute = check_value
@@ -79,7 +79,7 @@ class ReadingTest(unittest.TestCase):
 		"""
 		(temp_obj, temp_dir) = et_get_temp_dir(suffix="wflag")
 
-		with self.assertRaises(OutputNotJSON):
+		with self.assertRaises(ExifToolJSONInvalidError):
 			self.exif_tool_helper.get_metadata(EXAMPLE_FILE, params=["-w", f"{temp_dir}/%f.txt"])
 
 	# ---------------------------------------------------------------------------------------------------------
@@ -254,6 +254,7 @@ class TestExifToolHelper(unittest.TestCase):
 		with self.assertRaises(ExifToolTagNameError):
 			self.et.get_tags(EXAMPLE_FILE, "Com#ment")
 
+		# valid tags
 		self.et.get_tags(EXAMPLE_FILE, "test:tag")
 		self.et.get_tags(EXAMPLE_FILE, "*date*")
 
@@ -444,7 +445,7 @@ class TagNameTest(unittest.TestCase):
 
 		# turn off that tag check (this is what you DON'T WANT to happen)
 		self.et.check_tag_names = False
-		with self.assertRaises(OutputEmpty):
+		with self.assertRaises(ExifToolOutputEmptyError):
 			self.et.get_tags(test_file, f"Comment={bad_comment}")
 		self.assertEqual(bad_comment, self.et.get_tags(test_file, my_tag)[0][my_tag])
 

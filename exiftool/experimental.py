@@ -29,6 +29,8 @@ This submodule contains the ``ExifToolAlpha`` class, which extends the ``ExifToo
 
 """
 
+from pathlib import Path
+
 from .helper import ExifToolHelper
 
 

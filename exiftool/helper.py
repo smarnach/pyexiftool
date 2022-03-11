@@ -33,7 +33,7 @@ import re
 import logging
 
 from .exiftool import ExifTool
-from .exceptions import OutputEmpty, OutputNotJSON, ExifToolExecuteError, ExifToolTagNameError
+from .exceptions import ExifToolOutputEmptyError, ExifToolJSONInvalidError, ExifToolExecuteError, ExifToolTagNameError
 
 try:        # Py3k compatibility
 	basestring
@@ -176,7 +176,7 @@ class ExifToolHelper(ExifTool):
 
 			**If disabled, exiftool will fail silently, and hard-to-catch bugs may arise.**
 
-			That said, there may be some use cases where continue-on-error behavior is desired.
+			That said, there may be some use cases where continue-on-error behavior is desired.  (Example: dump all exif in a directory with files which don't all have the same tags, exiftool returns exit code 1 for unknown files, but results are valid for other files with those tags)
 
 		:getter: Returns current setting
 		:setter: Enable or Disable the check
@@ -344,10 +344,10 @@ class ExifToolHelper(ExifTool):
 
 		try:
 			ret = self.execute_json(*exec_params)
-		except OutputEmpty:
+		except ExifToolOutputEmptyError:
 			raise
 			#raise RuntimeError(f"{self.__class__.__name__}.get_tags: exiftool returned no data")
-		except OutputNotJSON:
+		except ExifToolJSONInvalidError:
 			raise
 		except ExifToolExecuteError:
 			# if last_status is <> 0, raise an error that one or more files failed?
@@ -567,6 +567,11 @@ class ExifToolHelper(ExifTool):
 				raise ExifToolTagNameError(t)
 
 		# returns nothing, if no error was raised, the tags passed
+
+		# considering making this...
+		# * can't begin with -
+		# * can't have "=" anywhere, and that's it...
+		# there's a lot of variations which might make this code buggy for some edge use cases
 
 
 
