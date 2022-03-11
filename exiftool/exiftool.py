@@ -64,7 +64,7 @@ from typing import Optional, List, Union
 # ---------- Library Package Imports ----------
 
 from . import constants
-from .exceptions import ExifToolVersionError, ExifToolRunning, ExifToolNotRunning, OutputEmpty, OutputNotJSON
+from .exceptions import ExifToolVersionError, ExifToolRunning, ExifToolNotRunning, ExifToolOutputEmptyError, ExifToolJSONInvalidError
 
 
 # ======================================================================================================================
@@ -940,9 +940,10 @@ class ExifTool(object):
 
 
 		if self._logger:
-			self._logger.debug(f"Method 'execute': Reply stdout = \"{self._last_stdout}\"")
-			self._logger.debug(f"Method 'execute': Reply stderr = \"{self._last_stderr}\"")
-			self._logger.debug(f"Method 'execute': Reply status = {self._last_status}")
+			self._logger.debug(f"{self.__class__.__name__}.execute: IN  params = {params}")
+			self._logger.debug(f"{self.__class__.__name__}.execute: OUT stdout = \"{self._last_stdout}\"")
+			self._logger.debug(f"{self.__class__.__name__}.execute: OUT stderr = \"{self._last_stderr}\"")
+			self._logger.debug(f"{self.__class__.__name__}.execute: OUT status = {self._last_status}")
 
 
 		# the standard return: just stdout
@@ -970,6 +971,13 @@ class ExifTool(object):
 
 			You can adjust the output structure with various *exiftool* options.
 
+		.. warning::
+			This method does not verify the exit status code returned by *exiftool*.  That is left up to the caller.
+
+			This will mimic exiftool's default method of operation "continue on error" and "best attempt" to complete commands given.
+
+			If you want automated error checking, use :py:class:`exiftool.ExifToolHelper`
+
 		:param params: One or more parameters to send to the ``exiftool`` subprocess.
 
 			Typically passed in via `Unpacking Argument Lists`_
@@ -980,15 +988,23 @@ class ExifTool(object):
 		:type params: one or more string parameters
 
 		:return: Valid JSON parsed into a Python list of dicts
-		:raises OutputEmpty: If *exiftool* did not return any STDOUT
+		:raises ExifToolOutputEmptyError: If *exiftool* did not return any STDOUT
 
 			.. note::
-				This is not necessarily an error, setting tags can cause this behavior.  Use :py:meth:`execute()` to set tags.
+				This is not necessarily an *exiftool* error, but rather a programmer error.
 
-		:raises OutputNotJSON: If *exiftool* returned STDOUT which is invalid JSON.
+				For example, setting tags can cause this behavior.
+
+				If you are executing a command and expect no output, use :py:meth:`execute()` instead.
+
+		:raises ExifToolJSONInvalidError: If *exiftool* returned STDOUT which is invalid JSON.
 
 			.. note::
-				This is not necessarily an error, ``-w`` can cause this behavior.  Use :py:meth:`execute()` if using the ``-w`` flag.
+				This is not necessarily an *exiftool* error, but rather a programmer error.
+
+				For example, ``-w`` can cause this behavior.
+
+				If you are executing a command and expect non-JSON output, use :py:meth:`execute()` instead.
 
 
 		.. _Unpacking Argument Lists: https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists
@@ -996,12 +1012,12 @@ class ExifTool(object):
 
 		result = self.execute("-j", *params)  # stdout
 
-		# TODO check status code or have caller do it?
-		"""
-		status_code = self._last_status  # status code
-		if status_code != 0:
-			warnings.warn(f"ExifTool returned a non-zero status code: {status_code}", UserWarning)
-		"""
+		# NOTE: I have decided NOT to check status code
+		# There are quite a few use cases where it's desirable to have continue-on-error behavior,
+		# as that is exiftool's default mode of operation.  exiftool normally just does what it can
+		# and tells you that it did all this and that, but some files didn't process.  In this case
+		# exit code is non-zero, but exiftool did SOMETHING.  I leave it up to the caller to figure
+		# out what was done or not done.
 
 
 		if len(result) == 0:
@@ -1015,7 +1031,8 @@ class ExifTool(object):
 
 			# Returning [] could be ambiguous if Exiftool changes the returned JSON structure in the future
 			# Returning None was preferred, because it's the safest as it clearly indicates that nothing came back from execute(), but it means execute_json() doesn't always return JSON
-			raise OutputEmpty("ExifTool did not return any stdout")
+			# Raising an error is the current solution, as that clearly indicates that you used execute_json() expecting output, but got nothing
+			raise ExifToolOutputEmptyError(self._last_status, self._last_stdout, self._last_stderr, params)
 
 
 		try:
@@ -1030,7 +1047,7 @@ class ExifTool(object):
 			# the user is expected to know this ahead of time, and if -w exists in common_args or as a param, this error will be thrown
 
 			# explicit chaining https://www.python.org/dev/peps/pep-3134/
-			raise OutputNotJSON() from e
+			raise ExifToolJSONInvalidError(self._last_status, self._last_stdout, self._last_stderr, params) from e
 
 		return parsed
 
