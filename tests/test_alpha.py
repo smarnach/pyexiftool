@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
+"""
+Test :: ExifToolAlpha - misc tests
+"""
 
-import shutil
+# standard
 import unittest
 from pathlib import Path
+import shutil
 
+# pip
 from packaging import version
 
+# test helpers
+from tests.common_util import et_get_temp_dir, TEST_IMAGE_DIR
+
+# custom
 import exiftool
 
-from tests.common_util import et_get_temp_dir
 
 
-SCRIPT_PATH = Path(__file__).resolve().parent
 
-
-class TestTagCopying(unittest.TestCase):
+class TestAlphaTagCopying(unittest.TestCase):
     """
     We duplicate an image with metadata, erase all metadata in the copy, and then copy the tags.
     """
@@ -25,7 +31,7 @@ class TestTagCopying(unittest.TestCase):
         self.exiftool.run()
 
         # Find example image.
-        self.tag_source = SCRIPT_PATH / "rose.jpg"
+        self.tag_source = TEST_IMAGE_DIR / "rose.jpg"
 
         # Prepare path of copy.
         (self.temp_obj, self.temp_dir) = et_get_temp_dir(suffix="ttc")
@@ -60,20 +66,16 @@ class TestTagCopying(unittest.TestCase):
         self.assertEqual(value_after_copying, expected_value)
 
 
-class TestExifToolAlpha(unittest.TestCase):
+class TestAlphaSetKeywords(unittest.TestCase):
     def setUp(self):
         self.et = exiftool.ExifToolAlpha(
-            common_args=["-G", "-n", "-overwrite_original"], encoding="UTF-8"
+            common_args=["-G", "-n", "-overwrite_original"],
+            encoding="UTF-8"
         )
 
 
     def tearDown(self):
-        if hasattr(self, "et"):
-            if self.et.running:
-                self.et.terminate()
-        if hasattr(self, "process"):
-            if self.process.poll() is None:
-                self.process.terminate()
+        self.et.terminate()
 
 
     def test_set_keywords(self):
@@ -87,7 +89,7 @@ class TestExifToolAlpha(unittest.TestCase):
         source_files = []
 
         for d in expected_data:
-            d["SourceFile"] = f = SCRIPT_PATH / d["SourceFile"]
+            d["SourceFile"] = f = TEST_IMAGE_DIR / d["SourceFile"]
             self.assertTrue(f.exists())
             f_mod = temp_dir / (mod_prefix + f.name)
             f_mod_str = str(f_mod)

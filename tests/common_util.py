@@ -18,8 +18,15 @@ PERSISTENT_TMP_DIR: bool = False
 """if set to true, will not delete temp dir after tests (useful for debugging test output)"""
 
 
-
 SCRIPT_PATH = Path(__file__).resolve().parent
+
+# location to images directory
+TEST_IMAGE_DIR = SCRIPT_PATH / "images"
+
+
+# Find example image (note: JPG is listed explicitly, as it may have different tags than other file types)
+# listed here in common so that if the path changes, just change it here
+TEST_IMAGE_JPG = TEST_IMAGE_DIR / "rose.jpg"
 
 
 # ---------------------------------------------------------------------------------------------------------
