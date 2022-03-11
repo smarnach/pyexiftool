@@ -159,6 +159,26 @@ class TestHelperSetTags(unittest.TestCase):
 
 			self.assertEqual(ret_data[0]["IPTC:Keywords"], expected_data[0]["Keywords"])
 
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_set_tags_delete_all(self):
+		""" delete tags with set tags is valid """
+
+		(temp_obj, temp_dir) = et_get_temp_dir(suffix="settagdel")
+		test_file = temp_dir / "test_rose.jpg"
+		shutil.copyfile(TEST_IMAGE_JPG, test_file)
+
+
+		my_tag = "XMP:Subject"
+
+		original_subject = self.et.get_tags(test_file, my_tag)[0][my_tag]
+
+		self.et.set_tags(test_file, {"all": ""})
+
+		# deleted
+		self.assertTrue(my_tag not in self.et.get_tags(test_file, my_tag)[0])
+		#self.assertNotEqual(original_subject, )
+
 	# ---------------------------------------------------------------------------------------------------------
 
 

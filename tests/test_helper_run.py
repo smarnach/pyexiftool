@@ -47,11 +47,13 @@ class TestHelperRunWrappers(unittest.TestCase):
 
 		# test that a RuntimeError gets thrown if auto_start is false
 		self.et = exiftool.ExifToolHelper(auto_start=False)
+		self.assertFalse(self.et.auto_start)
 		with self.assertRaises(ExifToolNotRunning):
 			self.et.get_metadata(TEST_IMAGE_JPG)
 
 		# test that no errors returned if auto_start=True
 		self.et = exiftool.ExifToolHelper(auto_start=True)
+		self.assertTrue(self.et.auto_start)
 		metadata = self.et.get_metadata(TEST_IMAGE_JPG)
 		self.assertEqual(type(metadata), list)
 

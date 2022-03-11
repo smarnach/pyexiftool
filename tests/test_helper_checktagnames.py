@@ -84,6 +84,7 @@ class TagNameWriteTest(unittest.TestCase):
 
 		self.assertEqual(my_comment, self.et.get_tags(test_file, my_tag)[0][my_tag])
 
+		self.assertTrue(self.et.check_tag_names)
 		with self.assertRaises(ExifToolTagNameError):
 			# this was what the flag was meant to prevent
 			self.et.get_tags(test_file, f"Comment={bad_comment}")
@@ -93,6 +94,7 @@ class TagNameWriteTest(unittest.TestCase):
 
 		# turn off that tag check (this is what you DON'T WANT to happen)
 		self.et.check_tag_names = False
+		self.assertFalse(self.et.check_tag_names)
 		with self.assertRaises(ExifToolOutputEmptyError):
 			self.et.get_tags(test_file, f"Comment={bad_comment}")
 		self.assertEqual(bad_comment, self.et.get_tags(test_file, my_tag)[0][my_tag])
@@ -120,22 +122,6 @@ class TagNameWriteTest(unittest.TestCase):
 		self.et.set_tags(test_file, {my_tag: my_value}, params="-E")
 
 		self.assertEqual(my_utf8, self.et.get_tags(test_file, my_tag)[0][my_tag_case])
-
-
-	# ---------------------------------------------------------------------------------------------------------
-	def test_set_tags_delete_all(self):
-		""" delete tags with set tags is valid """
-
-		test_file = self.test_file
-		my_tag = "XMP:Subject"
-
-		original_subject = self.et.get_tags(test_file, my_tag)[0][my_tag]
-
-		self.et.set_tags(test_file, {"all": ""})
-
-		# deleted
-		self.assertTrue(my_tag not in self.et.get_tags(test_file, my_tag)[0])
-		#self.assertNotEqual(original_subject, )
 
 
 	# ---------------------------------------------------------------------------------------------------------
