@@ -22,7 +22,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
         # while https://github.com/actions/setup-python recommends using a specific dependency version to use cache
         # we'll see if this just uses it in default configuration
-        cache: 'pip'
+        # this can't be enabled unless a requirements.txt file exists.  PyExifTool doesn't have any hard requirements
+        #cache: 'pip'
     - name: Cache Perl ExifTool Download
       # https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows
       uses: actions/cache@v2
