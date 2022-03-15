@@ -43,9 +43,9 @@ jobs:
 
         # get just the minimum version to build and compile, later we can go with latest version to test
         # working with cache: only get if the directory doesn't exist
-        if [ ! -d Image-ExifTool-${{ env.exiftool_version }} ]; then wget http://backpan.perl.org/authors/id/E/EX/EXIFTOOL/Image-ExifTool-${{ env.exiftool_version }}.tar.gz
+        if [ ! -d Image-ExifTool-${{ env.exiftool_version }} ]; then wget http://backpan.perl.org/authors/id/E/EX/EXIFTOOL/Image-ExifTool-${{ env.exiftool_version }}.tar.gz; fi
         # extract if it was downloaded
-        if [ -f Image-ExifTool-${{ env.exiftool_version }}.tar.gz ]; then tar xf Image-ExifTool-${{ env.exiftool_version }}.tar.gz
+        if [ -f Image-ExifTool-${{ env.exiftool_version }}.tar.gz ]; then tar xf Image-ExifTool-${{ env.exiftool_version }}.tar.gz; fi
 
         cd Image-ExifTool-${{ env.exiftool_version }}/
 
