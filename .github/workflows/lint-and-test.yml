@@ -35,7 +35,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-		# don't have to do this on the GitHub runner, it's going to always be the latest
+        # don't have to do this on the GitHub runner, it's going to always be the latest
         #python -m pip install --upgrade pip
         # the setup-python uses it this way instead of calling it via module, so maybe this will cache ...
         pip install flake8 pytest
