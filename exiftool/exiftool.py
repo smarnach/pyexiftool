@@ -144,33 +144,9 @@ class ExifTool(object):
 	.. _Exiftool print conversion FAQ: https://exiftool.org/faq.html#Q6
 
 
-	You can pass optional arguments to the constructor:
-
-	* ``executable`` (string): file name of the *exiftool* executable.
-	  The default value :py:attr:`exiftool.constants.DEFAULT_EXECUTABLE` will only work if the executable
-	  is in your ``PATH``.
-	  You can also specify the full path to the ``exiftool`` executable.
-	  See :py:attr:`executable` property for more details.
-	* ``common_args`` (list of strings): contains additional parameters for
-	  the stay-open instance of exiftool.  The default is ``-G`` and ``-n``.
-	  See :py:attr:`common_args` property for more details.
-	* ``win_shell``
-
-	  .. note::
-	    This parameter may be deprecated in the future
-
-	* ``config_file`` (string): file path to ``-config`` parameter when
-	  starting process.
-	  See :py:attr:`config_file` property for more details.
-	* ``encoding`` (string): encoding to be used when communicating with
-	  exiftool process.  By default, will use ``locale.getpreferredencoding()``
-	  See :py:attr:`encoding` property for more details
-	* ``logger`` (object):  Set a custom logger to log status and debug messages to.
-	  See :py:attr:`logger` for more details.
-
 	Some methods of this class are only available after calling
-	:py:meth:`run()`, which will actually launch the *exiftool* subprocess.  To
-	avoid leaving the subprocess running, make sure to call
+	:py:meth:`run()`, which will actually launch the *exiftool* subprocess.
+	To avoid leaving the subprocess running, make sure to call
 	:py:meth:`terminate()` method when finished using the instance.
 	This method will also be implicitly called when the instance is
 	garbage collected, but there are circumstance when this won't ever
@@ -187,6 +163,7 @@ class ExifTool(object):
 
 	.. warning::
 		Note that options and parameters are not checked.  There is no error handling or validation of options passed to *exiftool*.
+
 		Nonsensical options are mostly silently ignored by exiftool, so there's not
 		much that can be done in that regard.  You should avoid passing
 		non-existent files to any of the methods, since this will lead
@@ -204,13 +181,51 @@ class ExifTool(object):
 	  executable: Optional[str] = None,
 	  common_args: Optional[List[str]] = ["-G", "-n"],
 	  win_shell: bool = False,
-	  config_file: Optional[str] = None,
+	  config_file: Optional[Union[str, Path]] = None,
 	  encoding: Optional[str] = None,
 	  logger = None) -> None:
-		""" ``common_args`` defaults to *-G -n* as this is the most common use case.
+		"""
 
-		* -G separates the grouping
-		* -n (print conversion disabled) improves the speed and consistency of output, and is more machine-parsable
+		:param executable: Specify file name of the *exiftool* executable if it is in your ``PATH``.  Otherwise, specify the full path to the ``exiftool`` executable.
+
+			Passed directly into :py:attr:`executable` property.
+
+			.. note::
+				The default value :py:attr:`exiftool.constants.DEFAULT_EXECUTABLE` will only work if the executable is in your ``PATH``.
+
+		:type executable: str, or None to use default
+
+
+		:param common_args:
+			Pass in additional parameters for the stay-open instance of exiftool.
+
+			Defaults to *['-G', '-n']* as this is the most common use case.
+
+			* -G separates the grouping
+			* -n (print conversion disabled) improves the speed and consistency of output, and is more machine-parsable
+
+			Passed directly into :py:attr:`common_args` property.
+		:type common_args: list of str, or None.
+
+		:param bool win_shell: (Windows only) Minimizes the exiftool process.
+
+			.. note::
+				This parameter may be deprecated in the future
+
+		:param config_file:
+			File path to ``-config`` parameter when starting exiftool process.
+
+			Passed directly into :py:attr:`config_file` property.
+		:type config_file: str, Path, or None
+
+		:param encoding: Specify encoding to be used when communicating with
+			exiftool process.  By default, will use ``locale.getpreferredencoding()``
+
+			Passed directly into :py:attr:`encoding` property.
+
+		:param logger: Set a custom logger to log status and debug messages to.
+
+			Passed directly into :py:attr:`logger` property.
 		"""
 
 		# --- default settings / declare member variables ---

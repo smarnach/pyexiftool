@@ -125,7 +125,8 @@ class ExifToolHelper(ExifTool):
 		"""
 		override the :py:meth:`exiftool.ExifTool.run()` method
 
-		Adds logic to check if already running.  Will not attempt to run if already running (so no warning about 'ExifTool already running' will trigger) """
+		Will not attempt to run if already running (so no warning about 'ExifTool already running' will trigger)
+		"""
 		if self.running:
 			return
 
@@ -135,11 +136,11 @@ class ExifToolHelper(ExifTool):
 	# ----------------------------------------------------------------------------------------------------------------------
 	def terminate(self, **opts) -> None:
 		"""
-		override the :py:meth:`exiftool.ExifTool.terminate()` method
+		Overrides the :py:meth:`exiftool.ExifTool.terminate()` method.
 
-		Adds logic to check if not running (so no warning about 'ExifTool not running' will trigger)
+		Will not attempt to terminate if not running (so no warning about 'ExifTool not running' will trigger)
 
-		opts are passed directly to the parent verbatim
+		:param opts: passed directly to the parent call :py:meth:`exiftool.ExifTool.terminate()`
 		"""
 		if not self.running:
 			return
