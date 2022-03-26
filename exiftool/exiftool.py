@@ -48,8 +48,10 @@ import ctypes
 try:
 	# Optional UltraJSON library - ultra-fast JSON encoder/decoder, drop-in replacement
 	import ujson as json
+	JSONDecodeError = ValueError  # ujson doesn't throw json.JSONDecodeError, but ValueError when string is malformed
 except ImportError:
 	import json  # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
+	from json import JSONDecodeError
 import warnings
 
 
@@ -1052,7 +1054,7 @@ class ExifTool(object):
 
 		try:
 			parsed = json.loads(result)
-		except json.JSONDecodeError as e:
+		except JSONDecodeError as e:
 			# if `-w` flag is specified in common_args or params, stdout will not be JSON parseable
 			#
 			# which will return something like:
