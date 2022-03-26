@@ -2,6 +2,11 @@
 PyExifTool
 **********
 
+.. image:: https://img.shields.io/badge/Docs-latest-blueviolet
+	:alt: GitHub Pages
+	:target: http://sylikc.github.io/pyexiftool/
+
+
 .. HIDE_FROM_PYPI_START
 
 .. image:: https://github.com/sylikc/pyexiftool/actions/workflows/lint-and-test.yml/badge.svg
@@ -91,23 +96,14 @@ Easiest: Install a version from the official `PyExifTool PyPI`_
 From Source
 ------------
 
-The source code can be checked out from the github repository with
+#. Check out the source code from the github repository
+	* ``git clone git://github.com/sylikc/pyexiftool.git``
+	* Alternatively, you can download a tarball_.
+#. Run setup.py to install the module from source
+	* ``python setup.py install [--user|--prefix=<installation-prefix>]``
 
-::
-
-    git clone git://github.com/sylikc/pyexiftool.git
-
-Alternatively, you can download a tarball_.
 
 .. _tarball: https://github.com/sylikc/pyexiftool/tarball/master
-
-Run
-
-::
-
-    python setup.py install [--user|--prefix=<installation-prefix]
-
-to automatically install this module from source.
 
 
 PyExifTool Dependencies
@@ -174,8 +170,6 @@ Documentation
 =============
 
 The current documentation is available at `sylikc.github.io`_.
-It may slightly lag behind the most updated version but will be improved as the
-project moves forward.
 
 ::
 
