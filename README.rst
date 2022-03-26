@@ -97,9 +97,12 @@ From Source
 ------------
 
 #. Check out the source code from the github repository
+
 	* ``git clone git://github.com/sylikc/pyexiftool.git``
 	* Alternatively, you can download a tarball_.
+
 #. Run setup.py to install the module from source
+
 	* ``python setup.py install [--user|--prefix=<installation-prefix>]``
 
 

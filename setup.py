@@ -31,7 +31,7 @@ from setuptools import setup, find_packages
 import re
 
 def get_long_desc():
-	""" read README.rst without the badges (don't need those showing up on PyPI) """
+	""" read README.rst skipping some of the badges (don't need those showing up on PyPI) """
 
 	with open("README.rst", "r", encoding="utf-8") as fh:
 		long_desc = fh.read()
@@ -56,7 +56,7 @@ setup(
 	python_requires=">=3.6",
 
 	# authors
-	author="Sven Marnach, Kevin M (sylikc), various contributors",
+	author="Kevin M (sylikc), Sven Marnach, various contributors",
 	author_email="sylikc@gmail.com",
 
 	# info
@@ -66,9 +66,11 @@ setup(
 	keywords="exiftool image exif metadata photo video photography",
 
 	project_urls={
-		"Documentation": "https://sylikc.github.io/pyexiftool/",
-		"Tracker": "https://github.com/sylikc/pyexiftool/issues",
+		# this seems to get populated in PyPI in reverse order
 		"Source": "https://github.com/sylikc/pyexiftool",
+		"Tracker": "https://github.com/sylikc/pyexiftool/issues",
+		"Changelog": "https://github.com/sylikc/pyexiftool/blob/master/CHANGELOG.md",
+		"Documentation": "https://sylikc.github.io/pyexiftool/",
 	},
 
 
@@ -98,16 +100,18 @@ setup(
 	],
 
 
+	# include is more robust that exclude
 	packages=find_packages(
-		where=".",
-		exclude = ['test*','doc*']
+		#where=".",
+		#exclude = ['test*','doc*'],
+		include=['exiftool', 'exiftool.*'],
 	),
 
 	extras_require={
-			"json": ["ujson"],  # supported option for ExifTool, but not currently advertised
-			"test": ["packaging"],  # dependencies to do tests
-			"docs": ["packaging", "sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],  # dependencies to build docs
-		},
+		"json": ["ujson"],  # supported option for ExifTool, but not currently advertised
+		"test": ["packaging"],  # dependencies to do tests
+		"docs": ["packaging", "sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],  # dependencies to build docs
+	},
 
 	#package_dir={'exiftool': 'exiftool'},
 
