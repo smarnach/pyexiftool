@@ -262,6 +262,12 @@ class ExifToolHelper(ExifTool):
 		"""
 		Return all metadata for the given files.
 
+		.. note::
+
+			This is a convenience method.
+
+			The implementation calls :py:meth:`get_tags()` with ``tags=None``
+
 		:param files: Files parameter matches :py:meth:`get_tags()`
 
 		:param params: Optional parameters to send to *exiftool*

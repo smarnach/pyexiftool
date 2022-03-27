@@ -75,6 +75,10 @@ Simple example: ::
 	    print("{:20.20} {:20.20}".format(d["SourceFile"],
 	                                     d["EXIF:DateTimeOriginal"]))
 
+Refer to documentation for more `Examples and Quick Start Guide`_
+
+.. _`Examples and Quick Start Guide`: http://sylikc.github.io/pyexiftool/examples.html
+
 
 .. INSTALLATION_START
 

@@ -201,7 +201,7 @@ class ExifTool(object):
 		:param common_args:
 			Pass in additional parameters for the stay-open instance of exiftool.
 
-			Defaults to *['-G', '-n']* as this is the most common use case.
+			Defaults to ``['-G', '-n']`` as this is the most common use case.
 
 			* -G separates the grouping
 			* -n (print conversion disabled) improves the speed and consistency of output, and is more machine-parsable
@@ -846,7 +846,7 @@ class ExifTool(object):
 
 		This method accepts any number of parameters and sends them to
 		the attached ``exiftool`` subprocess.  The process must be
-		running, otherwise ``ExifToolNotRunning`` is raised.  The final
+		running, otherwise :py:exc:`exiftool.exceptions.ExifToolNotRunning` is raised.  The final
 		``-execute`` necessary to actually run the batch is appended
 		automatically; see the documentation of :py:meth:`run()` for
 		the common options.  The ``exiftool`` output is read up to the
