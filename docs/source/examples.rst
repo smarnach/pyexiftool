@@ -150,7 +150,7 @@ Getting Tags
 Setting Tags
 ------------
 
-* setting date and time of some files to current time, overwriting file, but preserving original mod date
+* Setting date and time of some files to current time, overwriting file, but preserving original mod date
 
     .. code-block::
 
@@ -166,10 +166,25 @@ Setting Tags
 
     (No output is returned if successful)
 
+* Setting keywords for a file.
+
+    .. code-block::
+
+        from exiftool import ExifToolHelper
+        with ExifToolHelper() as et:
+            et.set_tags(
+                ["rose.jpg", "skyblue.png"],
+                tags={"Keywords": ["sunny", "nice day", "cool", "awesome"]}
+            )
+
+    (No output is returned if successful)
+
+
+
 Exceptions
 ----------
 
-By default, ExifToolHelper has some **built-in error checking**, making the methods safer to use than directly calling the base methods directly.
+By default, ExifToolHelper has some **built-in error checking**, making the methods safer to use than calling the base methods directly.
 
 .. warning::
 
@@ -270,7 +285,7 @@ By default, ExifToolHelper has some **built-in error checking**, making the meth
 
             from exiftool import ExifTool
             with ExifTool() as et:
-                print(et.execute_json(*["-XMP:Subject=hi"] + ["skyblue.png"]))
+                print(et.execute(*["-XMP:Subject=hi"] + ["skyblue.png"]))
 
         Output:
 
@@ -283,7 +298,7 @@ ExifTool
 
 Using methods provided by :py:class:`exiftool.ExifTool`
 
-exiftool.ExifTool provides lower level functionality for advanced use cases.
+Calling execute() or execute_json() provides raw functionality for advanced use cases.  Use with care!
 
 
 
