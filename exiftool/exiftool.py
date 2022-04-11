@@ -203,10 +203,19 @@ class ExifTool(object):
 
 			Defaults to ``['-G', '-n']`` as this is the most common use case.
 
-			* -G separates the grouping
-			* -n (print conversion disabled) improves the speed and consistency of output, and is more machine-parsable
+			* ``-G`` (groupName level 1 enabled) separates the output with *groupName:tag* to disambiguate same-named tags under different groups.
+			* ``-n`` (print conversion disabled) improves the speed and consistency of output, and is more machine-parsable
 
 			Passed directly into :py:attr:`common_args` property.
+
+
+			.. note::
+				Depending on your use case, there may be other useful grouping levels and options.  Search `Phil Harvey's exiftool documentation`_ for **groupNames** and **groupHeadings** to get more info.
+
+
+
+			.. _`Phil Harvey's exiftool documentation`: https://exiftool.org/exiftool_pod.html
+
 		:type common_args: list of str, or None.
 
 		:param bool win_shell: (Windows only) Minimizes the exiftool process.
@@ -880,6 +889,7 @@ class ExifTool(object):
 
 		:raises ExifToolNotRunning: If attempting to execute when not running (:py:attr:`running` == False)
 		:raises ExifToolVersionError: If unexpected text was returned from the command while parsing out the sentinels
+		:raises UnicodeDecodeError: If the :py:attr:`encoding` is not specified properly, it may be possible for ``.decode()`` method to raise this error
 
 
 		.. _Unpacking Argument Lists: https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists
@@ -914,7 +924,7 @@ class ExifTool(object):
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
 
-		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_text.split('\n')[:-1]))
+		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_text.split('\n')[:-1]))  # logs without the -execute (it would confuse people to include that)
 
 
 		# ---------- read output from exiftool process until special sequences reached ----------
