@@ -916,7 +916,8 @@ class ExifTool(object):
 		seq_err_status = "${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation - only supported on exiftool v12.10+
 
 		# f-strings are faster than concatentation of multiple strings -- https://stackoverflow.com/questions/59180574/string-concatenation-with-vs-f-string
-		cmd_text = "\n".join(params + ("-echo4", f"{SEQ_ERR_STATUS_DELIM}{seq_err_status}{SEQ_ERR_STATUS_DELIM}{seq_err_post}", seq_execute))
+		cmd_params = params + ("-echo4", f"{SEQ_ERR_STATUS_DELIM}{seq_err_status}{SEQ_ERR_STATUS_DELIM}{seq_err_post}", seq_execute)
+		cmd_text = "\n".join(cmd_params)
 
 
 		# ---------- write to the pipe connected with exiftool process ----------
@@ -924,7 +925,7 @@ class ExifTool(object):
 		self._process.stdin.write(cmd_text)
 		self._process.stdin.flush()
 
-		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_text.split('\n')[:-1]))  # logs without the -execute (it would confuse people to include that)
+		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_params[:-1]))  # logs without the -execute (it would confuse people to include that)
 
 
 		# ---------- read output from exiftool process until special sequences reached ----------
