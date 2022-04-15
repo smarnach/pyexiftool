@@ -739,13 +739,19 @@ class ExifTool(object):
 
 
 		try:
+			# NOTE: the encoding= parameter was removed from the Popen() call to support
+			# using bytes in the actual communication with exiftool process.
+			# Due to the way the code is written, ExifTool only uses stdin.write which would need to be in bytes.
+			# The reading is _NOT_ using subprocess.communicate().  This class reads raw bytes using os.read()
+			# Therefore, by switching off the encoding= in Popen(), we can support both bytes and str at the
+			# same time.  (This change was to support https://github.com/sylikc/pyexiftool/issues/47)
+
 			# unify both platform calls into one subprocess.Popen call
 			self._process = subprocess.Popen(
 				proc_args,
 				stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE,
 				stderr=subprocess.PIPE,
-				encoding=self._encoding,
 				**kwargs)
 		except FileNotFoundError as fnfe:
 			raise
@@ -823,13 +829,11 @@ class ExifTool(object):
 			try:
 				"""
 					On Windows, running this after __del__ freezes at communicate(), regardless of timeout
-						this is possibly because the file descriptors are no longer valid or were closed at __del__
-
-						test yourself with simple code that calls .run() and then end of script
+						see the bug filed above for details
 
 					On Linux, this runs as is, and the process terminates properly
 				"""
-				self._process.communicate(input="-stay_open\nFalse\n", timeout=timeout)  # TODO these are constants which should be elsewhere defined
+				self._process.communicate(input=b"-stay_open\nFalse\n", timeout=timeout)  # this is a constant sequence specified by PH's exiftool
 				self._process.kill()
 			except subprocess.TimeoutExpired:  # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
 				self._process.kill()
@@ -850,7 +854,7 @@ class ExifTool(object):
 	##################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def execute(self, *params: str) -> str:
+	def execute(self, *params: Union[str, bytes], raw_bytes: bool = False) -> str:
 		"""Execute the given batch of parameters with *exiftool*.
 
 		This method accepts any number of parameters and sends them to
@@ -917,12 +921,33 @@ class ExifTool(object):
 
 		# f-strings are faster than concatentation of multiple strings -- https://stackoverflow.com/questions/59180574/string-concatenation-with-vs-f-string
 		cmd_params = params + ("-echo4", f"{SEQ_ERR_STATUS_DELIM}{seq_err_status}{SEQ_ERR_STATUS_DELIM}{seq_err_post}", seq_execute)
-		cmd_text = "\n".join(cmd_params)
+
+
+		# ---------- encode the params to bytes, if necessary ----------
+
+		# this is necessary as the encoding parameter of Popen() is not specified.  We manually encode as per the .encoding() parameter
+		raw_params = []
+		for p in cmd_params:
+			# we use isinstance() over type() not only for subclass, but
+			# according to https://switowski.com/blog/type-vs-isinstance
+			# isinstance() is 40% faster than type()
+			if isinstance(p, bytes):
+				# no conversion needed, pass in raw
+				raw_params.append(p)
+			elif isinstance(p, str):
+				# conversion needed, encode based on specified encoding
+				raw_params.append(p.encode(self._encoding))
+			else:
+				# technically at this point we could support any object and call str() or repr()
+				# on it... but which is the right call?
+				raise TypeError("a parameter was not bytes/str")  # TODO do we want to support other objects, like Path?
+
+		cmd_bytes = b"\n".join(raw_params)
 
 
 		# ---------- write to the pipe connected with exiftool process ----------
 
-		self._process.stdin.write(cmd_text)
+		self._process.stdin.write(cmd_bytes)
 		self._process.stdin.flush()
 
 		if self._logger: self._logger.info("Method 'execute': Command sent = {}".format(cmd_params[:-1]))  # logs without the -execute (it would confuse people to include that)
@@ -930,12 +955,29 @@ class ExifTool(object):
 
 		# ---------- read output from exiftool process until special sequences reached ----------
 
+		# NOTE:
+		#
+		# while subprocess recommends: "Use communicate() rather than .stdin.write, .stdout.read or .stderr.read to avoid deadlocks due to any of the other OS pipe buffers filling up and blocking the child process."
+		#
+		# this raw reading is used instead of Popen.communicate() due to the note:
+		# https://docs.python.org/3/library/subprocess.html#subprocess.Popen.communicate
+		#
+		# "The data read is buffered in memory, so do not use this method if the data size is large or unlimited."
+		#
+		# The data that comes back from exiftool falls into this, and so unbuffered reads are done with os.read()
+
 		fdout = self._process.stdout.fileno()
-		raw_stdout = _read_fd_endswith(fdout, seq_ready.encode(self._encoding), self._block_size).decode(self._encoding)
+		raw_stdout = _read_fd_endswith(fdout, seq_ready.encode(self._encoding), self._block_size)
 
 		# when it's ready, we can safely read all of stderr out, as the command is already done
 		fderr = self._process.stderr.fileno()
-		raw_stderr = _read_fd_endswith(fderr, seq_err_post.encode(self._encoding), self._block_size).decode(self._encoding)
+		raw_stderr = _read_fd_endswith(fderr, seq_err_post.encode(self._encoding), self._block_size)
+
+
+		if not raw_bytes:
+			# decode if not returning bytes
+			raw_stdout = raw_stdout.decode(self._encoding)
+			raw_stderr = raw_stderr.decode(self._encoding)
 
 
 		# ---------- parse output ----------
@@ -947,11 +989,11 @@ class ExifTool(object):
 		# sanity check the status code from the stderr output
 		delim_len = len(SEQ_ERR_STATUS_DELIM)
 		if cmd_stderr[-delim_len:] != SEQ_ERR_STATUS_DELIM:
-			# exiftool is expected to dump out the status code within the delims... if it doesn't, the class is broken
+			# exiftool is expected to dump out the status code within the delims... if it doesn't, the class doesn't match expected exiftool output for current version
 			raise ExifToolVersionError(f"Exiftool expected to return status on stderr, but got unexpected character: {cmd_stderr[-delim_len:]} != {SEQ_ERR_STATUS_DELIM}")
 
 		# look for the previous delim (we could use regex here to do all this in one step, but it's probably overkill, and could slow down the code significantly)
-		# the other simplification that can be done is that, Exiftool is expected to only return 0, 1, or 2 as per documentation
+		# the other simplification that can be done is that, as of this writing: Exiftool is expected to only return 0, 1, or 2 as per documentation
 		# you could just lop the last 3 characters off... but if the return status changes in the future, then this code would break
 		err_delim_1 = cmd_stderr.rfind(SEQ_ERR_STATUS_DELIM, 0, -delim_len)
 		cmd_status = cmd_stderr[err_delim_1 + delim_len : -delim_len]
