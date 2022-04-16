@@ -564,9 +564,13 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def last_stdout(self) -> Optional[str]:
+	def last_stdout(self) -> Optional[Union[str, bytes]]:
 		"""
 		``STDOUT`` for most recent result from execute()
+
+		.. note::
+			The return type can be either str or bytes.  If the most recent invocation of execute()
+			enabled the use of ``raw_bytes``, then this will return bytes
 
 		.. note::
 			This property can be read at any time, and is not dependent on running state of ExifTool.
@@ -578,9 +582,13 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def last_stderr(self) -> Optional[str]:
+	def last_stderr(self) -> Optional[Union[str, bytes]]:
 		"""
 		``STDERR`` for most recent result from execute()
+
+		.. note::
+			The return type can be either str or bytes.  If the most recent invocation of execute()
+			enabled the use of ``raw_bytes``, then this will return bytes
 
 		.. note::
 			This property can be read at any time, and is not dependent on running state of ExifTool.
@@ -854,7 +862,7 @@ class ExifTool(object):
 	##################################################################################
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def execute(self, *params: Union[str, bytes], raw_bytes: bool = False) -> str:
+	def execute(self, *params: Union[str, bytes], raw_bytes: bool = False) -> Union[str, bytes]:
 		"""Execute the given batch of parameters with *exiftool*.
 
 		This method accepts any number of parameters and sends them to
