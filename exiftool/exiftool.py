@@ -927,30 +927,34 @@ class ExifTool(object):
 		SEQ_ERR_STATUS_DELIM = "="  # this can be configured to be one or more chacters... the code below will accomodate for longer sequences: len() >= 1
 		seq_err_status = "${status}"  # a special sequence, ${status} returns EXIT STATUS as per exiftool documentation - only supported on exiftool v12.10+
 
-		# f-strings are faster than concatentation of multiple strings -- https://stackoverflow.com/questions/59180574/string-concatenation-with-vs-f-string
-		cmd_params = params + ("-echo4", f"{SEQ_ERR_STATUS_DELIM}{seq_err_status}{SEQ_ERR_STATUS_DELIM}{seq_err_post}", seq_execute)
 
-
-		# ---------- encode the params to bytes, if necessary ----------
+		# ---------- build the params list and encode the params to bytes, if necessary ----------
+		cmd_params: bytes = []
 
 		# this is necessary as the encoding parameter of Popen() is not specified.  We manually encode as per the .encoding() parameter
-		raw_params = []
-		for p in cmd_params:
+		for p in params:
 			# we use isinstance() over type() not only for subclass, but
 			# according to https://switowski.com/blog/type-vs-isinstance
 			# isinstance() is 40% faster than type()
 			if isinstance(p, bytes):
-				# no conversion needed, pass in raw
-				raw_params.append(p)
+				# no conversion needed, pass in raw (caller has already encoded)
+				cmd_params.append(p)
 			elif isinstance(p, str):
 				# conversion needed, encode based on specified encoding
-				raw_params.append(p.encode(self._encoding))
+				cmd_params.append(p.encode(self._encoding))
 			else:
 				# technically at this point we could support any object and call str()
 				# but leave this up to an extended class like ExifToolHelper()
 				raise TypeError(f"ERROR: Parameter was not bytes/str: {type(p)} => {p}")
 
-		cmd_bytes = b"\n".join(raw_params)
+		# f-strings are faster than concatentation of multiple strings -- https://stackoverflow.com/questions/59180574/string-concatenation-with-vs-f-string
+		cmd_params.extend(
+			(b"-echo4",
+			f"{SEQ_ERR_STATUS_DELIM}{seq_err_status}{SEQ_ERR_STATUS_DELIM}{seq_err_post}".encode(self._encoding),
+			seq_execute.encode(self._encoding))
+		)
+
+		cmd_bytes = b"\n".join(cmd_params)
 
 
 		# ---------- write to the pipe connected with exiftool process ----------
