@@ -64,9 +64,13 @@ class TestHelperGetTags(unittest.TestCase):
 		self.assertGreater(len(full_metadata), len(param_metadata))
 
 
-		with self.assertRaises(TypeError):
-			# test invalid
-			self.et.get_metadata(TEST_IMAGE_JPG, params=object())
+		# this class is an arbitrary object that returns a string
+		class test_class(object):
+			def __str__(self):
+				return "-n"
+
+		# this is now permitted, params can be anything castable
+		self.et.get_metadata(TEST_IMAGE_JPG, params=test_class())
 
 
 	# ---------------------------------------------------------------------------------------------------------

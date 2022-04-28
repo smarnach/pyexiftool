@@ -179,6 +179,18 @@ class TestHelperSetTags(unittest.TestCase):
 		self.assertTrue(my_tag not in self.et.get_tags(test_file, my_tag)[0])
 		#self.assertNotEqual(original_subject, )
 
+
+
+		# just to get coverage on this arbitary object param
+
+		# this class is an arbitrary object that returns a string
+		class test_class(object):
+			def __str__(self):
+				return "-n"
+
+		self.et.set_tags(test_file, {"all": ""}, params=[test_class()])
+
+
 	# ---------------------------------------------------------------------------------------------------------
 
 
