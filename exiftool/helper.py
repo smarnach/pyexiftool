@@ -107,7 +107,7 @@ class ExifToolHelper(ExifTool):
 
 		Adds logic to auto-start if not running, if :py:attr:`auto_start` == True
 
-		Adds logic to str() any parameter which is not a str or bytes.  This allows passing in objects like Path without casting before passing it in.
+		Adds logic to str() any parameter which is not a str or bytes.  (This allows passing in objects like Path _without_ casting before passing it in.)
 
 		:raises ExifToolExecuteError: If :py:attr:`check_execute` == True, and exit status was non-zero
 		"""

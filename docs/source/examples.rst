@@ -30,11 +30,11 @@ Both methods take an argument list ``*args``.  Examples:
 
 .. note::
 
-    As a general rule of thumb, if there is an **unquoted space on the command line**, it's a **separate argument to the method**
+    As a general rule of thumb, if there is an **unquoted space on the command line** to *exiftool*, it's a **separate argument to the method** in PyExifTool.
 
 * Calling directly:
 
-    * command line:
+    * exiftool command-line:
 
         .. code-block:: text
 
@@ -48,7 +48,7 @@ Both methods take an argument list ``*args``.  Examples:
 
 * Using argument unpacking of a list:
 
-    * command line:
+    * exiftool command-line:
 
         .. code-block:: text
 
@@ -56,9 +56,30 @@ Both methods take an argument list ``*args``.  Examples:
 
     * PyExifTool:
 
+        .. note::
+
+            Parameters which need to be quoted on the command line generally do not need to be quoted in the parameters to PyExifTool.  In fact, quoting may have unintended behavior.
+
+            In this example, *DateTimeOriginal* value is not quoted in the parameter to execute().
+
         .. code-block::
 
-            execute(*["-P", '-DateTimeOriginal="2021:01:02 03:04:05"', "-MakerNotes=", "spaces in filename.jpg"])
+            execute(*["-P", "-DateTimeOriginal=2021:01:02 03:04:05", "-MakerNotes=", "spaces in filename.jpg"])
+
+
+* Getting JSON output using argument unpacking of a list:
+
+    * exiftool command-line:
+
+        .. code-block:: text
+
+            exiftool -j -XMP:all -JFIF:JFIFVersion /path/somefile.jpg
+
+    * PyExifTool:
+
+        .. code-block::
+
+            execute_json(*["-XMP:all", "-JFIF:JFIFVersion", "/path/somefile.jpg"])
 
 
 Output values
@@ -127,7 +148,7 @@ Getting Tags
         Dict: Composite:ImageSize = 70 46
         Dict: Composite:Megapixels = 0.00322
 
-* Get some tags multiple files
+* Get some tags in multiple files
 
     .. code-block::
 

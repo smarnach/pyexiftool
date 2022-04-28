@@ -569,14 +569,15 @@ class ExifTool(object):
 		``STDOUT`` for most recent result from execute()
 
 		.. note::
-			The return type can be either str or bytes.  If the most recent invocation of execute()
-			enabled the use of ``raw_bytes``, then this will return bytes
+			The return type can be either str or bytes.
+
+			If the most recent call to execute() ``raw_bytes=True``, then this will return ``bytes``.  Otherwise this will be ``str``.
 
 		.. note::
 			This property can be read at any time, and is not dependent on running state of ExifTool.
 
 			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
-			for executing a command and terminating, but still have result available.
+			for executing a command and terminating, but still having the result available.
 		"""
 		return self._last_stdout
 
@@ -587,14 +588,15 @@ class ExifTool(object):
 		``STDERR`` for most recent result from execute()
 
 		.. note::
-			The return type can be either str or bytes.  If the most recent invocation of execute()
-			enabled the use of ``raw_bytes``, then this will return bytes
+			The return type can be either ``str`` or ``bytes``.
+
+			If the most recent call to execute() ``raw_bytes=True``, then this will return ``bytes``.  Otherwise this will be ``str``.
 
 		.. note::
 			This property can be read at any time, and is not dependent on running state of ExifTool.
 
 			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
-			for executing a command and terminating, but still have result available.
+			for executing a command and terminating, but still having the result available.
 		"""
 		return self._last_stderr
 
@@ -608,7 +610,7 @@ class ExifTool(object):
 			This property can be read at any time, and is not dependent on running state of ExifTool.
 
 			It is INTENTIONALLY *NOT* CLEARED on exiftool termination, to allow
-			for executing a command and terminating, but still have result available.
+			for executing a command and terminating, but still having the result available.
 		"""
 		return self._last_status
 
@@ -624,7 +626,7 @@ class ExifTool(object):
 		""" set a new user-created logging.Logger object
 			can be set at any time to start logging.
 
-			Set to None at any time to stop logging
+			Set to None at any time to stop logging.
 		"""
 		if new_logger is None:
 			self._logger = None
@@ -875,9 +877,10 @@ class ExifTool(object):
 		based on the currently set :py:attr:`encoding`,
 		excluding the sentinel.
 
-		The parameters must be of type ``str``.  Use the :py:attr:`encoding` property to change the
-		encoding ``exiftool`` accepts.  For filenames, this should be the
-		system's filesystem encoding.
+		The parameters must be of type ``str`` or ``bytes``.
+		``str`` parameters are encoded to bytes automatically using the :py:attr:`encoding` property.
+		For filenames, this should be the system's filesystem encoding.
+		``bytes`` parameters are untouched and passed directly to ``exiftool``.
 
 		.. note::
 			This is the core method to interface with the ``exiftool`` subprocess.
@@ -889,9 +892,11 @@ class ExifTool(object):
 			Typically passed in via `Unpacking Argument Lists`_
 
 			.. note::
-				The parameters to this function must be type ``str``
+				The parameters to this function must be type ``str`` or ``bytes``.
 
 		:type params: one or more string parameters
+
+		:param raw_bytes: If True, returns bytes.  Default behavior returns a str
 
 
 		:return:
@@ -902,6 +907,7 @@ class ExifTool(object):
 		:raises ExifToolNotRunning: If attempting to execute when not running (:py:attr:`running` == False)
 		:raises ExifToolVersionError: If unexpected text was returned from the command while parsing out the sentinels
 		:raises UnicodeDecodeError: If the :py:attr:`encoding` is not specified properly, it may be possible for ``.decode()`` method to raise this error
+		:raises TypeError: If ``params`` argument is not ``str`` or ``bytes``
 
 
 		.. _Unpacking Argument Lists: https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists
