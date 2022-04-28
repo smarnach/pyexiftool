@@ -946,9 +946,9 @@ class ExifTool(object):
 				# conversion needed, encode based on specified encoding
 				raw_params.append(p.encode(self._encoding))
 			else:
-				# technically at this point we could support any object and call str() or repr()
-				# on it... but which is the right call?
-				raise TypeError("a parameter was not bytes/str")  # TODO do we want to support other objects, like Path?
+				# technically at this point we could support any object and call str()
+				# but leave this up to an extended class like ExifToolHelper()
+				raise TypeError(f"ERROR: Parameter was not bytes/str: {type(p)} => {p}")
 
 		cmd_bytes = b"\n".join(raw_params)
 
@@ -994,16 +994,21 @@ class ExifTool(object):
 		cmd_stdout = raw_stdout.strip()[:-len(seq_ready)]
 		cmd_stderr = raw_stderr.strip()[:-len(seq_err_post)]  # save it in case the error below happens and output can be checked easily
 
+
+		# if raw_bytes is True, the check has to become bytes rather than str
+		err_status_delim = SEQ_ERR_STATUS_DELIM if not raw_bytes else SEQ_ERR_STATUS_DELIM.encode(self._encoding)
+
+
 		# sanity check the status code from the stderr output
-		delim_len = len(SEQ_ERR_STATUS_DELIM)
-		if cmd_stderr[-delim_len:] != SEQ_ERR_STATUS_DELIM:
+		delim_len = len(err_status_delim)
+		if cmd_stderr[-delim_len:] != err_status_delim:
 			# exiftool is expected to dump out the status code within the delims... if it doesn't, the class doesn't match expected exiftool output for current version
-			raise ExifToolVersionError(f"Exiftool expected to return status on stderr, but got unexpected character: {cmd_stderr[-delim_len:]} != {SEQ_ERR_STATUS_DELIM}")
+			raise ExifToolVersionError(f"Exiftool expected to return status on stderr, but got unexpected character: {cmd_stderr[-delim_len:]} != {err_status_delim}")
 
 		# look for the previous delim (we could use regex here to do all this in one step, but it's probably overkill, and could slow down the code significantly)
 		# the other simplification that can be done is that, as of this writing: Exiftool is expected to only return 0, 1, or 2 as per documentation
 		# you could just lop the last 3 characters off... but if the return status changes in the future, then this code would break
-		err_delim_1 = cmd_stderr.rfind(SEQ_ERR_STATUS_DELIM, 0, -delim_len)
+		err_delim_1 = cmd_stderr.rfind(err_status_delim, 0, -delim_len)
 		cmd_status = cmd_stderr[err_delim_1 + delim_len : -delim_len]
 
 
