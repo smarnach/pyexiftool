@@ -7,6 +7,9 @@ Test :: ExifTool base class - misc attribute validation tests
 import unittest
 from pathlib import Path
 
+# test helpers
+from tests.common_util import TEST_IMAGE_JPG
+
 # custom
 import exiftool
 from exiftool.exceptions import ExifToolRunning, ExifToolNotRunning
@@ -92,13 +95,13 @@ class TestExifToolAttrValidation(unittest.TestCase):
 		self.et.encoding = current
 
 
-
 	# ---------------------------------------------------------------------------------------------------------
 	def test_common_args_attribute(self):
 
 		self.et.run()
 		with self.assertRaises(ExifToolRunning):
 			self.et.common_args = []
+
 
 	# ---------------------------------------------------------------------------------------------------------
 	def test_version_attribute(self):
@@ -112,6 +115,24 @@ class TestExifToolAttrValidation(unittest.TestCase):
 		with self.assertRaises(ExifToolNotRunning):
 			a = self.et.version
 
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_laststdout_attr(self):
+		""" is the attribute available after a run? """
+		self.et.run()
+
+		stdo = self.et.execute(str(TEST_IMAGE_JPG))
+		stde = self.et.last_stderr
+
+		self.et.terminate()
+
+		self.assertFalse(self.et.running)
+
+		self.assertEqual(self.et.last_stdout, stdo)
+		self.assertEqual(self.et.last_stderr, stde)
+
+
+	# ---------------------------------------------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------------------------------------------
