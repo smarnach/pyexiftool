@@ -6,6 +6,10 @@ Test :: ExifTool base class - misc tests
 # standard
 import unittest
 import warnings
+from pathlib import Path
+
+# test helpers
+from tests.common_util import TEST_IMAGE_JPG
 
 # custom
 import exiftool
@@ -58,6 +62,26 @@ class TestExifToolMisc(unittest.TestCase):
 			self.et.run()
 			self.assertEqual(len(w), 1)
 			self.assertTrue(issubclass(w[0].category, UserWarning))
+
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_execute_types(self):
+		""" test execute with different types """
+		self.assertFalse(self.et.running)
+		self.et.run()
+
+		# no error with str
+		self.et.execute("-ver")
+
+		# no error with bytes
+		self.et.execute(b"-ver")
+
+		# no error with str
+		self.et.execute(str(TEST_IMAGE_JPG))
+
+		# error with Path
+		with self.assertRaises(TypeError):
+			self.et.execute(Path(TEST_IMAGE_JPG))
 
 
 	# ---------------------------------------------------------------------------------------------------------

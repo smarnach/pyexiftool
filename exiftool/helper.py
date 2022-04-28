@@ -122,11 +122,11 @@ class ExifToolHelper(ExifTool):
 				# these would throw a TypeError from ExifTool.execute()
 				ok_params.append(str(p))
 
-		result: Union[str, bytes] = super().execute(*params, **kwargs)
+		result: Union[str, bytes] = super().execute(*ok_params, **kwargs)
 
 		# imitate the subprocess.run() signature.  check=True will check non-zero exit status
 		if self._check_execute and self._last_status:
-			raise ExifToolExecuteError(self._last_status, self._last_stdout, self._last_stderr, params)
+			raise ExifToolExecuteError(self._last_status, self._last_stdout, self._last_stderr, ok_params)
 
 		return result
 

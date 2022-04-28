@@ -5,12 +5,16 @@ Test :: ExifToolHelper - misc tests
 
 # standard
 import unittest
+from pathlib import Path
+
+# test helpers
+from tests.common_util import TEST_IMAGE_JPG
 
 # custom
 import exiftool
 
 
-class InitializationTest(unittest.TestCase):
+class HelperInitializationTest(unittest.TestCase):
 	def test_initialization(self):
 		"""
 		Initialization with all arguments at their default values.
@@ -23,6 +27,40 @@ class InitializationTest(unittest.TestCase):
 		self.assertTrue(exif_tool_helper.running)
 		exif_tool_helper.terminate()
 		self.assertFalse(exif_tool_helper.running)
+
+
+# ---------------------------------------------------------------------------------------------------------
+
+class TestExifToolHelperMisc(unittest.TestCase):
+	# ---------------------------------------------------------------------------------------------------------
+	def setUp(self):
+		self.et = exiftool.ExifToolHelper(common_args=["-G", "-n", "-overwrite_original"])
+
+	def tearDown(self):
+		if self.et.running:
+			self.et.terminate()
+
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_execute_types(self):
+		""" test execute with different types (exact same as the test with ExifTool, except the last one passes) """
+		self.assertFalse(self.et.running)
+
+		# no error with str
+		self.et.execute("-ver")
+
+		# no error with bytes
+		self.et.execute(b"-ver")
+
+		# no error with str
+		self.et.execute(str(TEST_IMAGE_JPG))
+
+		# error with Path
+		self.et.execute(Path(TEST_IMAGE_JPG))
+
+
+	# ---------------------------------------------------------------------------------------------------------
+
 
 
 # ---------------------------------------------------------------------------------------------------------

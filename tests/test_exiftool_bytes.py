@@ -28,6 +28,7 @@ class TestExifToolBytes(unittest.TestCase):
 	# ---------------------------------------------------------------------------------------------------------
 
 	def test_read_write_binary(self):
+		""" test reading and writing binary data """
 		self.assertFalse(self.et.running)
 		self.et.run()
 
@@ -62,13 +63,6 @@ class TestExifToolBytes(unittest.TestCase):
 
 
 
-
-
-
-
-	""" also write tests to allow executehelper to use the execute(raw_bytes) and test whether it works with check error """
-
-	""" test multi tags in mixed encoding with bytes """
-
-	""" drawback to change is that it would be slower as the param list is copied again internally """
-
+# ---------------------------------------------------------------------------------------------------------
+if __name__ == '__main__':
+	unittest.main()
