@@ -101,18 +101,28 @@ class ExifToolHelper(ExifTool):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def execute(self, *params) -> str:
+	def execute(self, *params: Any, **kwargs) -> Union[str, bytes]:
 		"""
 		Override the :py:meth:`exiftool.ExifTool.execute()` method
 
 		Adds logic to auto-start if not running, if :py:attr:`auto_start` == True
+
+		Adds logic to str() any parameter which is not a str or bytes.  This allows passing in objects like Path without casting before passing it in.
 
 		:raises ExifToolExecuteError: If :py:attr:`check_execute` == True, and exit status was non-zero
 		"""
 		if self._auto_start and not self.running:
 			self.run()
 
-		result: str = super().execute(*params)
+		ok_params = []
+		for p in params:
+			if isinstance(p, str) or isinstance(p, bytes):
+				ok_params.append(p)
+			else:
+				# these would throw a TypeError from ExifTool.execute()
+				ok_params.append(str(p))
+
+		result: Union[str, bytes] = super().execute(*params, **kwargs)
 
 		# imitate the subprocess.run() signature.  check=True will check non-zero exit status
 		if self._check_execute and self._last_status:
