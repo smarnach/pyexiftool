@@ -1,4 +1,4 @@
-This folder contains images used in tests.
+This folder contains images/files used in tests.
 
 More may be added at a later time to test different file formats.
 

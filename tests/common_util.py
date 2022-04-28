@@ -8,6 +8,7 @@ Having it all in one place makes things easier to fix, and less duplicate code
 
 from pathlib import Path
 import tempfile
+import os
 
 from typing import Optional, Tuple, Any
 
@@ -21,7 +22,7 @@ PERSISTENT_TMP_DIR: bool = False
 SCRIPT_PATH = Path(__file__).resolve().parent
 
 # location to images directory
-TEST_IMAGE_DIR = SCRIPT_PATH / "images"
+TEST_IMAGE_DIR = SCRIPT_PATH / "files"
 
 
 # Find example image (note: JPG is listed explicitly, as it may have different tags than other file types)
@@ -64,6 +65,28 @@ def et_get_temp_dir(suffix: Optional[str] = None, base_path: Optional[Path] = No
 		temp_dir = Path(temp_obj.name)
 
 	return (temp_obj, temp_dir)
+
+# ---------------------------------------------------------------------------------------------------------
+
+
+def create_random_bin_file(filepath: Path, size: int):
+	"""
+	generate random binary file with the specified size in bytes
+
+	:param filename: the filename
+	:param size: the size in bytes
+
+	:return: filepath
+	"""
+	# https://www.bswen.com/2018/04/python-How-to-generate-random-large-file-using-python.html
+
+	if filepath.exists():
+		raise FileExistsError
+
+	with open(filepath, 'wb') as f:
+		f.write(os.urandom(size))
+
+	return filepath
 
 # ---------------------------------------------------------------------------------------------------------
 
