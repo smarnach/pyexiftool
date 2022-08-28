@@ -22,7 +22,7 @@ $ ``exiftool -JFIF:all rose.jpg``
 	Y Resolution                    : 72
 
 
-.. _`rose.jpg in tests`: https://github.com/sylikc/pyexiftool/blob/master/tests/images/rose.jpg
+.. _`rose.jpg in tests`: https://github.com/sylikc/pyexiftool/blob/master/tests/files/rose.jpg
 
 Default PyExifTool output
 -------------------------
