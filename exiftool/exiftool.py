@@ -370,7 +370,7 @@ class ExifTool(object):
 		:setter: Set a new encoding.
 
 			* If *new_encoding* is None, will detect it from ``locale.getpreferredencoding(do_setlocale=False)`` (do_setlocale is set to False as not to affect the caller).
-			* Default to ``UTF-8`` if nothing is returned by ``getpreferredencoding``
+			* Default to ``utf-8`` if nothing is returned by ``getpreferredencoding``
 
 			.. warning::
 				Property setter does NOT validate the encoding for validity.  It is passed verbatim into subprocess.Popen()
