@@ -97,6 +97,26 @@ def _set_pdeathsig(sig) -> Optional[Callable]:
 
 # ======================================================================================================================
 
+def _get_buffer_end(buffer_list: List[bytes], bytes_needed: int) -> bytes:
+	""" Given a list of bytes objects, return the equivalent of
+		b''.join(buffer_list)[-bytes_needed:]
+		but without having to concatenate the entire list.
+	"""
+	if bytes_needed < 1:
+		return b''
+
+	buf_chunks = []
+	for buf in reversed(buffer_list):
+		buf_tail = buf[-bytes_needed:]
+		buf_chunks.append(buf_tail)
+		bytes_needed -= len(buf_tail)
+		if bytes_needed <= 0:
+			break
+
+	buf_tail_joined = b''.join(reversed(buf_chunks))
+	return buf_tail_joined
+
+
 def _read_fd_endswith(fd, b_endswith, block_size: int):
 	""" read an fd and keep reading until it endswith the seq_ends
 
@@ -104,7 +124,7 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 
 		if you're not careful, on windows, this will block
 	"""
-	output = b""
+	output_list: List[bytes] = []
 
 	# if we're only looking at the last few bytes, make it meaningful.  4 is max size of \r\n? (or 2)
 	# this value can be bigger to capture more bytes at the "tail" of the read, but if it's too small, the whitespace might miss the detection
@@ -112,19 +132,19 @@ def _read_fd_endswith(fd, b_endswith, block_size: int):
 
 	# I believe doing a splice, then a strip is more efficient in memory hence the original code did it this way.
 	# need to benchmark to see if in large strings, strip()[-endswithcount:] is more expensive or not
-	while not output[-endswith_count:].strip().endswith(b_endswith):
+	while not _get_buffer_end(output_list, endswith_count).strip().endswith(b_endswith):
 		if constants.PLATFORM_WINDOWS:
 			# windows does not support select() for anything except sockets
 			# https://docs.python.org/3.7/library/select.html
-			output += os.read(fd, block_size)
+			output_list.append(os.read(fd, block_size))
 		else:  # pytest-cov:windows: no cover
 			# this does NOT work on windows... and it may not work on other systems... in that case, put more things to use the original code above
 			inputready, outputready, exceptready = select.select([fd], [], [])
 			for i in inputready:
 				if i == fd:
-					output += os.read(fd, block_size)
+					output_list.append(os.read(fd, block_size))
 
-	return output
+	return b"".join(output_list)
 
 
 
