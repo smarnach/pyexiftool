@@ -71,9 +71,9 @@ Simple example: ::
 	files = ["a.jpg", "b.png", "c.tif"]
 	with exiftool.ExifToolHelper() as et:
 	    metadata = et.get_metadata(files)
-	for d in metadata:
-	    print("{:20.20} {:20.20}".format(d["SourceFile"],
-	                                     d["EXIF:DateTimeOriginal"]))
+	    for d in metadata:
+	        print("{:20.20} {:20.20}".format(d["SourceFile"],
+	                                         d["EXIF:DateTimeOriginal"]))
 
 Refer to documentation for more `Examples and Quick Start Guide`_
 
