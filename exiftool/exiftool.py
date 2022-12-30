@@ -915,7 +915,7 @@ class ExifTool(object):
 			.. note::
 				The parameters to this function must be type ``str`` or ``bytes``.
 
-		:type params: one or more string parameters
+		:type params: one or more string/bytes parameters
 
 		:param raw_bytes: If True, returns bytes.  Default behavior returns a str
 
@@ -1067,7 +1067,7 @@ class ExifTool(object):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-	def execute_json(self, *params: str) -> List:
+	def execute_json(self, *params: Union[str, bytes]) -> List:
 		"""Execute the given batch of parameters and parse the JSON output.
 
 		This method is similar to :py:meth:`execute()`.  It
@@ -1097,9 +1097,9 @@ class ExifTool(object):
 			Typically passed in via `Unpacking Argument Lists`_
 
 			.. note::
-				The parameters to this function must be type ``str``
+				The parameters to this function must be type ``str`` or ``bytes``.
 
-		:type params: one or more string parameters
+		:type params: one or more string/bytes parameters
 
 		:return: Valid JSON parsed into a Python list of dicts
 		:raises ExifToolOutputEmptyError: If *exiftool* did not return any STDOUT
