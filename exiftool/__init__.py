@@ -61,7 +61,7 @@ Example usage::
 
 # version number using Semantic Versioning 2.0.0 https://semver.org/
 # may not be PEP-440 compliant https://www.python.org/dev/peps/pep-0440/#semantic-versioning
-__version__ = "0.5.4"
+__version__ = "0.5.5"
 
 
 # while we COULD import all the exceptions into the base library namespace,
