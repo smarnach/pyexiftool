@@ -99,11 +99,11 @@ def _set_pdeathsig(sig) -> Optional[Callable]:
 
 def _get_buffer_end(buffer_list: List[bytes], bytes_needed: int) -> bytes:
 	""" Given a list of bytes objects, return the equivalent of
-		b''.join(buffer_list)[-bytes_needed:]
+		b"".join(buffer_list)[-bytes_needed:]
 		but without having to concatenate the entire list.
 	"""
 	if bytes_needed < 1:
-		return b''
+		return b""
 
 	buf_chunks = []
 	for buf in reversed(buffer_list):
@@ -113,7 +113,7 @@ def _get_buffer_end(buffer_list: List[bytes], bytes_needed: int) -> bytes:
 		if bytes_needed <= 0:
 			break
 
-	buf_tail_joined = b''.join(reversed(buf_chunks))
+	buf_tail_joined = b"".join(reversed(buf_chunks))
 	return buf_tail_joined
 
 
@@ -221,7 +221,7 @@ class ExifTool(object):
 		:param common_args:
 			Pass in additional parameters for the stay-open instance of exiftool.
 
-			Defaults to ``['-G', '-n']`` as this is the most common use case.
+			Defaults to ``["-G", "-n"]`` as this is the most common use case.
 
 			* ``-G`` (groupName level 1 enabled) separates the output with *groupName:tag* to disambiguate same-named tags under different groups.
 			* ``-n`` (print conversion disabled) improves the speed and consistency of output, and is more machine-parsable
@@ -760,10 +760,10 @@ class ExifTool(object):
 				# keep it from throwing up a DOS shell when it launches.
 				startup_info.dwFlags |= constants.SW_FORCEMINIMIZE
 
-			kwargs['startupinfo'] = startup_info
+			kwargs["startupinfo"] = startup_info
 		else:  # pytest-cov:windows: no cover
 			# assume it's linux
-			kwargs['preexec_fn'] = _set_pdeathsig(signal.SIGTERM)
+			kwargs["preexec_fn"] = _set_pdeathsig(signal.SIGTERM)
 			# Warning: The preexec_fn parameter is not safe to use in the presence of threads in your application.
 			# https://docs.python.org/3/library/subprocess.html#subprocess.Popen
 
@@ -806,7 +806,8 @@ class ExifTool(object):
 		# get ExifTool version here and any Exiftool metadata
 		# this can also verify that it is really ExifTool we ran, not some other random process
 		try:
-			# apparently because .execute() has code that already depends on v12.15+ functionality, this will throw a ValueError immediately with
+			# apparently because .execute() has code that already depends on v12.15+ functionality,
+			# _parse_ver() will throw a ValueError immediately with:
 			#   ValueError: invalid literal for int() with base 10: '${status}'
 			self._ver = self._parse_ver()
 		except ValueError:
