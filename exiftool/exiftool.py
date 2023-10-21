@@ -37,22 +37,12 @@ import shutil
 from pathlib import Path  # requires Python 3.4+
 import random
 import locale
+import warnings
+import json  # NOTE: to use other json libraries (simplejson/ujson/orjson/...), see ``set_json_loads()``
 
 # for the pdeathsig
 import signal
 import ctypes
-
-
-# ---------- UltraJSON overloaded import ----------
-
-try:
-	# Optional UltraJSON library - ultra-fast JSON encoder/decoder, drop-in replacement
-	import ujson as json
-	JSONDecodeError = ValueError  # ujson doesn't throw json.JSONDecodeError, but ValueError when string is malformed
-except ImportError:
-	import json  # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
-	from json import JSONDecodeError
-import warnings
 
 
 
@@ -281,6 +271,8 @@ class ExifTool(object):
 		self._common_args: Optional[List[str]] = None
 		self._logger = None
 		self._encoding: Optional[str] = None
+		self._json_loads: Callable = json.loads  # variable points to the actual callable method
+		self._json_loads_kwargs: dict = {}  # default optional params to pass into json.loads() call
 
 
 
@@ -685,6 +677,9 @@ class ExifTool(object):
 
 	If this is set, then status messages will log out to the given class.
 
+	.. note::
+		This can be set and unset (set to ``None``) at any time, regardless of whether the subprocess is running (:py:attr:`running` == True) or not.
+
 	:setter: Specify an object to log to.  The class is not checked, but validation is done to ensure the object has callable methods ``info``, ``warning``, ``error``, ``critical``, ``exception``.
 
 	:raises AttributeError: If object does not contain one or more of the required methods.
@@ -693,6 +688,30 @@ class ExifTool(object):
 	:type: Object
 	"""
 
+	#########################################################################################
+	##################################### SETTER METHODS ####################################
+	#########################################################################################
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def set_json_loads(self, json_loads, **kwargs) -> None:
+		"""
+		set a new user-defined json.loads() call
+		call this setter the same way you would call the loads(), with any optional params
+
+
+
+
+		.. note::
+			This can be set at any time, regardless of whether the subprocess is running (:py:attr:`running` == True) or not.
+
+		"""
+		if not callable(json_loads):
+			# not a callable method
+			raise TypeError
+
+		self._json_loads = json_loads
+		self._json_loads_kwargs = kwargs
 
 
 
@@ -1150,8 +1169,11 @@ class ExifTool(object):
 
 
 		try:
-			parsed = json.loads(result)
-		except JSONDecodeError as e:
+			parsed = self._json_loads(result, **self._json_loads_kwargs)
+		except ValueError as e:
+			# most known JSON libraries return ValueError or a subclass.
+			# built-in json.JSONDecodeError is a subclass of ValueError -- https://docs.python.org/3/library/json.html#json.JSONDecodeError
+
 			# if `-w` flag is specified in common_args or params, stdout will not be JSON parseable
 			#
 			# which will return something like:
