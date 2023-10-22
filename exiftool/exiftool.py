@@ -696,12 +696,12 @@ class ExifTool(object):
 	# ----------------------------------------------------------------------------------------------------------------------
 	def set_json_loads(self, json_loads, **kwargs) -> None:
 		"""
-		**Advanced**: Override default CPython ``json.loads()`` method.  The method is only used once in :py:meth:`execute_json`
+		**Advanced**: Override default built-in ``json.loads()`` method.  The method is only used once in :py:meth:`execute_json`
 
 		This allows using a different json string parser.
 
 		(Alternate json libraries typically provide faster speed than the
-		CPython implementation, more supported features, and/or different behavior.)
+		built-in implementation, more supported features, and/or different behavior.)
 
 		Examples of json libraries: `orjson`_, `rapidjson`_, `ujson`_, ...
 
@@ -720,7 +720,9 @@ class ExifTool(object):
 
 			This is **advanced configuration** for specific use cases only.
 
-		:param json_loads: A callable method to replace default CPython ``json.loads`` used in :py:meth:`execute_json`
+			For an example use case, see the :ref:`FAQ <set_json_loads faq>`
+
+		:param json_loads: A callable method to replace built-in ``json.loads`` used in :py:meth:`execute_json`
 
 		:type json_loads: callable
 
@@ -883,10 +885,11 @@ class ExifTool(object):
 		If the subprocess isn't running, this method will throw a warning, and do nothing.
 
 		.. note::
-			There is a bug in CPython 3.8+ on Windows where terminate() does not work during __del__()
+			There is a bug in CPython 3.8+ on Windows where terminate() does not work during ``__del__()``
+
 			See CPython issue `starting a thread in __del__ hangs at interpreter shutdown`_ for more info.
 
-		.. _starting a thread in __del__ hangs at interpreter shutdown: https://bugs.python.org/issue43784
+		.. _starting a thread in __del__ hangs at interpreter shutdown: https://github.com/python/cpython/issues/87950
 		"""
 		if not self.running:
 			warnings.warn("ExifTool not running; doing nothing.", UserWarning)
