@@ -68,6 +68,9 @@ class TestHelperFloatTags(unittest.TestCase):
 			{"Comment": "0.1000"},
 			{"Comment": "1.33700e+40"},
 
+			{"Comment": "1       "},
+			#{"Comment": " -1"},  #possible exiftool bug, see blow on test cases
+
 			[{"Comment": Decimal('935733.817019799357333475932629142801644788893573383506621454627967')}, '935733.817019799357333475932629142801644788893573383506621454627967'],
 			[{"Comment": Decimal('935733.81701979935')}, '935733.81701979935'],
 
@@ -163,13 +166,18 @@ class TestHelperFloatTags(unittest.TestCase):
 			{"Comment": "nan"},
 			{"Comment": "inf"},
 			[{"Comment": Decimal('935733.817019799357333475932629142801644788893573383506621454627967')}, '935733.817019799357333475932629142801644788893573383506621454627967'],
+			[{"Comment": "   1      "}, "  1      "],  # exiftool removes a space (might be an exiftool bug)  TODO more investigation on this specific case, and report bug if it is
+			[{"Comment": "    -1"}, "   -1"],  # exiftool removes a leading space
+			{"Comment": "1      "},
 
 			[{"FocalLength": "00.1000"}, 0.1],
 			[{"FocalLength": "010"}, 10],
 			[{"FocalLength": "01.0"}, 1],
-			#{"FocalLength": "blahblahblah"},  # this is ignored by exiftool
+			[{"FocalLength": "blahblahblah"}, 1],  # this is ignored by exiftool, so it uses previous set value
 
 			# exiftool returns a number here (text field)
+			[{"Comment": " 1"}, 1],
+			[{"Comment": " -1"}, -1],
 			{"Comment": 1},
 			{"Comment": -1},
 			{"Comment": 1.1},
