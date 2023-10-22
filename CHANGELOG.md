@@ -9,6 +9,7 @@ Date (Timezone)              | Version | Comment
 03/26/2022 06:48:01 AM (PDT) | 0.5.3   | Quite a few docstring changes<br>ExifToolHelper's get_tags() and set_tags() checks tag names to prevent inadvertent write behavior<br>Renamed a few of the errors to make sure the errors are explicit<br>ExifToolHelper() has some static helper methods which can be used when extending the class (ExifToolAlpha.set_keywords_batch() demonstrates a sample usage).<br>setup.py tweaked to make it Beta rather than Alpha<br>ExifToolAlpha.get_tag() updated to make it more robust.<br>Fixed ujson compatibility<br>Cleaned up and refactored testing.
 08/27/2022 06:06:32 PM (PDT) | 0.5.4   | New Feature: added raw_bytes parameter to ExifTool.execute() to return bytes only with no decoding conversion.<br>Changed: ExifTool.execute() now accepts both [str,bytes].  When given str, it will encode according to the ExifTool.encoding property.<br>Changed: ExifToolHelper.execute() now accepts Any type, and will do a str() on any non-str parameter.<br>Technical change: Popen() no longer uses an -encoding parameter, therefore working with the socket is back to bytes when interfacing with the exiftool subprocess.  This should be invisible to most users as the default behavior will still be the same.<br>Tests: Created associated test with a custom makernotes example to write and read back bytes.<br>Docs: Updated documentation with comprehensive samples, and a better FAQ section for common problems.
 12/30/2022 02:35:18 PM (PST) | 0.5.5   | No functional changes, only a huge speed improvement with large operations :: Update: Speed up large responses from exiftool.  Instead of using + string concatenation, uses list appends and reverse(), which results in a speedup of 10x+ for large operations.  See more details from the [reported issue](https://github.com/sylikc/pyexiftool/issues/60) and [PR 61](https://github.com/sylikc/pyexiftool/pull/61) by [prutschman](https://github.com/prutschman)
+10/22/2023 03:21:46 PM (PDT) | 0.5.6   | New Feature: added method ExifTool.set_json_loads() which allows setting a method to replace the json.loads() called in ExifTool.execute_json().<br>This permits passing additional configuration parameters to address the [reported issue](https://github.com/sylikc/pyexiftool/issues/76).<br>All documentation has been updated and two accompanying FAQ entries have been written to describe the new functionality.  Test cases have been written to test the new functionality and some baseline exiftool tests to ensure that the behavior remains consistent across tests.
 
 
 Follow maintenance/release-process.html when releasing a version.
@@ -61,9 +62,10 @@ Check for changes at the following resources to see if anyone has added some nif
 
 We can also direct users here or answer existing questions as to how to use the original version of ExifTool.
 
-(last checked 2/28/2022 all)
+(last checked 10/23/2023 all)
 
 search "pyexiftool github" to see if you find any more random ports/forks
 check for updates https://github.com/smarnach/pyexiftool/pulls
 check for new open issues https://github.com/smarnach/pyexiftool/issues?q=is%3Aissue+is%3Aopen
 
+answer relevant issues on stackoverflow (make sure it's related to the latest version) https://stackoverflow.com/search?tab=newest&q=pyexiftool&searchOn=3
