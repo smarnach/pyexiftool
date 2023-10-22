@@ -68,7 +68,8 @@ jobs:
         echo "PATH=`pwd`:$PATH" >> $GITHUB_ENV
     - name: Install pyexiftool
       run: |
-        python -m pip install .
+        # install all supported json processors for tests
+        python -m pip install .[json,test]
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names

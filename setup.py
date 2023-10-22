@@ -108,7 +108,7 @@ setup(
 	),
 
 	extras_require={
-		"json": ["ujson"],  # supported option for ExifTool, but not currently advertised
+		"json": ["ujson", "simplejson", "orjson"],  # any supported alternative json parser for ExifTool
 		"test": ["packaging"],  # dependencies to do tests
 		"docs": ["packaging", "sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],  # dependencies to build docs
 	},
