@@ -107,7 +107,7 @@ def _get_buffer_end(buffer_list: List[bytes], bytes_needed: int) -> bytes:
 	return buf_tail_joined
 
 
-def _read_fd_endswith(fd, b_endswith, block_size: int):
+def _read_fd_endswith(fd, b_endswith: bytes, block_size: int) -> bytes:
 	""" read an fd and keep reading until it endswith the seq_ends
 
 		this allows a consolidated read function that is platform indepdent
@@ -266,7 +266,7 @@ class ExifTool(object):
 
 
 		# these are set via properties
-		self._executable: Optional[str] = None  # executable absolute path
+		self._executable: Union[str, Path] = constants.DEFAULT_EXECUTABLE  # executable absolute path (default set to just the executable name, so it can't be None)
 		self._config_file: Optional[str] = None  # config file that can only be set when exiftool is not running
 		self._common_args: Optional[List[str]] = None
 		self._logger = None
@@ -329,7 +329,7 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def executable(self) -> str:
+	def executable(self) -> Union[str, Path]:
 		"""
 		Path to *exiftool* executable.
 
@@ -481,7 +481,7 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def config_file(self) -> Optional[str]:
+	def config_file(self) -> Optional[Union[str, Path]]:
 		"""
 		Path to config file.
 
@@ -1002,7 +1002,7 @@ class ExifTool(object):
 
 
 		# ---------- build the params list and encode the params to bytes, if necessary ----------
-		cmd_params: bytes = []
+		cmd_params: List[bytes] = []
 
 		# this is necessary as the encoding parameter of Popen() is not specified.  We manually encode as per the .encoding() parameter
 		for p in params:

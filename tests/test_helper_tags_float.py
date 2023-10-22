@@ -121,7 +121,7 @@ class TestHelperFloatTags(unittest.TestCase):
 
 				# get the data
 				r = self.et.get_tags(self.jpg_file, set_tag_key)
-				print(r)
+				#print(r)
 
 				# check
 				if compare_str:

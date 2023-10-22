@@ -53,7 +53,7 @@ class ExifToolRunning(ExifToolProcessStateError):
 	"""
 	ExifTool is already running
 	"""
-	def __init__(self, message):
+	def __init__(self, message: str):
 		super().__init__(f"ExifTool instance is running: {message}")
 
 
@@ -61,7 +61,7 @@ class ExifToolNotRunning(ExifToolProcessStateError):
 	"""
 	ExifTool is not running
 	"""
-	def __init__(self, message):
+	def __init__(self, message: str):
 		super().__init__(f"ExifTool instance not running: {message}")
 
 
