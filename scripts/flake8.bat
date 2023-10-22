@@ -16,6 +16,6 @@ echo ______________________
 
 REM python.exe -m flake8 -v --config "%~dp0flake8.ini" "exiftool" "tests"
 
-python.exe -m flake8 -v --config "%~dp0flake8.ini" --output-file "%~dp0~tmpout.txt" "exiftool" "tests"
+python.exe -m flake8 -v --config "%~dp0flake8.ini" --output-file "%~dp0~flake8_report.txt" "exiftool" "tests"
 
 popd

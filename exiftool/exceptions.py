@@ -4,7 +4,7 @@
 #
 # PyExifTool <http://github.com/sylikc/pyexiftool>
 #
-# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2019-2023 Kevin M (sylikc)
 # Copyright 2012-2014 Sven Marnach
 #
 # Community contributors are listed in the CHANGELOG.md for the PRs
@@ -53,7 +53,7 @@ class ExifToolRunning(ExifToolProcessStateError):
 	"""
 	ExifTool is already running
 	"""
-	def __init__(self, message):
+	def __init__(self, message: str):
 		super().__init__(f"ExifTool instance is running: {message}")
 
 
@@ -61,9 +61,8 @@ class ExifToolNotRunning(ExifToolProcessStateError):
 	"""
 	ExifTool is not running
 	"""
-	def __init__(self, message):
+	def __init__(self, message: str):
 		super().__init__(f"ExifTool instance not running: {message}")
-
 
 
 ###########################################################
@@ -92,7 +91,6 @@ class ExifToolExecuteException(ExifToolException):
 		self.cmd: list = params
 		self.stdout: str = cmd_stdout
 		self.stderr: str = cmd_stderr
-
 
 
 class ExifToolExecuteError(ExifToolExecuteException):
@@ -139,7 +137,6 @@ class ExifToolJSONInvalidError(ExifToolExecuteException):
 		super().__init__("execute_json received invalid JSON output from exiftool", exit_status, cmd_stdout, cmd_stderr, params)
 
 
-
 #########################################################
 #################### Other Exception ####################
 #########################################################
@@ -159,4 +156,3 @@ class ExifToolTagNameError(ExifToolException):
 	"""
 	def __init__(self, bad_tag):
 		super().__init__(f"Invalid Tag Name found: \"{bad_tag}\"")
-

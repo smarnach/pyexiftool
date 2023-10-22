@@ -4,7 +4,7 @@
 #
 # PyExifTool <http://github.com/sylikc/pyexiftool>
 #
-# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2019-2023 Kevin M (sylikc)
 # Copyright 2012-2014 Sven Marnach
 #
 # Community contributors are listed in the CHANGELOG.md for the PRs

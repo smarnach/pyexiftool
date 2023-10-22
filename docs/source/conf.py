@@ -31,7 +31,7 @@ sys.path.insert(1, Path(__file__).resolve().parent.parent)
 
 # General information about the project.
 project = 'PyExifTool'
-copyright = '2022, Kevin M (sylikc)'
+copyright = '2023, Kevin M (sylikc)'
 author = 'Kevin M (sylikc)'
 
 # read directly from exiftool's version instead of hard coding it here

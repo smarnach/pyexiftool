@@ -4,7 +4,7 @@
 #
 # PyExifTool <http://github.com/sylikc/pyexiftool>
 #
-# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2019-2023 Kevin M (sylikc)
 # Copyright 2012-2014 Sven Marnach
 #
 # Community contributors are listed in the CHANGELOG.md for the PRs
@@ -61,7 +61,7 @@ Example usage::
 
 # version number using Semantic Versioning 2.0.0 https://semver.org/
 # may not be PEP-440 compliant https://www.python.org/dev/peps/pep-0440/#semantic-versioning
-__version__ = "0.5.5"
+__version__ = "0.5.6"
 
 
 # while we COULD import all the exceptions into the base library namespace,

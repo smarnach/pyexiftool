@@ -4,7 +4,7 @@
 #
 # PyExifTool <http://github.com/sylikc/pyexiftool>
 #
-# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2019-2023 Kevin M (sylikc)
 # Copyright 2012-2014 Sven Marnach
 #
 # Community contributors are listed in the CHANGELOG.md for the PRs
@@ -37,22 +37,12 @@ import shutil
 from pathlib import Path  # requires Python 3.4+
 import random
 import locale
+import warnings
+import json  # NOTE: to use other json libraries (simplejson/ujson/orjson/...), see :py:meth:`set_json_loads()`
 
 # for the pdeathsig
 import signal
 import ctypes
-
-
-# ---------- UltraJSON overloaded import ----------
-
-try:
-	# Optional UltraJSON library - ultra-fast JSON encoder/decoder, drop-in replacement
-	import ujson as json
-	JSONDecodeError = ValueError  # ujson doesn't throw json.JSONDecodeError, but ValueError when string is malformed
-except ImportError:
-	import json  # type: ignore   # comment related to https://github.com/python/mypy/issues/1153
-	from json import JSONDecodeError
-import warnings
 
 
 
@@ -103,7 +93,7 @@ def _get_buffer_end(buffer_list: List[bytes], bytes_needed: int) -> bytes:
 		but without having to concatenate the entire list.
 	"""
 	if bytes_needed < 1:
-		return b""
+		return b""  # pragma: no cover
 
 	buf_chunks = []
 	for buf in reversed(buffer_list):
@@ -117,7 +107,7 @@ def _get_buffer_end(buffer_list: List[bytes], bytes_needed: int) -> bytes:
 	return buf_tail_joined
 
 
-def _read_fd_endswith(fd, b_endswith, block_size: int):
+def _read_fd_endswith(fd, b_endswith: bytes, block_size: int) -> bytes:
 	""" read an fd and keep reading until it endswith the seq_ends
 
 		this allows a consolidated read function that is platform indepdent
@@ -276,11 +266,13 @@ class ExifTool(object):
 
 
 		# these are set via properties
-		self._executable: Optional[str] = None  # executable absolute path
+		self._executable: Union[str, Path] = constants.DEFAULT_EXECUTABLE  # executable absolute path (default set to just the executable name, so it can't be None)
 		self._config_file: Optional[str] = None  # config file that can only be set when exiftool is not running
 		self._common_args: Optional[List[str]] = None
 		self._logger = None
 		self._encoding: Optional[str] = None
+		self._json_loads: Callable = json.loads  # variable points to the actual callable method
+		self._json_loads_kwargs: dict = {}  # default optional params to pass into json.loads() call
 
 
 
@@ -337,7 +329,7 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def executable(self) -> str:
+	def executable(self) -> Union[str, Path]:
 		"""
 		Path to *exiftool* executable.
 
@@ -489,7 +481,7 @@ class ExifTool(object):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@property
-	def config_file(self) -> Optional[str]:
+	def config_file(self) -> Optional[Union[str, Path]]:
 		"""
 		Path to config file.
 
@@ -559,7 +551,7 @@ class ExifTool(object):
 				warnings.warn("ExifTool process was previously running but died")
 				self._flag_running_false()
 
-				if self._logger: self._logger.warning(f"Property 'running': ExifTool process was previously running but died")
+				if self._logger: self._logger.warning("Property 'running': ExifTool process was previously running but died")
 
 		return self._running
 
@@ -667,7 +659,7 @@ class ExifTool(object):
 				callable(new_logger.error) and \
 				callable(new_logger.critical) and \
 				callable(new_logger.exception)
-		except AttributeError as e:
+		except AttributeError:
 			check = False
 
 		if not check:
@@ -685,6 +677,9 @@ class ExifTool(object):
 
 	If this is set, then status messages will log out to the given class.
 
+	.. note::
+		This can be set and unset (set to ``None``) at any time, regardless of whether the subprocess is running (:py:attr:`running` == True) or not.
+
 	:setter: Specify an object to log to.  The class is not checked, but validation is done to ensure the object has callable methods ``info``, ``warning``, ``error``, ``critical``, ``exception``.
 
 	:raises AttributeError: If object does not contain one or more of the required methods.
@@ -693,6 +688,59 @@ class ExifTool(object):
 	:type: Object
 	"""
 
+	#########################################################################################
+	##################################### SETTER METHODS ####################################
+	#########################################################################################
+
+
+	# ----------------------------------------------------------------------------------------------------------------------
+	def set_json_loads(self, json_loads, **kwargs) -> None:
+		"""
+		**Advanced**: Override default built-in ``json.loads()`` method.  The method is only used once in :py:meth:`execute_json`
+
+		This allows using a different json string parser.
+
+		(Alternate json libraries typically provide faster speed than the
+		built-in implementation, more supported features, and/or different behavior.)
+
+		Examples of json libraries: `orjson`_, `rapidjson`_, `ujson`_, ...
+
+		.. note::
+			This method is designed to be called the same way you would expect to call the provided ``json_loads`` method.
+
+			Include any ``kwargs`` you would in the call.
+
+			For example, to pass additional arguments to ``json.loads()``: ``set_json_loads(json.loads, parse_float=str)``
+
+		.. note::
+			This can be set at any time, regardless of whether the subprocess is running (:py:attr:`running` == True) or not.
+
+		.. warning::
+			This setter does not check whether the method provided actually parses json.  Undefined behavior or crashes may occur if used incorrectly
+
+			This is **advanced configuration** for specific use cases only.
+
+			For an example use case, see the :ref:`FAQ <set_json_loads faq>`
+
+		:param json_loads: A callable method to replace built-in ``json.loads`` used in :py:meth:`execute_json`
+
+		:type json_loads: callable
+
+		:param kwargs: Parameters passed to the ``json_loads`` method call
+
+		:raises TypeError: If ``json_loads`` is not callable
+
+
+		.. _orjson: https://pypi.org/project/orjson/
+		.. _rapidjson: https://pypi.org/project/python-rapidjson/
+		.. _ujson: https://pypi.org/project/ujson/
+		"""
+		if not callable(json_loads):
+			# not a callable method
+			raise TypeError
+
+		self._json_loads = json_loads
+		self._json_loads_kwargs = kwargs
 
 
 
@@ -783,13 +831,13 @@ class ExifTool(object):
 				stdout=subprocess.PIPE,
 				stderr=subprocess.PIPE,
 				**kwargs)
-		except FileNotFoundError as fnfe:
+		except FileNotFoundError:
 			raise
-		except OSError as oe:
+		except OSError:
 			raise
-		except ValueError as ve:
+		except ValueError:
 			raise
-		except subprocess.CalledProcessError as cpe:
+		except subprocess.CalledProcessError:
 			raise
 		# TODO print out more useful error messages to these different errors above
 
@@ -837,10 +885,11 @@ class ExifTool(object):
 		If the subprocess isn't running, this method will throw a warning, and do nothing.
 
 		.. note::
-			There is a bug in CPython 3.8+ on Windows where terminate() does not work during __del__()
+			There is a bug in CPython 3.8+ on Windows where terminate() does not work during ``__del__()``
+
 			See CPython issue `starting a thread in __del__ hangs at interpreter shutdown`_ for more info.
 
-		.. _starting a thread in __del__ hangs at interpreter shutdown: https://bugs.python.org/issue43784
+		.. _starting a thread in __del__ hangs at interpreter shutdown: https://github.com/python/cpython/issues/87950
 		"""
 		if not self.running:
 			warnings.warn("ExifTool not running; doing nothing.", UserWarning)
@@ -956,7 +1005,7 @@ class ExifTool(object):
 
 
 		# ---------- build the params list and encode the params to bytes, if necessary ----------
-		cmd_params: bytes = []
+		cmd_params: List[bytes] = []
 
 		# this is necessary as the encoding parameter of Popen() is not specified.  We manually encode as per the .encoding() parameter
 		for p in params:
@@ -1150,8 +1199,11 @@ class ExifTool(object):
 
 
 		try:
-			parsed = json.loads(result)
-		except JSONDecodeError as e:
+			parsed = self._json_loads(result, **self._json_loads_kwargs)
+		except ValueError as e:
+			# most known JSON libraries return ValueError or a subclass.
+			# built-in json.JSONDecodeError is a subclass of ValueError -- https://docs.python.org/3/library/json.html#json.JSONDecodeError
+
 			# if `-w` flag is specified in common_args or params, stdout will not be JSON parseable
 			#
 			# which will return something like:

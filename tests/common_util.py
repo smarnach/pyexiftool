@@ -16,7 +16,7 @@ from typing import Optional, Tuple, Any
 
 # default is False.  Change here to have all tests persist their output... then change it back to False before committing!
 PERSISTENT_TMP_DIR: bool = False
-"""if set to true, will not delete temp dir after tests (useful for debugging test output)"""
+""" if set to ``True``, will not delete temp dir after tests (useful for debugging test output) """
 
 
 SCRIPT_PATH = Path(__file__).resolve().parent
@@ -89,4 +89,3 @@ def create_random_bin_file(filepath: Path, size: int):
 	return filepath
 
 # ---------------------------------------------------------------------------------------------------------
-

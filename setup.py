@@ -4,7 +4,7 @@
 #
 # PyExifTool <http://github.com/sylikc/pyexiftool>
 #
-# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2019-2023 Kevin M (sylikc)
 # Copyright 2012-2014 Sven Marnach
 #
 # Community contributors are listed in the CHANGELOG.md for the PRs
@@ -108,7 +108,7 @@ setup(
 	),
 
 	extras_require={
-		"json": ["ujson"],  # supported option for ExifTool, but not currently advertised
+		"json": ["ujson", "simplejson", "orjson"],  # any supported alternative json parser for ExifTool
 		"test": ["packaging"],  # dependencies to do tests
 		"docs": ["packaging", "sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"],  # dependencies to build docs
 	},

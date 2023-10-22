@@ -9,6 +9,7 @@ Source Preparation
 ==================
 
 #. Update the version number in ``exiftool/__init__.py``
+#. Update the docs copyright year ``docs/source/conf.py`` and in source files
 #. Add any changelog entries to ``CHANGELOG.md``
 #. Run Tests
 #. Generate docs

@@ -1,0 +1,194 @@
+
+
+add in new method to get a object as the key and the rest as the return data from exiftool?
+
+
+
+https://www.wheelodex.org/projects/pyexiftool/rdepends/
+	https://github.com/novoid/guess-filename.py
+	https://pypi.org/project/njnuko/5.1.1/
+	https://github.com/jcollado/pic2map
+	https://github.com/tsouchlarakis/pydoni/tree/main/pydoni
+	https://github.com/wiso/pysortexif
+	https://github.com/153957/reloci/
+
+https://readthedocs.org/
+https://docs.readthedocs.io/en/stable/tutorial/
+https://github.com/readthedocs/tutorial-template/
+https://github.com/pmd/pmd/issues/405
+https://readthedocs.org/projects/tags/exiftool/
+https://differ.readthedocs.io/en/latest/exiftool/
+
+put google analytics into docs???
+
+
+https://stackoverflow.com/questions/36456920/is-there-a-way-to-specify-which-pytest-tests-to-run-from-a-file
+
+
+https://github.com/s-leroux/pyexiftool/commit/c8908ae646534687e518202159e55244ccdf40d5
+https://github.com/demery/pyexiftool/commit/fabebbbec6e0d60fc46e928378567fc2f75d7c06
+https://github.com/alanlgardner/pyexiftool/commits/master
+
+setup setup.py properly -- https://godatadriven.com/blog/a-practical-guide-to-using-setup-py/
+	teaches to use other methods then the scripts i have now
+
+
+https://julien.danjou.info/python-exceptions-guide/
+
+
+https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#indented-literal-blocks
+https://docutils.sourceforge.io/docs/ref/rst/directives.html#include
+https://docutils.sourceforge.io/docs/user/rst/cheatsheet.txt
+
+badges https://shields.io/
+
+assert can be disabled -- https://stackoverflow.com/questions/5142418/what-is-the-use-of-assert-in-python
+
+
+TODO describe what JSON returns from ExifTool
+
+document
+
+https://sylikc.github.io/pyexiftool/autoapi/exiftool/exceptions/index.html#exiftool.exceptions.ExifToolExecuteError
+
+with the available properties which aren't property ... like using .. :py:attr or something
+
+-	.. py:attribute:: _running
+
+
+
+alpha ... get_single_tag ... check for existence and len()=1 for 
+
+
+
+is there anyway to :warning: document docstring userwarning?
+
+
+helper ... code to parse the stdout when setting stuff?
+
+gettags
+settags
+validate=true or check=true
+Get single file, check length() and return if matches when validate/check
+
+
+
+Fork history, etc old version
+
+
+
+.. autosummary:: exiftool
+   :toctree: _autosummary
+   :recursive:
+
+..
+   look up info using this https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+
+..
+   automodule:: exiftool.helper
+   :members:
+   :undoc-members:
+
+
+
+cd /d T:\
+"D:\Utils\Dev_Tools\Python\__setup_my_env.bat"
+SET PATH=%PATH%;D:\_DV_Suite-v3_\bin\console
+python.exe -V
+SET VENV_DIR=test-pyexiftool
+python.exe -m venv --prompt "Test PyExifTool" "%VENV_DIR%"
+%VENV_DIR%\Scripts\activate.bat
+(copy tests to T:\)
+python -m pip install --upgrade pytest 
+python.exe -m pytest -s -v tests/
+
+SCRIPT_PATH = (Path.cwd() / __file__).parent
+
+
+
+
+python -m sphinx.ext.intersphinx _build\html\objects.inv
+
+advanced examples as well
+
+
+test pip install git+https://github.com/sylikc/pyexiftool
+
+
+https://discuss.python.org/t/pathlib-absolute-vs-resolve/2573
+
+
+
+
+https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
+
+
+All Sphinx resources
+	https://www.sphinx-doc.org/en/master/usage/quickstart.html
+	https://sphinx-rtd-theme.readthedocs.io/en/stable/configuring.html
+	https://github.com/readthedocs/sphinx-autoapi/blob/master/README.rst
+	https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+	https://github.com/readthedocs/sphinx-autoapi/blob/master/docs/conf.py
+	https://www.sphinx-doc.org/en/master/usage/extensions/inheritance.html#module-sphinx.ext.inheritance_diagram
+	https://gist.github.com/shaypal5/70044eeda587fae17b180e723496b057
+	https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html
+	
+	https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html
+	https://pypi.org/project/sphinx-autodoc-typehints/
+	https://sphinx-autoapi.readthedocs.io/en/latest/how_to.html
+	
+	sphinx build options -- https://www.sphinx-doc.org/en/master/man/sphinx-build.html
+	
+	https://stackoverflow.com/questions/54518160/python-sphinx-include-directive-ignore-the-header-from-included-file
+		https://docutils.sourceforge.io/docs/ref/rst/directives.html#include
+	
+	https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#signatures
+	https://github.com/sglvladi/Sphinx-RTD-Tutorial/blob/a69fd09/docs/source/docstrings.rst#the-sphinx-docstring-format
+	https://github.com/python/core-workflow/blob/master/README.rst
+	
+	https://sublime-and-sphinx-guide.readthedocs.io/en/latest/notes_warnings.html
+	https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
+	https://stackoverflow.com/questions/64106572/how-do-you-include-several-subdirectories-with-sphinx-apidoc
+	
+	https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#directive-autoattribute
+	
+	https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cross-referencing-python-objects
+	https://stackoverflow.com/questions/66543953/cross-reference-documentation-of-function-or-class-in-sphinx-for-python
+	https://stackoverflow.com/questions/15903577/include-specific-special-methods-in-sphinx
+	https://docs.readthedocs.io/en/stable/guides/cross-referencing-with-sphinx.html
+	https://stackoverflow.com/questions/15394347/adding-a-cross-reference-to-a-subheading-or-anchor-in-another-page
+	https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx-fail-on-warning
+	!!!!! https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html
+	
+	https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html
+	https://nsls-ii.github.io/caproto/own_docs.html
+	
+	
+	GitHub actions?
+		https://stackoverflow.com/questions/57989790/using-github-actions-to-publish-documentation
+		https://github.com/peaceiris/actions-gh-pages
+		g: github pages sphinx autogenerate
+		https://www.docslikecode.com/articles/github-pages-python-sphinx/
+		https://github.com/annegentle/create-demo/blob/main/docs/buildsite.sh
+		https://gist.github.com/KCarretto/28d362210b41cfe28363fe8309ce5e6d
+		https://sphinx-notes.github.io/pages/index.html
+		
+	
+https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html#restructured-text-rest-and-sphinx-cheatsheet
+	
+	
+
+
+
+
+
+
+PyPI Stats
+	slower (6 months of data) - https://pypistats.org/packages/pyexiftool
+	faster, prettier (only 4 months of data) - https://pepy.tech/project/pyexiftool
+
+	https://packaging.python.org/en/latest/guides/analyzing-pypi-package-downloads/
+
+	https://libraries.io/pypi/PyExifTool
+	
+	https://snyk.io/advisor/python/pyexiftool

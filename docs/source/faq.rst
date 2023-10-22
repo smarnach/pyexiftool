@@ -103,6 +103,97 @@ So if you want to have the ouput match (*useful for debugging*) between PyExifTo
 		Y Resolution                    : 72
 
 
+.. _set_json_loads faq:
+
+PyExifTool json turns some text fields into numbers
+===================================================
+
+A strange behavior of *exiftool* is documented in the `exiftool documentation`_::
+
+	-j[[+]=JSONFILE] (-json)
+
+		Note that ExifTool quotes JSON values only if they don't look like numbers
+		(regardless of the original storage format or the relevant metadata specification).
+
+.. _`exiftool documentation`: https://exiftool.org/exiftool_pod.html#OPTIONS
+
+This causes a peculiar behavior if you set a text metadata field to a string that looks like a number:
+
+.. code-block::
+
+	import exiftool
+	with exiftool.ExifToolHelper() as et:
+		# Comment is a STRING field
+		et.set_tags("rose.jpg", {"Comment": "1.10"})  # string: "1.10" != "1.1"
+
+		# FocalLength is a FLOAT field
+		et.set_tags("rose.jpg", {"FocalLength": 1.10})  # float: 1.10 == 1.1
+		print(et.get_tags("rose.jpg", ["Comment", "FocalLength"]))
+
+		# Prints: [{'SourceFile': 'rose.jpg', 'File:Comment': 1.1, 'EXIF:FocalLength': 1.1}]
+
+Workaround to enable output as string
+-------------------------------------
+
+There is no universal fix which wouldn't affect other behaviors in PyExifTool, so this is an advanced workaround if you encounter this specific problem.
+
+PyExifTool does not do any processing on the fields returned by *exiftool*.  In effect, what is returned is processed directly by ``json.loads()`` by default.
+
+You can change the behavior of the json string parser, or specify a different one using :py:meth:`exiftool.ExifTool.set_json_loads`.
+
+The `documentation of CPython's json.load`_ allows ``parse_float`` to be any parser of choice when a float is encountered in a JSON file.  Thus, you can force the float to be interpreted as a string.
+However, as you can see below, it also *changes the behavior of all float fields*.
+
+
+.. _`documentation of CPython's json.load`: https://docs.python.org/3/library/json.html#json.load
+
+.. code-block::
+
+	import exiftool, json
+	with exiftool.ExifToolHelper() as et:
+		et.set_json_loads(json.loads, parse_float=str)
+
+		# Comment is a STRING field
+		et.set_tags("rose.jpg", {"Comment": "1.10"})  # string: "1.10" == "1.10"
+
+		# FocalLength is a FLOAT field
+		et.set_tags("rose.jpg", {"FocalLength": 1.10})  # float: 1.1 == "1.1"
+		print(et.get_tags("rose.jpg", ["Comment", "FocalLength"]))
+
+		# Prints: [{'SourceFile': 'rose.jpg', 'File:Comment': '1.10', 'EXIF:FocalLength': '1.1'}]
+
+.. warning::
+
+	Unfortunately you can either change all float fields to a string, or possibly lose some float precision when working with floats in string metadata fields.
+
+	There isn't any known universal workaround which wouldn't break one thing or the other, as it is an underlying *exiftool* quirk.
+
+There are other edge cases which may exhibit quirky behavior when storing numbers and whitespace only to text fields (See `test cases related to numeric tags`_).  Since PyExifTool cannot accommodate all possible edge cases,
+this workaround will allow you to configure PyExifTool to work in your environment!
+
+.. _`test cases related to numeric tags`: https://github.com/sylikc/pyexiftool/blob/master/tests/test_helper_tags_float.py
+
+
+I would like to use a faster json string parser
+===============================================
+
+By default, PyExifTool uses the built-in ``json`` library to load the json string returned by *exiftool*.  If you would like to use an alternate library, set it manually using :py:meth:`exiftool.ExifTool.set_json_loads`
+
+
+.. code-block::
+
+	import exiftool, json
+	with exiftool.ExifToolHelper() as et:
+		et.set_json_loads(ujson.loads)
+		...
+
+.. note::
+
+	In PyExifTool version before 0.5.6, ``ujson`` was supported automatically if the package was installed.
+
+	To support any possible alternative JSON library, this behavior has now been changed and it must be enabled manually.
+
+
 I'm getting an error! How do I debug PyExifTool output?
 =======================================================
 

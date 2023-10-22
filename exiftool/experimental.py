@@ -4,7 +4,7 @@
 #
 # PyExifTool <http://github.com/sylikc/pyexiftool>
 #
-# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2019-2023 Kevin M (sylikc)
 # Copyright 2012-2014 Sven Marnach
 #
 # Community contributors are listed in the CHANGELOG.md for the PRs
@@ -63,7 +63,7 @@ def strip_nl(s):
 
 # Error checking function
 # very rudimentary checking
-# Note: They are quite fragile, because this just parse the output text from exiftool
+# Note: They are quite fragile, because this just parses the output text from exiftool
 def check_ok(result):
 	"""Evaluates the output from a exiftool write operation (e.g. `set_tags`)
 
@@ -83,12 +83,12 @@ def format_error(result):
 	The result is a human readable one-line string.
 	"""
 	if check_ok(result):
-		return 'exiftool finished probably properly. ("%s")' % strip_nl(result)
+		return f'exiftool probably finished properly. ("{strip_nl(result)}")'
 	else:
 		if result is None:
 			return "exiftool operation can't be evaluated: No result given"
 		else:
-			return 'exiftool finished with error: "%s"' % strip_nl(result)
+			return f'exiftool finished with error: "{strip_nl(result)}"'
 
 
 
@@ -138,7 +138,7 @@ class ExifToolAlpha(ExifToolHelper):
 
 		if result:
 			try:
-				ExifToolAlpha._check_sanity_of_result(filenames, result)
+				ExifToolAlpha._check_result_filelist(filenames, result)
 			except IOError as error:
 				# Restart the exiftool child process in these cases since something is going wrong
 				self.terminate()
@@ -288,7 +288,7 @@ class ExifToolAlpha(ExifToolHelper):
 						KW_ADD: "-%s+=%s",
 						KW_REMOVE: "-%s-=%s"}[mode]
 
-		kw_params = [kw_operation % (KW_TAGNAME, w)  for w in keywords]
+		kw_params = [kw_operation % (KW_TAGNAME, w) for w in keywords]
 
 		params.extend(kw_params)
 		params.extend(filenames)
@@ -309,19 +309,20 @@ class ExifToolAlpha(ExifToolHelper):
 
 	# ----------------------------------------------------------------------------------------------------------------------
 	@staticmethod
-	def _check_sanity_of_result(file_paths, result):
+	def _check_result_filelist(file_paths, result):
 		"""
 		Checks if the given file paths matches the 'SourceFile' entries in the result returned by
 		exiftool. This is done to find possible mix ups in the streamed responses.
 		"""
 		# do some sanity checks on the results to make sure nothing was mixed up during reading from stdout
 		if len(result) != len(file_paths):
-			raise IOError("exiftool did return %d results, but expected was %d" % (len(result), len(file_paths)))
-		for i in range(0, len(file_paths)):
-			returned_source_file = result[i]['SourceFile']
+			raise IOError(f"exiftool returned {len(result)} results, but expected was {len(file_paths)}")
+
+		for i in range(len(file_paths)):
+			returned_source_file = result[i].get('SourceFile')
 			requested_file = file_paths[i]
+
 			if returned_source_file != requested_file:
-				raise IOError('exiftool returned data for file %s, but expected was %s'
-							  % (returned_source_file, requested_file))
+				raise IOError(f"exiftool returned data for file {returned_source_file}, but expected was {requested_file}")
 
 	# ----------------------------------------------------------------------------------------------------------------------

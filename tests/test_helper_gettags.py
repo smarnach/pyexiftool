@@ -65,12 +65,12 @@ class TestHelperGetTags(unittest.TestCase):
 
 
 		# this class is an arbitrary object that returns a string
-		class test_class(object):
+		class TestClass(object):
 			def __str__(self):
 				return "-n"
 
 		# this is now permitted, params can be anything castable
-		self.et.get_metadata(TEST_IMAGE_JPG, params=test_class())
+		self.et.get_metadata(TEST_IMAGE_JPG, params=TestClass())
 
 
 	# ---------------------------------------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 #
 # PyExifTool <http://github.com/sylikc/pyexiftool>
 #
-# Copyright 2019-2022 Kevin M (sylikc)
+# Copyright 2019-2023 Kevin M (sylikc)
 # Copyright 2012-2014 Sven Marnach
 #
 # Community contributors are listed in the CHANGELOG.md for the PRs
@@ -30,7 +30,6 @@ This submodule contains the ``ExifToolHelper`` class, which makes the core ``Exi
 """
 
 import re
-import logging
 
 from .exiftool import ExifTool
 from .exceptions import ExifToolOutputEmptyError, ExifToolJSONInvalidError, ExifToolExecuteError, ExifToolTagNameError
@@ -55,7 +54,7 @@ def _is_iterable(in_param: Any, ignore_str_bytes: bool = False) -> bool:
 
 		if you need to consider a code path for strings first, check that before checking if a parameter is iterable via this function
 
-		or specify ignore_str_bytes=True
+		or specify ``ignore_str_bytes=True``
 
 	:param in_param: Something to check if iterable or not
 	:param ignore_str_bytes: str/bytes are iterable.  But usually we don't want to check that.  set ``ignore_str_bytes`` to ``True`` to ignore strings on check
@@ -316,7 +315,7 @@ class ExifToolHelper(ExifTool):
 				which may cause unexpected behavior if you're using one and comparing the result to the other.
 				Read `ExifTool Common Mistakes - Over-use of Wildcards in File Names`_ for some related info.
 
-		:type files: str or list
+		:type files: Any or List(Any) - see Note
 
 
 		:param tags: Tag(s) to read.  If tags is None, or [], method will returns all tags
@@ -343,7 +342,7 @@ class ExifToolHelper(ExifTool):
 
 		"""
 
-		final_tags:  Optional[List] = None
+		final_tags: Optional[List] = None
 		final_files: List = self.__class__._parse_arg_files(files)
 
 		if tags is None:
@@ -411,7 +410,7 @@ class ExifToolHelper(ExifTool):
 				which may cause unexpected behavior if you're using one and comparing the result to the other.
 				Read `ExifTool Common Mistakes - Over-use of Wildcards in File Names`_ for some related info.
 
-		:type files: str or list
+		:type files: Any or List(Any) - see Note
 
 
 		:param tags: Tag(s) to write.
@@ -523,7 +522,7 @@ class ExifToolHelper(ExifTool):
 
 		if not files:
 			# Exiftool process would return an error anyways
-			raise ValueError(f"ERROR: Argument 'files' cannot be empty")
+			raise ValueError("ERROR: Argument 'files' cannot be empty")
 		elif not _is_iterable(files, ignore_str_bytes=True):
 			# if it's not a string but also not iterable
 			final_files = [files]
@@ -584,4 +583,3 @@ class ExifToolHelper(ExifTool):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-
