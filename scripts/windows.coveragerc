@@ -7,3 +7,6 @@ exclude_lines =
 	def set_pdeathsig
 	DEFAULT_EXECUTABLE = "exiftool"
 	pytest-cov:windows: no cover
+[run]
+omit =
+#	exiftool/experimental.py

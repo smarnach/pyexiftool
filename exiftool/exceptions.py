@@ -65,7 +65,6 @@ class ExifToolNotRunning(ExifToolProcessStateError):
 		super().__init__(f"ExifTool instance not running: {message}")
 
 
-
 ###########################################################
 #################### Execute Exception ####################
 ###########################################################
@@ -92,7 +91,6 @@ class ExifToolExecuteException(ExifToolException):
 		self.cmd: list = params
 		self.stdout: str = cmd_stdout
 		self.stderr: str = cmd_stderr
-
 
 
 class ExifToolExecuteError(ExifToolExecuteException):
@@ -139,7 +137,6 @@ class ExifToolJSONInvalidError(ExifToolExecuteException):
 		super().__init__("execute_json received invalid JSON output from exiftool", exit_status, cmd_stdout, cmd_stderr, params)
 
 
-
 #########################################################
 #################### Other Exception ####################
 #########################################################
@@ -159,4 +156,3 @@ class ExifToolTagNameError(ExifToolException):
 	"""
 	def __init__(self, bad_tag):
 		super().__init__(f"Invalid Tag Name found: \"{bad_tag}\"")
-

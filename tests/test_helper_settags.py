@@ -140,7 +140,7 @@ class TestHelperSetTags(unittest.TestCase):
 		source_files = []
 
 		for d in expected_data:
-			d["SourceFile"] = f = TEST_IMAGE_DIR / d["SourceFile"]
+			f = TEST_IMAGE_DIR / d["SourceFile"]
 			self.assertTrue(f.exists())
 			f_mod = temp_dir / (mod_prefix + f.name)
 			self.assertFalse(
@@ -152,12 +152,12 @@ class TestHelperSetTags(unittest.TestCase):
 			source_files.append(f_mod)
 
 			with self.et:
-				self.et.set_tags(f_mod, {"Keywords": expected_data[0]["Keywords"]})
+				self.et.set_tags(f_mod, {"Keywords": d["Keywords"]})
 				ret_data = self.et.get_tags(f_mod, "IPTC:Keywords")
 
 			#f_mod.unlink()  # don't delete file, tempdir will take care of it
 
-			self.assertEqual(ret_data[0]["IPTC:Keywords"], expected_data[0]["Keywords"])
+			self.assertEqual(ret_data[0]["IPTC:Keywords"], d["Keywords"])
 
 
 	# ---------------------------------------------------------------------------------------------------------
@@ -184,11 +184,11 @@ class TestHelperSetTags(unittest.TestCase):
 		# just to get coverage on this arbitary object param
 
 		# this class is an arbitrary object that returns a string
-		class test_class(object):
+		class TestClass(object):
 			def __str__(self):
 				return "-n"
 
-		self.et.set_tags(test_file, {"all": ""}, params=[test_class()])
+		self.et.set_tags(test_file, {"all": ""}, params=[TestClass()])
 
 
 	# ---------------------------------------------------------------------------------------------------------

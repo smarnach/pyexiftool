@@ -38,7 +38,7 @@ from pathlib import Path  # requires Python 3.4+
 import random
 import locale
 import warnings
-import json  # NOTE: to use other json libraries (simplejson/ujson/orjson/...), see ``set_json_loads()``
+import json  # NOTE: to use other json libraries (simplejson/ujson/orjson/...), see :py:meth:`set_json_loads()`
 
 # for the pdeathsig
 import signal
@@ -93,7 +93,7 @@ def _get_buffer_end(buffer_list: List[bytes], bytes_needed: int) -> bytes:
 		but without having to concatenate the entire list.
 	"""
 	if bytes_needed < 1:
-		return b""
+		return b""  # pragma: no cover
 
 	buf_chunks = []
 	for buf in reversed(buffer_list):
@@ -551,7 +551,7 @@ class ExifTool(object):
 				warnings.warn("ExifTool process was previously running but died")
 				self._flag_running_false()
 
-				if self._logger: self._logger.warning(f"Property 'running': ExifTool process was previously running but died")
+				if self._logger: self._logger.warning("Property 'running': ExifTool process was previously running but died")
 
 		return self._running
 
@@ -659,7 +659,7 @@ class ExifTool(object):
 				callable(new_logger.error) and \
 				callable(new_logger.critical) and \
 				callable(new_logger.exception)
-		except AttributeError as e:
+		except AttributeError:
 			check = False
 
 		if not check:
@@ -696,15 +696,42 @@ class ExifTool(object):
 	# ----------------------------------------------------------------------------------------------------------------------
 	def set_json_loads(self, json_loads, **kwargs) -> None:
 		"""
-		set a new user-defined json.loads() call
-		call this setter the same way you would call the loads(), with any optional params
+		**Advanced**: Override default CPython ``json.loads()`` method.  The method is only used once in :py:meth:`execute_json`
 
+		This allows using a different json string parser.
 
+		(Alternate json libraries typically provide faster speed than the
+		CPython implementation, more supported features, and/or different behavior.)
 
+		Examples of json libraries: `orjson`_, `rapidjson`_, `ujson`_, ...
+
+		.. note::
+			This method is designed to be called the same way you would expect to call the provided ``json_loads`` method.
+
+			Include any ``kwargs`` you would in the call.
+
+			For example, to pass additional arguments to ``json.loads()``: ``set_json_loads(json.loads, parse_float=str)``
 
 		.. note::
 			This can be set at any time, regardless of whether the subprocess is running (:py:attr:`running` == True) or not.
 
+		.. warning::
+			This setter does not check whether the method provided actually parses json.  Undefined behavior or crashes may occur if used incorrectly
+
+			This is **advanced configuration** for specific use cases only.
+
+		:param json_loads: A callable method to replace default CPython ``json.loads`` used in :py:meth:`execute_json`
+
+		:type json_loads: callable
+
+		:param kwargs: Parameters passed to the ``json_loads`` method call
+
+		:raises TypeError: If ``json_loads`` is not callable
+
+
+		.. _orjson: https://pypi.org/project/orjson/
+		.. _rapidjson: https://pypi.org/project/python-rapidjson/
+		.. _ujson: https://pypi.org/project/ujson/
 		"""
 		if not callable(json_loads):
 			# not a callable method
@@ -802,13 +829,13 @@ class ExifTool(object):
 				stdout=subprocess.PIPE,
 				stderr=subprocess.PIPE,
 				**kwargs)
-		except FileNotFoundError as fnfe:
+		except FileNotFoundError:
 			raise
-		except OSError as oe:
+		except OSError:
 			raise
-		except ValueError as ve:
+		except ValueError:
 			raise
-		except subprocess.CalledProcessError as cpe:
+		except subprocess.CalledProcessError:
 			raise
 		# TODO print out more useful error messages to these different errors above
 

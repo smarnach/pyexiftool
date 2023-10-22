@@ -9,7 +9,7 @@ from pathlib import Path
 import shutil
 
 # pip
-from packaging import version
+#from packaging import version
 
 # test helpers
 from tests.common_util import et_get_temp_dir, TEST_IMAGE_DIR
@@ -110,7 +110,7 @@ class TestAlphaSetKeywords(unittest.TestCase):
                 kwtag1 = self.et.get_tag(f_mod_str, "IPTC:Keywords")
                 self.et.set_keywords(f_mod_str, exiftool.experimental.KW_ADD, kw_to_add)
                 kwtag2 = self.et.get_tag(f_mod_str, "IPTC:Keywords")
-            #f_mod.unlink()  # don't delete file, tempdir will take care of it
+            # f_mod.unlink()  # don't delete file, tempdir will take care of it
             self.assertEqual(kwtag0, d["Keywords"])
             self.assertEqual(kwtag1, d["Keywords"][0])
             self.assertEqual(kwtag2, [d["Keywords"][0]] + kw_to_add)

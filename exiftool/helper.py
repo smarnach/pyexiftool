@@ -30,7 +30,6 @@ This submodule contains the ``ExifToolHelper`` class, which makes the core ``Exi
 """
 
 import re
-import logging
 
 from .exiftool import ExifTool
 from .exceptions import ExifToolOutputEmptyError, ExifToolJSONInvalidError, ExifToolExecuteError, ExifToolTagNameError
@@ -343,7 +342,7 @@ class ExifToolHelper(ExifTool):
 
 		"""
 
-		final_tags:  Optional[List] = None
+		final_tags: Optional[List] = None
 		final_files: List = self.__class__._parse_arg_files(files)
 
 		if tags is None:
@@ -523,7 +522,7 @@ class ExifToolHelper(ExifTool):
 
 		if not files:
 			# Exiftool process would return an error anyways
-			raise ValueError(f"ERROR: Argument 'files' cannot be empty")
+			raise ValueError("ERROR: Argument 'files' cannot be empty")
 		elif not _is_iterable(files, ignore_str_bytes=True):
 			# if it's not a string but also not iterable
 			final_files = [files]
@@ -584,4 +583,3 @@ class ExifToolHelper(ExifTool):
 
 
 	# ----------------------------------------------------------------------------------------------------------------------
-

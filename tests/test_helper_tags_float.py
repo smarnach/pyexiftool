@@ -50,10 +50,9 @@ class TestHelperFloatTags(unittest.TestCase):
 		# for this test, we write to the same file
 		(self.temp_obj, self.temp_dir) = et_get_temp_dir(suffix="tagcommentnum")
 
-		orig = TEST_IMAGE_DIR / "rose.jpg"
-		self.jpg_file = self.temp_dir / ("tagnum_" + orig.name)
+		self.jpg_file = self.temp_dir / ("tagnum_" + TEST_IMAGE_JPG.name)
 
-		shutil.copyfile(orig, self.jpg_file)
+		shutil.copyfile(TEST_IMAGE_JPG, self.jpg_file)
 
 		# all tests use the same test for this comment number thing
 		self.test_data_str = [
@@ -208,7 +207,7 @@ class TestHelperFloatTags(unittest.TestCase):
 
 
 	# ---------------------------------------------------------------------------------------------------------
-	@unittest.skipIf(has_simplejson == False, "simplejson not installed")
+	@unittest.skipIf(has_simplejson is False, "simplejson not installed")
 	def test_simplejson_tag_comment_number(self):
 		"""
 		test that covers a numeric tag causing data mismatch
@@ -222,7 +221,7 @@ class TestHelperFloatTags(unittest.TestCase):
 
 
 	# ---------------------------------------------------------------------------------------------------------
-	@unittest.skipIf(has_ujson == False, "ujson not installed")
+	@unittest.skipIf(has_ujson is False, "ujson not installed")
 	@unittest.expectedFailure
 	def test_ujson_tag_comment_number(self):
 		"""
@@ -241,7 +240,7 @@ class TestHelperFloatTags(unittest.TestCase):
 
 
 	# ---------------------------------------------------------------------------------------------------------
-	@unittest.skipIf(has_orjson == False, "orjson not installed")
+	@unittest.skipIf(has_orjson is False, "orjson not installed")
 	@unittest.expectedFailure
 	def test_orjson_tag_comment_number(self):
 		"""
@@ -254,6 +253,15 @@ class TestHelperFloatTags(unittest.TestCase):
 		self.et.set_json_loads(orjson.loads)
 
 		self.check_testdata(self.test_data_str, compare_str=True)
+
+
+	# ---------------------------------------------------------------------------------------------------------
+	def test_json_loads_invalid(self):
+		"""
+		tests that an invalid set is caught (coverage test)
+		"""
+		with self.assertRaises(TypeError):
+			self.et.set_json_loads("hi")
 
 
 # ---------------------------------------------------------------------------------------------------------

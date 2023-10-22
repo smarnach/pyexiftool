@@ -6,7 +6,6 @@ Test :: ExifToolHelper - tag name validation tests
 # standard
 import unittest
 import shutil
-from pathlib import Path
 
 # test helpers
 from tests.common_util import et_get_temp_dir
