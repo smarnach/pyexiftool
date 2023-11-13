@@ -900,11 +900,16 @@ class ExifTool(object):
 			self._process.kill()
 			#print("before comm", self._process.poll(), self._process)
 			self._process.poll()
-			# TODO freezes here on windows if subprocess zombie remains
-			outs, errs = self._process.communicate()  # have to cleanup the process or else .poll() will return None
-			#print("after comm")
-			# TODO a bug filed with Python, or user error... this doesn't seem to work at all ... .communicate() still hangs
-			# https://bugs.python.org/issue43784 ... Windows-specific issue affecting Python 3.8-3.10 (as of this time)
+			try:
+				# TODO freezes here on windows if subprocess zombie remains
+				outs, errs = self._process.communicate()  # have to cleanup the process or else .poll() will return None
+				#print("after comm")
+				# TODO a bug filed with Python, or user error... this doesn't seem to work at all ... .communicate() still hangs
+				# https://bugs.python.org/issue43784 , https://github.com/python/cpython/issues/87950... Windows-specific issue affecting Python 3.8-3.10 (as of this time)
+			except RuntimeError:
+				# Python 3.12 throws a runtime error -- see https://github.com/python/cpython/pull/104826
+				# RuntimeError: can't create new thread at interpreter shutdown
+				pass
 		else:
 			try:
 				"""
@@ -913,7 +918,12 @@ class ExifTool(object):
 
 					On Linux, this runs as is, and the process terminates properly
 				"""
-				self._process.communicate(input=b"-stay_open\nFalse\n", timeout=timeout)  # this is a constant sequence specified by PH's exiftool
+				try:
+					self._process.communicate(input=b"-stay_open\nFalse\n", timeout=timeout)  # this is a constant sequence specified by PH's exiftool
+				except RuntimeError:
+					# Python 3.12 throws a runtime error -- see https://github.com/python/cpython/pull/104826
+					# RuntimeError: can't create new thread at interpreter shutdown
+					pass
 				self._process.kill()
 			except subprocess.TimeoutExpired:  # this is new in Python 3.3 (for python 2.x, use the PyPI subprocess32 module)
 				self._process.kill()
