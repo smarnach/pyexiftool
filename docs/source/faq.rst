@@ -103,6 +103,48 @@ So if you want to have the ouput match (*useful for debugging*) between PyExifTo
 		Y Resolution                    : 72
 
 
+
+.. _shlex split:
+
+I can run this on the command-line but it doesn't work in PyExifTool
+====================================================================
+
+A frequent problem encountered by first-time users, is figuring out how to properly split their arguments into a call to PyExifTool.
+
+As noted in the :ref:`Quick Start Examples <examples input params>`:
+
+	If there is an **unquoted space on the command line** to *exiftool*, it's a **separate argument to the method** in PyExifTool.
+
+So, what does this look like in practice?
+
+Use `Python's shlex library`_ as a quick and easy way to figure out what the parameters to :py:meth:`exiftool.ExifTool.execute` or :py:meth:`exiftool.ExifTool.execute_json` should be.
+
+* Sample exiftool command line (with multiple quoted and unquoted parameters):
+
+	.. code-block:: text
+
+		exiftool -v0 -preserve -overwrite_original -api largefilesupport=1 -api "QuickTimeUTC=1" "-EXIF:DateTimeOriginal+=1:2:3 4:5:6" -XMP:DateTimeOriginal="2006:05:04 03:02:01" -gpsaltituderef="Above Sea Level" -make= test.mov
+
+* Using ``shlex`` to figure out the right argument list:
+
+	.. code-block::
+
+		import shlex, exiftool
+		with exiftool.ExifToolHelper() as et:
+			params = shlex.split('-v0 -preserve -overwrite_original -api largefilesupport=1 "-EXIF:DateTimeOriginal+=1:2:3 4:5:6" -XMP:DateTimeOriginal="2006:05:04 03:02:01" -gpsaltituderef="Above Sea Level" -make= test.mov')
+			print(params)
+			# Output: ['-v0', '-preserve', '-overwrite_original', '-api', 'largefilesupport=1', '-api', 'QuickTimeUTC=1', '-EXIF:DateTimeOriginal+=1:2:3 4:5:6', '-XMP:DateTimeOriginal=2006:05:04 03:02:01', '-gpsaltituderef=Above Sea Level', '-make=', 'test.mov']
+			et.execute(*params)
+
+	.. note::
+
+		``shlex.split()`` is a useful *tool to simplify discovery* of the correct arguments needed to call PyExifTool.
+
+		However, since spliting and constructing immutable strings in Python is **slower than building the parameter list properly**, this method is *only recommended for* **debugging**!
+
+
+.. _`Python's shlex library`: https://docs.python.org/library/shlex.html
+
 .. _set_json_loads faq:
 
 PyExifTool json turns some text fields into numbers
@@ -157,7 +199,7 @@ However, as you can see below, it also *changes the behavior of all float fields
 		et.set_tags("rose.jpg", {"Comment": "1.10"})  # string: "1.10" == "1.10"
 
 		# FocalLength is a FLOAT field
-		et.set_tags("rose.jpg", {"FocalLength": 1.10})  # float: 1.1 == "1.1"
+		et.set_tags("rose.jpg", {"FocalLength": 1.10})  # float: 1.1 != "1.1"
 		print(et.get_tags("rose.jpg", ["Comment", "FocalLength"]))
 
 		# Prints: [{'SourceFile': 'rose.jpg', 'File:Comment': '1.10', 'EXIF:FocalLength': '1.1'}]

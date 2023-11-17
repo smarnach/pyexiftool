@@ -23,6 +23,9 @@ Almost all methods in PyExifTool revolve around the usage of two methods from th
 
     Because both methods are inherited by :py:class:`exiftool.ExifToolHelper` and :py:class:`exiftool.ExifToolAlpha`, you can call it from those classes as well.
 
+
+.. _examples input params:
+
 Input parameters
 ----------------
 
@@ -31,6 +34,8 @@ Both methods take an argument list ``*args``.  Examples:
 .. note::
 
     As a general rule of thumb, if there is an **unquoted space on the command line** to *exiftool*, it's a **separate argument to the method** in PyExifTool.
+
+    If you have a working `exiftool` command-line but having trouble figuring out how to properly separate the arguments, please refer to the :ref:`FAQ <shlex split>`
 
 * Calling directly:
 
