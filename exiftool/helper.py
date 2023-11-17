@@ -35,7 +35,7 @@ from .exiftool import ExifTool
 from .exceptions import ExifToolOutputEmptyError, ExifToolJSONInvalidError, ExifToolExecuteError, ExifToolTagNameError
 
 # basestring makes no sense in Python 3, so renamed tuple to this const
-TUPLE_STR_BYTES = (bytes, str)
+TUPLE_STR_BYTES: tuple = (str, bytes,)
 
 from typing import Any, Union, Optional, List, Dict
 
@@ -124,7 +124,7 @@ class ExifToolHelper(ExifTool):
 		# this was originally to support Path() but it's now generic enough to support any object that str() to something useful
 		#
 		# Thanks @jangop for the single line contribution!
-		str_bytes_params = [x if isinstance(x, TUPLE_STR_BYTES) else str(x) for x in params]
+		str_bytes_params: Union[str, bytes] = [x if isinstance(x, TUPLE_STR_BYTES) else str(x) for x in params]
 		# TODO: this list copy could be expensive if the input is a very huge list.  Perhaps in the future have a flag that takes the lists in verbatim without any processing?
 
 
@@ -549,7 +549,7 @@ class ExifToolHelper(ExifTool):
 		# we can check self.version ... then this method will no longer
 		# be static and requires the underlying exiftool process to be running to get the self.version
 		#
-		# This is not done right now because the odds of the tag name format changing is very low, and requirin
+		# This is not done right now because the odds of the tag name format changing is very low, and requiring
 		# exiftool to be running during this tag check could introduce unneccesary overhead at this time
 
 
@@ -560,7 +560,7 @@ class ExifToolHelper(ExifTool):
 		# \w in Perl => https://perldoc.perl.org/perlrecharclass#Backslash-sequences
 		# \w in Python => https://docs.python.org/3/library/re.html#regular-expression-syntax
 		#
-		# Perl vs Python's "\w" seem to mean slightly different things, so we write our own regex / matching algo
+		# Perl vs Python's "\w" seem to mean slightly different things, so we write our own regex / matching algorithm
 
 
 		# * make sure the first character is not a special one

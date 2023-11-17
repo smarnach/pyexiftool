@@ -190,7 +190,7 @@ Setting Tags
                 params=["-P", "-overwrite_original"]
             )
 
-    (No output is returned if successful)
+    (*No output is returned if successful*)
 
 * Setting keywords for a file.
 
@@ -203,7 +203,7 @@ Setting Tags
                 tags={"Keywords": ["sunny", "nice day", "cool", "awesome"]}
             )
 
-    (No output is returned if successful)
+    (*No output is returned if successful*)
 
 
 
@@ -218,7 +218,7 @@ By default, ExifToolHelper has some **built-in error checking**, making the meth
 
 * Example using get_tags() on a list which includes a non-existent file
 
-    * Using ExifToolHelper.get_tags()
+    * ExifToolHelper with error-checking, using :py:meth:`exiftool.ExifToolHelper.get_tags`
 
         .. code-block::
 
@@ -245,7 +245,7 @@ By default, ExifToolHelper has some **built-in error checking**, making the meth
             exiftool.exceptions.ExifToolExecuteError: execute returned a non-zero exit status: 1
 
 
-    * Using ExifTool.execute_json()  (Note how the missing file is silently ignored and doesn't show up in returned list.)
+    * ExifTool only, without error checking, using :py:meth:`exiftool.ExifTool.execute_json` (**Note how the missing file is silently ignored and doesn't show up in returned list.**)
 
         .. code-block::
 
@@ -263,9 +263,9 @@ By default, ExifToolHelper has some **built-in error checking**, making the meth
             [{'SourceFile': 'rose.jpg', 'File:FileSize': 4949}, {'SourceFile': 'skyblue.png', 'File:FileSize': 206}]
 
 
-* Example using get_tags() with a typo.  Let's say you wanted to get_tags, but accidentally copy/pasted something and left a ``=`` character behind...
+* Example using :py:meth:`exiftool.ExifToolHelper.get_tags` with a typo.  Let's say you wanted to ``get_tags()``, but accidentally copy/pasted something and left a ``=`` character behind (deletes tag rather than getting!)...
 
-    * Using ExifToolHelper.get_tags()
+    * Using :py:meth:`exiftool.ExifToolHelper.get_tags`
 
         .. code-block::
 
@@ -286,7 +286,7 @@ By default, ExifToolHelper has some **built-in error checking**, making the meth
                 raise ExifToolTagNameError(t)
             exiftool.exceptions.ExifToolTagNameError: Invalid Tag Name found: "XMP:Subject=hi"
 
-    * Using ExifTool.execute_json().  It still errors out, but more cryptic
+    * Using :py:meth:`exiftool.ExifTool.execute_json`.  It still raises an exception, but more cryptic and difficult to debug
 
         .. code-block::
 
@@ -305,7 +305,7 @@ By default, ExifToolHelper has some **built-in error checking**, making the meth
                 raise ExifToolOutputEmptyError(self._last_status, self._last_stdout, self._last_stderr, params)
             exiftool.exceptions.ExifToolOutputEmptyError: execute_json expected output on stdout but got none
 
-    * Using ExifTool.execute().  **No errors, but you have now written to the file instead of reading from it!**
+    * Using :py:meth:`exiftool.ExifTool.execute`.  **No errors, but you have now written to the file instead of reading from it!**
 
         .. code-block::
 

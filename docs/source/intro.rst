@@ -38,7 +38,7 @@ What PyExifTool Is NOT
 Nomenclature
 ============
 
-PyExifTool's namespace is *exiftool*.  While naming the library the same name of the tool it's meant to interface with, it can cause some ambiguity when describing it in docs.
+PyExifTool's namespace is *exiftool*.  Since library name the same name of the tool it's meant to interface with, it can cause some ambiguity when describing it in docs.
 Hence, here's some common nomenclature used.
 
 Because the term `exiftool` is overloaded (lowercase, CapWords case, ...) and can mean several things:

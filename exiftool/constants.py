@@ -51,20 +51,23 @@ PLATFORM_LINUX: bool = (sys.platform == 'linux' or sys.platform == 'linux2')
 
 
 # specify the extension so exiftool doesn't default to running "exiftool.py" on windows (which could happen)
-DEFAULT_EXECUTABLE: str
+DEFAULT_EXECUTABLE: str = "exiftool.exe" if PLATFORM_WINDOWS else "exiftool"
 """The name of the default executable to run.
 
-``exiftool`` (Linux) or ``exiftool.exe`` (Windows)
+``exiftool.exe`` (Windows) or ``exiftool`` (Linux/Mac/non-Windows platforms)
 
 By default, the executable is searched for on one of the paths listed in the
-``PATH`` environment variable.  If it's not on the ``PATH``, a full path should be given to the ExifTool constructor.
+``PATH`` environment variable.  If it's not on the ``PATH``, a full path should be specified in the
+``executable`` argument of the ExifTool constructor (:py:meth:`exiftool.ExifTool.__init__`).
 """
 
-if PLATFORM_WINDOWS:
-	DEFAULT_EXECUTABLE = "exiftool.exe"
-else:  # pytest-cov:windows: no cover
+"""
+# flipped the if/else so that the sphinx documentation shows "exiftool" rather than "exiftool.exe"
+if not PLATFORM_WINDOWS:  # pytest-cov:windows: no cover
 	DEFAULT_EXECUTABLE = "exiftool"
-
+else:
+	DEFAULT_EXECUTABLE = "exiftool.exe"
+"""
 
 
 ##################################
@@ -96,7 +99,7 @@ DEFAULT_BLOCK_SIZE: int = 4096
 should be fine, though other values might give better performance in
 some cases."""
 
-EXIFTOOL_MINIMUM_VERSION = "12.15"
+EXIFTOOL_MINIMUM_VERSION: str = "12.15"
 """this is the minimum *exiftool* version required for current version of PyExifTool
 
 * 8.40 / 8.60 (production): implemented the -stay_open flag
