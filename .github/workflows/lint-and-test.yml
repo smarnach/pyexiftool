@@ -1,0 +1,81 @@
+name: Lint and Test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9, '3.10', 3.11, 3.12]
+
+    env:
+      exiftool_version: 12.15
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+        # while https://github.com/actions/setup-python recommends using a specific dependency version to use cache
+        # we'll see if this just uses it in default configuration
+        # this can't be enabled unless a requirements.txt file exists.  PyExifTool doesn't have any hard requirements
+        #cache: 'pip'
+    - name: Cache Perl ExifTool Download
+      # https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-perl-exiftool
+      with:
+        # path where we would extract the ExifTool source files
+        path: Image-ExifTool-${{ env.exiftool_version }}
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.exiftool_version }}
+
+    - name: Install dependencies
+      run: |
+        # don't have to do this on the GitHub runner, it's going to always be the latest
+        #python -m pip install --upgrade pip
+        # the setup-python uses it this way instead of calling it via module, so maybe this will cache ...
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+        # latest version not yet available on Ubuntu Focal 20.04 LTS, but it's better to install it with all dependencies first
+        sudo apt-get install -qq libimage-exiftool-perl
+        # print this in the log
+        exiftool -ver
+
+        # get just the minimum version to build and compile, later we can go with latest version to test
+        # working with cache: only get if the directory doesn't exist
+        if [ ! -d Image-ExifTool-${{ env.exiftool_version }} ]; then wget http://backpan.perl.org/authors/id/E/EX/EXIFTOOL/Image-ExifTool-${{ env.exiftool_version }}.tar.gz; fi
+        # extract if it was downloaded
+        if [ -f Image-ExifTool-${{ env.exiftool_version }}.tar.gz ]; then tar xf Image-ExifTool-${{ env.exiftool_version }}.tar.gz; fi
+
+        cd Image-ExifTool-${{ env.exiftool_version }}/
+
+        # https://exiftool.org/install.html#Unix
+        perl Makefile.PL
+        make test
+
+        export PATH=`pwd`:$PATH
+        cd ..
+        exiftool -ver
+
+        # save this environment for subsequent steps
+        # https://brandur.org/fragments/github-actions-env-vars-in-env-vars
+        echo "PATH=`pwd`:$PATH" >> $GITHUB_ENV
+    - name: Install pyexiftool
+      run: |
+        # install all supported json processors for tests
+        python -m pip install .[json,test]
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      run: |
+        pytest

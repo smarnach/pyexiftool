@@ -1,0 +1,12 @@
+; some exclusions so it doesn't print stuff for Linux, since you can't get that coverage on windows, ever
+; the list of regex is hardcoded to skip things for coverage report
+[report]
+exclude_lines =
+	pragma: no cover
+	if constants.PLATFORM_LINUX
+	def set_pdeathsig
+	DEFAULT_EXECUTABLE = "exiftool"
+	pytest-cov:windows: no cover
+[run]
+omit =
+#	exiftool/experimental.py
